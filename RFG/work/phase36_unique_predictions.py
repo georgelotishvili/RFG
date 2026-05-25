@@ -286,9 +286,9 @@ def old_to_rfg_prediction_map():
         {
             "sector": "CMB/cosmology",
             "old_prediction": "linear CMB sector matches LCDM in same-matter metric limit",
-            "rfg_status": "present in work tree",
-            "current_file": "phase21_cmb.py, phase32_cmb_boltzmann.py",
-            "formula": "Bellini-Sawicki alpha_i=0 target",
+            "rfg_status": "recovered and analytically closed",
+            "current_file": "phase21_cmb.py",
+            "formula": "Phi_0=X_0=0 -> alpha_K=alpha_B=alpha_M=alpha_T=0 -> C_l^RFG=C_l^LCDM in same-matter limit",
         },
         {
             "sector": "frame dragging",

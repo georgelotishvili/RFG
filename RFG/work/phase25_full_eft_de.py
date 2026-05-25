@@ -30,7 +30,7 @@ Strategy 3 / X4+M3-ის შესრულება.
 
 4. Solid sector აღარ იკარგება α-ებში: α_K, α_B, α_M, α_T-ში ჩნდება
    ESS/Ballesteros-Bellazzini ტიპის სიმბოლური დამატებები. სრული CMB fit მაინც
-   phase32/hi_class ამოცანად რჩება.
+   phase21/hi_class ამოცანად რჩება.
 """
 
 import sympy as sp
@@ -269,4 +269,4 @@ if __name__ == "__main__":
     print("\n7. Status")
     print("  - Strategy 3 X4: background-dependent no-ghost window is now explicit.")
     print("  - Strategy 3 M3: alpha_K formula is corrected and solid-sector deltas are visible.")
-    print("  - Full ESS perturbation derivation and Planck chi^2 fit remain phase32/hi_class work.")
+    print("  - Full ESS perturbation derivation and Planck chi^2 fit remain phase21/hi_class work.")
