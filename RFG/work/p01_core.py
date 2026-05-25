@@ -3,7 +3,34 @@
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
 
+import sys
+
 import sympy as sp
+
+
+P01_MAIN_SECTIONS = {
+    "base",
+    "spherical",
+    "moduli",
+    "stress",
+    "horndeski",
+    "hyperbolicity",
+    "eft",
+    "lorentz",
+    "old",
+}
+
+
+def _requested_main_sections():
+    """Keep import and default script execution light; run demos by section name."""
+    args = {arg.lower() for arg in sys.argv[1:]}
+    if "all" in args:
+        return P01_MAIN_SECTIONS
+    return args & P01_MAIN_SECTIONS
+
+
+def _should_run_main_section(section_name):
+    return section_name in _requested_main_sections()
 
 def init_variables():
     # ფაზური ინვარიანტი
@@ -90,7 +117,8 @@ def analyze_lorentz_constrained_stability():
     c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols('c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1', real=True)
     K_PhiPhi, K_pipi, K_PhiPhi_Mink, K_pipi_Mink = analyze_no_ghost()
     
-    # Lorentz + PPN გვაძლევს ორ პირობას:
+    # Lorentz + PPN გვაძლევს ორ პირობას. ამ ეტაპზე ეს არის exact tuning
+    # condition; დამცავი სიმეტრია/RG-stability ჯერ ცალკე დასამტკიცებელია.
     # 1. c_Y2 = c_I1sq
     # 2. c_I1 = c_Y - 4*c_Y2 + 2*c_YI1 - 2*c_I2 - c_I3
     subs_dict = {
@@ -103,7 +131,7 @@ def analyze_lorentz_constrained_stability():
     
     return K_Phi_constr, K_pi_constr
 
-def analyze_sound_speeds():
+def analyze_sound_speeds(solve_roots=False):
     """
     Minkowski ფონზე ვითვლით ტრანსვერსულ და შერეულ (ფაზა+გრძივი) ხმის სიჩქარეებს.
     """
@@ -155,19 +183,36 @@ def analyze_sound_speeds():
     D = sp.simplify(L_O2.coeff(pi3_z**2))
     M_mix = sp.simplify(L_O2.coeff(dPhi_dot * pi3_z) + L_O2.coeff(pi3_dot * dPhi_z))
     
-    # დეტერმინანტი det(G - cs²·K) = 0 მოგვცემს კვადრატულ განტოლებას cs2-სთვის
+    # დეტერმინანტი det(K*cs² + G) = 0 მოგვცემს კვადრატულ განტოლებას cs2-სთვის.
+    # M_mix=0 ლიმიტში ფესვები უნდა იყოს -C/A და -D/B.
     cs2 = sp.Symbol('cs2', real=True)
-    eq_cs2 = sp.simplify(4*A*B_pi3*cs2**2 - (4*A*D + 4*B_pi3*C + M_mix**2)*cs2 + 4*C*D)
+    eq_cs2 = sp.factor(sp.simplify((A*cs2 + C) * (B_pi3*cs2 + D) - M_mix**2 * cs2))
     
     # sp.solve აბრუნებს უზარმაზარ ფესვებს, ამიტომ ვაბრუნებთ მატრიცის კოეფიციენტებს და დამახასიათებელ განტოლებას
     coeffs = {'A': A, 'B_pi3': B_pi3, 'C': C, 'D': D, 'M_mix': M_mix}
     
-    # აგენტების მოთხოვნით, ფესვებს (eigenvalues) ბოლომდე ვიღებთ სიმბოლურად!
-    cs2_roots = sp.solve(eq_cs2, cs2)
+    # სრული სიმბოლური ფესვები მძიმეა; საჭიროებისას გაიშვება ცალკე.
+    cs2_roots = sp.solve(eq_cs2, cs2) if solve_roots else None
     
     return cs2_T, eq_cs2, coeffs, cs2_roots
 
-if __name__ == "__main__":
+
+def sound_speed_decoupled_limit_check():
+    """Check M_mix=0 limit: roots are -C/A and -D/B."""
+    _cs2_T, eq_cs2, coeffs, _roots = analyze_sound_speeds(solve_roots=False)
+    cs2 = sp.Symbol("cs2", real=True)
+    c_YI1 = sp.Symbol("c_YI1", real=True)
+    eq_decoupled = sp.simplify(eq_cs2.subs(c_YI1, 0))
+    A = sp.simplify(coeffs["A"].subs(c_YI1, 0))
+    B_long = sp.simplify(coeffs["B_pi3"].subs(c_YI1, 0))
+    C = sp.simplify(coeffs["C"].subs(c_YI1, 0))
+    D = sp.simplify(coeffs["D"].subs(c_YI1, 0))
+    return {
+        "phase_root_residual": sp.simplify(eq_decoupled.subs(cs2, -C / A)),
+        "longitudinal_root_residual": sp.simplify(eq_decoupled.subs(cs2, -D / B_long)),
+    }
+
+if __name__ == "__main__" and _should_run_main_section("base"):
     Y, I1, I2, I3 = init_variables()
     L_poly = get_polynomial_lagrangian(Y, I1, I2, I3)
     rho_poly = get_energy_density(L_poly, Y)
@@ -184,7 +229,7 @@ if __name__ == "__main__":
     print("K_PhiPhi > 0 =>", K_PhiPhi, "> 0")
     print("K_pipi > 0 =>", K_pipi, "> 0")
 
-    cs2_T, eq_cs2, coeffs, cs2_roots = analyze_sound_speeds()
+    cs2_T, eq_cs2, coeffs, cs2_roots = analyze_sound_speeds(solve_roots=False)
     print("\n--- Sound Speeds (c_s^2) ---")
     print("Transverse Elastic Mode (pi_T):", cs2_T)
     print("\nMixed Phase + Longitudinal Mode 2x2 System (dPhi, pi_3):")
@@ -195,25 +240,28 @@ if __name__ == "__main__":
     print(f"  G_PhiPhi (C) = {-coeffs['C']}")
     print(f"  G_L (D) = {-coeffs['D']}")
     print(f"  Mixing term (M_mix) = {coeffs['M_mix']}")
-    print("\nამოხსნილი საკუთრივი მნიშვნელობები (Eigenmode Speeds c_s^2):")
-    print("Root 1:", cs2_roots[0])
-    print("Root 2:", cs2_roots[1])
+    print("Decoupled-limit residuals:", sound_speed_decoupled_limit_check())
+    print("\nსაკუთრივი მნიშვნელობები (Eigenmode Speeds c_s^2):")
+    if cs2_roots:
+        print("Root 1:", cs2_roots[0])
+        print("Root 2:", cs2_roots[1])
+    else:
+        print("სიმბოლური ფესვები default რეჟიმში არ იხსნება; გამოიყენება პოლინომი და decoupled ლიმიტი.")
 
     K_Phi_c, K_pi_c = analyze_lorentz_constrained_stability()
     print("\n--- ლოურენც-ინვარიანტული ვაკუუმის სტაბილურობა ---")
     print("კონსტრეინტების (c_Y2 = c_I1sq და PPN) ჩასმის შემდეგ No-Ghost პირობები:")
     print(f"K_PhiPhi > 0 => {K_Phi_c} > 0")
     print(f"K_pipi > 0   => {K_pi_c} > 0")
-    print("დასკვნა: ეს ორი პირობა ერთდროულად სრულდება, თუ c_Y2 > 0 და")
-    print("-6*c_Y2 < (c_Y + 3*c_YI1) < -2*c_Y2. თეორია ფიზიკურად ცოცხალია!")
+    print("დასკვნა: ეს ორი დიაგონალური no-ghost პირობა ერთდროულად სრულდება, თუ c_Y2 > 0 და")
+    print("-6*c_Y2 < (c_Y + 3*c_YI1) < -2*c_Y2. სრული სტაბილურობა დამატებით gradient/eigenmode ტესტს მოითხოვს.")
 
     print("\n--- აგენტთა საბჭოს შენიშვნები ---")
     print("- ფონის შერჩევა (Y=1, B=δ) ჩასმული ansatz-ია, ფარული fine-tuning-ის სტატუსით.")
     print("- 2*pi3_z მოდის ფონის phi^3=z რუკიდან და არის გრძივი პერტურბაციის ხაზოვანი წევრი.")
     print("- ჯვარედინი შერევა დეტალურად აისახა 2x2 მატრიცის დეტერმინანტით.")
-    print("- cs^2 განტოლება ბოლომდე იქნა ამოხსნილი და eigenmode-ების სიჩქარეები ზუსტად")
-    print("  გამოვლინდა (არ დაგვიტოვებია ამოუხსნელი განტოლება). ალგებრული ნიშანი M_mix-სთვის")
-    print("  გასწორდა, რაც უზრუნველყოფს სწორ ფიზიკურ 'Level Repulsion' ეფექტს.")
+    print("- cs^2 განტოლება ჩაწერილია det(K*cs^2 + G)=0 ფორმით;")
+    print("  M_mix=0 ლიმიტში ფესვები არის -C/A და -D/B.")
 
 # ===================== CONSOLIDATED PHASE SECTIONS =====================
 
@@ -259,7 +307,7 @@ def get_spherical_invariants():
     სფერული სტატიკური ანზაცის ინვარიანტები NOTATION.md-ის კონვენციით.
 
     g_inv დიაგონალური: (1/B, -1/A, -1/C, -1/(C*sin^2(theta)))
-    f(r) — რადიალური დეფორმაცია (phi^1 = f(r))
+    f(r) — SO(3)-კოვარიანტული რადიალური დეფორმაცია phi^A = f(r) n^A(theta, phi)
     """
     r = sp.Symbol("r", real=True, positive=True)
     theta = sp.Symbol("theta", real=True, positive=True)
@@ -274,20 +322,15 @@ def get_spherical_invariants():
     # Y = g^{00} * (d_0 Phi)^2 = 1/B
     Y = 1 / B
 
-    # ელასტიური ველი — comoving phi^A = (f(r), theta, phi)
-    # d_1 phi^1 = f'(r), d_2 phi^2 = 1, d_3 phi^3 = 1 (sin(theta)-ის გარეშე)
-    # B^{AB} = -g^{mu nu} d_mu phi^A d_nu phi^B
-    # B^{11} = -g^{11} * f'^2 = -(-1/A)*f'^2 = f'^2/A
-    # B^{22} = -g^{22} * 1 = -(-1/C) = 1/C
-    # B^{33} = -g^{33} * 1 = -(-1/(C*sin^2)) = 1/(C*sin^2)
-    Bmat = sp.zeros(3, 3)
-    Bmat[0, 0] = f_prime**2 / A
-    Bmat[1, 1] = 1 / C
-    Bmat[2, 2] = 1 / (C * sp.sin(theta)**2)
+    # ელასტიური ველი — phi^A=f(r)n^A. მისი eigenvalue-ებია:
+    # lambda_r=f'^2/A და lambda_t=f^2/C (ორჯერ). ეს არჩევანი ხსნის
+    # theta-დამოკიდებულ კოორდინატულ არტეფაქტს phi^A=(f,theta,phi) რუკიდან.
+    lambda_r = f_prime**2 / A
+    lambda_t = f**2 / C
 
-    I1 = sp.simplify(Bmat.trace())
-    I2 = sp.simplify(sp.Rational(1, 2) * (I1**2 - (Bmat * Bmat).trace()))
-    I3 = sp.simplify(Bmat.det())
+    I1 = sp.simplify(lambda_r + 2 * lambda_t)
+    I2 = sp.simplify(2 * lambda_r * lambda_t + lambda_t**2)
+    I3 = sp.simplify(lambda_r * lambda_t**2)
 
     return r, theta, A, B, C, f, Y, I1, I2, I3
 
@@ -312,14 +355,21 @@ def get_stress_tensor():
 
     # q = (g^00, g^11, g^22, g^33) სიმბოლური
     q = sp.symbols("q0 q1 q2 q3", real=True, nonzero=True)
-    # Y = q0, B^{11} = -q1*f'^2, B^{22} = -q2, B^{33} = -q3
+    # SO(3)-კოვარიანტული phi^A=f(r)n^A რუკა:
+    # lambda_r=-q1*f'^2, lambda_theta=-q2*f^2,
+    # lambda_phi=-q3*f^2*sin(theta)^2. სფერული ჩასმის შემდეგ
+    # lambda_theta=lambda_phi=f^2/C.
     Y_sym = q[0]
-    B11 = -q[1] * f_prime**2
-    B22 = -q[2]
-    B33 = -q[3]
-    I1_sym = B11 + B22 + B33
-    I2_sym = sp.Rational(1, 2) * (I1_sym**2 - (B11**2 + B22**2 + B33**2))
-    I3_sym = B11 * B22 * B33
+    lambda_r = -q[1] * f_prime**2
+    lambda_theta = -q[2] * f**2
+    lambda_phi = -q[3] * f**2 * sp.sin(theta)**2
+    I1_sym = lambda_r + lambda_theta + lambda_phi
+    I2_sym = (
+        lambda_r * lambda_theta
+        + lambda_r * lambda_phi
+        + lambda_theta * lambda_phi
+    )
+    I3_sym = lambda_r * lambda_theta * lambda_phi
 
     Y_s, I1_s, I2_s, I3_s = sp.symbols("Ys I1s I2s I3s", real=True)
     L_poly = get_polynomial_lagrangian(Y_s, I1_s, I2_s, I3_s)
@@ -363,7 +413,7 @@ def get_pressures():
     return r, theta, A, B, C, f, rho, p_rad, p_tan, delta_p
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("spherical"):
     print("=" * 72)
     print("PHASE 1 (tensor): სუპერსოლიდის სტრესი სფერული ანზაცით")
     print("რეფერენცია: NOTATION.md, phase22")
@@ -391,6 +441,7 @@ if __name__ == "__main__":
     print("\n5. სტატუსი:")
     print("  - კონვენცია: NOTATION.md-ის აქტიური ფორმა (T_mn = 2*dL/dg^mn - g_mn*L)")
     print("  - სიგნატურა: (+---)")
+    print("  - სოლიდის რუკა: SO(3)-კოვარიანტული phi^A=f(r)n^A, theta-არტეფაქტის გარეშე")
     print("  - phase22-ის Bianchi/Noether იდენტობა იყენებს იმავე კონვენციას")
     print("  - Δp გენერირდება f'(r), A, B, C-ის ფუნქციად — ეს არის სტატიისთვის გამოსატანი სამუშაო შედეგი")
 
@@ -435,7 +486,7 @@ def get_local_moduli():
     
     return H_YY_bg, H_I1I1_bg, H_YI1_bg, H_det_bg
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("moduli"):
     h_YY, h_I1I1, h_YI1, h_det = get_local_moduli()
     print("ფაზური ლოკალური მოდულუსი ფონზე (H_YY):", h_YY)
     print("ელასტიური ლოკალური მოდულუსი ფონზე (H_I1I1):", h_I1I1)
@@ -469,15 +520,14 @@ PHASE 22 (v3.1): სრული ენერგია-იმპულსის 
   diagonal Minkowski/FLRW/Bianchi I ფონებზე სრული L-ით
 - Schwarzschild diagonal ფონზე იგივე იდენტობის reduced Y+I1 smoke-test
 - off-diagonal ვარიაციის ფაქტორის ცალკე smoke-test
-- falsification ცდა, რომ Noether იდენტობა მცდარი T-ის ფორმულას ცხადად
-  იჭერს (არ არის ცარიელი ტავტოლოგია)
+- falsification ცდა, რომ Noether იდენტობა მცდარი T-ის ფორმულას
+  არანულოვანი residual-ით იჭერს
 
 შენიშვნა მკითხველისთვის:
 matter stress tensor-ის off-shell კოვარიანტული დივერგენცია generic-ად
 ნული არ არის — ის ფიზიკურ ველთა Euler-Lagrange წყაროებს უდრის. ეს ფაილი
-ამოწმებს ცხადად ამ იდენტობას, არა "off-shell zero"-ს. falsification_test()
-ცხადყოფს რომ ცდა ფაქტობრივად ფარდდება T-ის ფორმულის სისწორეს — ცარიელი
-ტავტოლოგია არ არის.
+ამოწმებს ამ იდენტობას, არა "off-shell zero"-ს. falsification_test()
+აჩვენებს, რომ T-ის არასწორი ნორმალიზაცია არანულოვან residual-ს ტოვებს.
 """
 
 import sympy as sp
@@ -848,7 +898,7 @@ def is_zero_vector(values):
 # ============================================================================
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("stress"):
     print("=" * 72)
     print("PHASE 22 (v3.1): სრული ენერგია-იმპულსის ტენზორი")
     print("=" * 72)
@@ -1043,14 +1093,14 @@ def ess_solid_sector():
             "ჯამში 4 propagating mode (Horndeski-ის 1-ის ნაცვლად)."
         ),
         "extra_alpha": (
-            "ESS framework Bellini-Sawicki α-ებს დამატებითი წვლილით ცვლის, რადგან "
-            "α_M ≠ 0 და M_*^2_eff = M_Pl^2 + f(c_I1, c_I2, c_I3, a)"
+            "minimal ESS solid changes stress/perturbation equations, not M_*^2; "
+            "alpha_M remains zero unless a nonminimal curvature coupling is added."
         ),
     }
 
 
 # ============================================================================
-# DHOST გავრცობა (Beyond Horndeski) — ცარიელი ცდები
+# DHOST გავრცობა (Beyond Horndeski) — open completion targets
 # ============================================================================
 
 
@@ -1060,7 +1110,8 @@ def dhost_extension():
     Crisostomi-Koyama-Tasinato 2016, Langlois-Noui 2016.
 
     RFG-ის ფესვი დღეს არ მოიცავს DHOST-ის Class I, II, III ფუნქციებს.
-    G_4(X), G_5(X) X-დამოკიდებული ვერსიები ცარიელ ცდად რჩება.
+    G_4(X), G_5(X) X-დამოკიდებული ვერსიები ჯერ არ არის დაფარული; ქვემოთ
+    ჩამოთვლილია კონკრეტული completion targets.
     """
     return [
         "G_4(X) — X-დამოკიდებული coupling, Brans-Dicke-ის ბუნებრივი გავრცობა",
@@ -1075,7 +1126,7 @@ def dhost_extension():
 # ============================================================================
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("horndeski"):
     print("=" * 72)
     print("PHASE 23: RFG-ის ჩასმა Horndeski/DHOST/ESS ფარგლებში")
     print("რეფერენცია: NOTATION.md, phase22, p08_cmb.py")
@@ -1384,7 +1435,7 @@ def compact_det_label():
     return "(A*s + C)*(B*s + D) - M_mix**2*s = 0"
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("hyperbolicity"):
     print("=" * 72)
     print("PHASE 24: Principal symbol + hyperbolicity")
     print("=" * 72)
@@ -1442,7 +1493,7 @@ if __name__ == "__main__":
 
 """
 ================================================================================
-PHASE 25: სრული EFT-of-Dark-Energy — no-ghost window + Bellini-Sawicki α-ები
+PHASE 25: EFT-of-Dark-Energy — necessary no-ghost window + Bellini-Sawicki α-ები
 ================================================================================
 
 სტატუსი:
@@ -1453,7 +1504,7 @@ Strategy 3 / X4+M3-ის შესრულება.
        α_K = (-4*c_Y*X + 48*c_Y2*X^2)/(H^2*M_Pl^2)
    და α_K > 0 მოთხოვნის ცალკე ჩვენება X-სქემაში.
 
-2. Y-სქემაში სრული background-dependent no-ghost პირობა:
+2. Y-სქემაში ფაზური background-dependent no-ghost აუცილებელი პირობა:
        K_Phi = q00 * (c_Y + 6*c_Y2*Y0 + c_YI1*I1_bg) > 0
 
    FLRW normalized background:
@@ -1465,9 +1516,10 @@ Strategy 3 / X4+M3-ის შესრულება.
    coordinate Phi=t smoke-test ცალკე იბეჭდება, რადგან კოორდინატული ნორმალიზაცია
    ფიზიკური no-ghost პირობა არ არის.
 
-4. Solid sector აღარ იკარგება α-ებში: α_K, α_B, α_M, α_T-ში ჩნდება
-   ESS/Ballesteros-Bellazzini ტიპის სიმბოლური დამატებები. სრული CMB fit მაინც
-   phase21/hi_class ამოცანად რჩება.
+4. Solid sector აღარ იკარგება perturbation ledger-ში. მინიმალური coupling-ის
+   შემთხვევაში იგი არ ცვლის M_*^2-ს და alpha_M-ს; alpha_B/alpha_K ტიპის
+   ეფექტური წვლილი საჭიროებს ESS perturbation derivation-ს. სრული CMB fit
+   მაინც phase21/hi_class ამოცანად რჩება.
 """
 
 import sympy as sp
@@ -1613,8 +1665,10 @@ def ess_solid_alpha_bookkeeping():
     """
     ESS/Ballesteros-Bellazzini style solid-sector bookkeeping.
 
-    The file does not claim a full hi_class implementation. It makes the missing
-    solid-sector terms explicit, so α_B/α_M/α_K are no longer silently set to zero.
+    Minimal solid matter does not run the Planck mass by itself.  Therefore
+    alpha_M and alpha_T stay zero in this minimal branch; possible alpha_B/alpha_K
+    stress-sector terms remain explicit open functions until the ESS perturbation
+    derivation is written.
     """
     t = sp.Symbol("t", real=True)
     a = sp.Function("a")(t)
@@ -1624,47 +1678,49 @@ def ess_solid_alpha_bookkeeping():
     I1_bg = sp.Symbol("I1_bg", positive=True)
     c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
 
-    delta_M2 = sp.Function("delta_M2_solid")(a)
     alpha_B_solid = sp.Function("alpha_B_solid")(a)
     alpha_K_solid = sp.Function("alpha_K_solid")(a)
-    alpha_T_solid = sp.Function("alpha_T_solid")(a)
+    delta_M2_nonminimal = sp.Function("delta_M2_nonminimal")(a)
 
-    M_eff_sq = M_Pl**2 + delta_M2
-    alpha_M_total = sp.simplify(sp.diff(sp.log(M_eff_sq), t) / H)
+    M_eff_sq = M_Pl**2
     alpha_K_y_i1 = sp.simplify(
         (-4 * X * (c_Y + c_YI1 * I1_bg) + 48 * c_Y2 * X**2) / (H**2 * M_eff_sq)
+    )
+    alpha_M_nonminimal_candidate = sp.simplify(
+        sp.diff(sp.log(M_Pl**2 + delta_M2_nonminimal), t) / H
     )
 
     return {
         "M_eff_sq": M_eff_sq,
         "alpha_K_total": alpha_K_y_i1 + alpha_K_solid,
         "alpha_B_total": alpha_B_solid,
-        "alpha_M_total": alpha_M_total,
-        "alpha_T_total": alpha_T_solid,
-        "GW170817_filter": "require alpha_T_solid ≈ 0 and phase34 tensor-speed filter",
-        "solid_note": "delta alpha terms require ESS perturbation derivation before CLASS/hi_class fit",
+        "alpha_M_total_minimal": sp.Integer(0),
+        "alpha_T_total_minimal": sp.Integer(0),
+        "alpha_M_nonminimal_candidate": alpha_M_nonminimal_candidate,
+        "GW170817_filter": "minimal branch gives alpha_T=0; nonminimal tensor terms must satisfy |alpha_T| < O(1e-15)",
+        "solid_note": "alpha_B_solid/alpha_K_solid require ESS perturbation derivation before CLASS/hi_class fit",
     }
 
 
 def observational_filters():
     return {
-        "alpha_T": "|alpha_T| < O(1e-15) from GW170817/GRB170817A",
-        "alpha_K": "alpha_K_total > 0 for scalar no-ghost",
-        "alpha_M_alpha_B": "must be fit to CMB/LSS/BAO; not fixed by this smoke-test",
+        "alpha_T": "|alpha_T| < O(1e-15) from GW170817/GRB170817A; minimal branch has alpha_T=0",
+        "alpha_K": "alpha_K_total > 0 is necessary; full kinetic matrix/eigenvalues still required",
+        "alpha_M_alpha_B": "minimal alpha_M=0; alpha_B_solid must be derived before CMB/LSS/BAO fit",
         "DESI_link": "static Lambda_eff is not enough for w(z); dynamic alpha-sector is needed",
     }
 
 
 def class_camb_interface_open():
     return [
-        "export alpha_K(a), alpha_B(a), alpha_M(a), alpha_T(a) arrays",
-        "choose ESS closure for delta_M2_solid(a), alpha_B_solid(a), alpha_K_solid(a)",
+        "export alpha_K(a), alpha_B(a), alpha_M(a), alpha_T(a) arrays after ESS closure",
+        "choose ESS closure for alpha_B_solid(a), alpha_K_solid(a); keep alpha_M=0 unless nonminimal coupling is added",
         "run hi_class/CLASS Planck 2018 likelihood",
         "add BAO/LSS/DESI likelihoods after background H(a) is fixed",
     ]
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("eft"):
     print("=" * 72)
     print("PHASE 25: EFT-of-Dark-Energy — no-ghost + alpha sweep")
     print("=" * 72)
@@ -1674,7 +1730,7 @@ if __name__ == "__main__":
     for key, value in alphas.items():
         print(f"  {key:30s}: {value}")
 
-    print("\n2. Full Y-scheme no-ghost conditions")
+    print("\n2. Y-scheme phase no-ghost necessary conditions")
     conditions = y_scheme_no_ghost_conditions()
     for key, value in conditions.items():
         print(f"  {key:34s}: {value}")
@@ -1704,7 +1760,7 @@ if __name__ == "__main__":
         print(f"  {i}. {task}")
 
     print("\n7. Status")
-    print("  - Strategy 3 X4: background-dependent no-ghost window is now explicit.")
+    print("  - Strategy 3 X4: background-dependent phase no-ghost window is now explicit.")
     print("  - Strategy 3 M3: alpha_K formula is corrected and solid-sector deltas are visible.")
     print("  - Full ESS perturbation derivation and Planck chi^2 fit remain phase21/hi_class work.")
 
@@ -1722,7 +1778,7 @@ PHASE 34: ვაკუუმური სუპერსოლიდი — ლ�
 ================================================================================
 
 სტატუსი:
-ეს ფაილი წარმოადგენს Priority A / X1-ის ფორმალურ მათემატიკურ გადაწყვეტას.
+ეს ბლოკი წარმოადგენს Priority A / X1-ის ფორმალური შემოწმების სამუშაო ბლოკს.
 ამოცანა: დავამტკიცოთ, შეუძლია თუ არა სუპერსოლიდურ ვაკუუმს (სადაც φ^A = x^A) 
 შეინარჩუნოს ლოურენც-ინვარიანტობა გლობალური ბუსტის (Lorentz boost) მიმართ.
 
@@ -1735,8 +1791,9 @@ PHASE 34: ვაკუუმური სუპერსოლიდი — ლ�
 ბუსტს v სიჩქარით, ვითვლით სრულ T_μν-ს და გამოგვაქვს ის ზუსტი ალგებრული 
 პირობა კოეფიციენტებზე, რომელიც ანულებს T_01-ს.
 
-შედეგი: ვაკუუმური სუპერსოლიდი ლოურენც-ინვარიანტულია მხოლოდ მაშინ, თუ 
-სრულდება კონკრეტული კონსტრეინტი.
+შედეგი: background stress-ის დონეზე ვაკუუმური სუპერსოლიდი ლოურენც-ინვარიანტულია
+მხოლოდ მაშინ, თუ სრულდება კონკრეტული კონსტრეინტი. სრული perturbation-sector
+Lorentz audit ცალკე დასახური რჩება.
 """
 
 import sympy as sp
@@ -1811,7 +1868,7 @@ def compare_with_ppn():
     lorentz_req = c_Y/2 + c_Y2 + c_YI1 - c_I1/2 - 3*c_I1sq - c_I2 - c_I3/2
     lorentz_req = sp.simplify(lorentz_req * 2) # ვაორმაგებთ სიმარტივისთვის
     
-    # PPN gamma=1 კონსტრეინტი phase8-დან
+    # PPN gamma=1 კონსტრეინტი შემოდის მზის-სისტემის სექტორიდან (p03_solar.py).
     ppn_gamma_req = c_Y + 4*c_Y2 + 2*c_YI1 - c_I1 - 8*c_I1sq - 2*c_I2 - c_I3
     
     diff = sp.simplify(ppn_gamma_req - lorentz_req)
@@ -1819,7 +1876,7 @@ def compare_with_ppn():
     return lorentz_req, ppn_gamma_req, diff
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("lorentz"):
     print("=" * 72)
     print("PHASE 34: ლოურენც-ინვარიანტობის მკაცრი შემოწმება")
     print("=" * 72)
@@ -1832,9 +1889,9 @@ if __name__ == "__main__":
     
     print("\n2. სივრცული ანიზოტროპია ბუსტირებულ ვაკუუმში (T_11 - T_22)")
     print(f"  T_11 - T_22 ∝ 2 * γ² * v² * [ {aniso_constr} ]")
-    print("  როგორც ვხედავთ, ანიზოტროპიის განულება ზუსტად იგივე პირობას ითხოვს!")
+    print("  ანიზოტროპიის განულება იგივე ალგებრულ პირობას ითხოვს.")
     
-    print("\n3. PPN γ=1 შედარება (phase8)")
+    print("\n3. PPN γ=1 შედარება (p03_solar.py)")
     lor_req, ppn_req, diff = compare_with_ppn()
     print(f"  Lorentz პირობა: {lor_req} = 0")
     print(f"  PPN γ=1 პირობა: {ppn_req} = 0")
@@ -1843,9 +1900,10 @@ if __name__ == "__main__":
     print("\n4. ფიზიკური დასკვნა")
     print("  RFG სუპერსოლიდური ვაკუუმი *არღვევს* ლოურენც-ინვარიანტობას ზოგად შემთხვევაში,")
     print("  თუმცა, თუ კოეფიციენტები აკმაყოფილებს მიღებულ კონსტრეინტს, ვაკუუმის სტრეს-ტენზორი")
-    print("  ნებისმიერ ათვლის სისტემაში რჩება T_μν ∝ η_μν. ეს წყვეტს ე.წ. ლოურენცის კონფლიქტს.")
-    print("  დამატებით, PPN γ=1-თან თავსებადობა მკაცრად მოითხოვს, რომ ფაზური (c_Y2) და")
-    print("  ელასტიური (c_I1sq) კვადრატული სიხისტეები იყოს ტოლი: c_Y2 = c_I1sq.")
+    print("  x-boost background-stress დონეზე რჩება T_μν ∝ η_μν.")
+    print("  სრული ლოურენცის claim საჭიროებს ყველა boost direction-ისა და perturbation sector-ის audit-ს.")
+    print("  დამატებით, p03-ის PPN γ=1 პირობასთან ერთად მიიღება ფაზური და")
+    print("  ელასტიური კვადრატული სიხისტეების ტოლობა: c_Y2 = c_I1sq.")
 
 
 # ===================== OLD BACKBONE INTEGRATION =====================
@@ -1885,7 +1943,7 @@ def old_variational_backbone_ledger():
         scalar Euler-Lagrange equation.
     """
     G, c = sp.symbols("G c", positive=True)
-    kappa = sp.Rational(-1, 2)
+    kappa = sp.Symbol("kappa_core", real=True)
     box_phi, T_matter = sp.symbols("Box_phi T_matter", real=True)
     dphi_sq = sp.Symbol("(d_phi)^2", real=True)
 
@@ -1896,6 +1954,7 @@ def old_variational_backbone_ledger():
         "scalar_trace": sp.Eq(sp.Symbol("T_phi"), -dphi_sq),
         "metric_equation": "G_mn = 8*pi*G*T_mn^(m) + kappa*T_mn^(phi)",
         "kappa": kappa,
+        "legacy_negative_kappa": "rejected; RFG core does not use a wrong-sign scalar sector",
         "direct_scalar_EL": sp.Eq(box_phi, 0),
         "reduced_trace_relation": sp.Eq(box_phi, -8 * sp.pi * G * T_matter / c**4),
         "divergence_identity": "nabla^m T_mn^(phi) = Box(phi) * d_n phi",
@@ -1918,7 +1977,7 @@ def old_operational_geometry_ledger():
     c, dt, d_sigma = sp.symbols("c dt d_sigma", real=True, positive=True)
     d_tau = sp.exp(phi / 2) * dt
     d_ell = sp.exp(-phi / 2) * d_sigma
-    ds2 = -sp.exp(phi) * c**2 * dt**2 + sp.exp(-phi) * d_sigma**2
+    ds2 = sp.exp(phi) * c**2 * dt**2 - sp.exp(-phi) * d_sigma**2
 
     return {
         "pressure_potential": "phi = log(P_stat/P_max), with phi=0 at asymptotic vacuum normalization.",
@@ -1936,27 +1995,28 @@ def old_constraint_dof_count():
     """
     Dirac-Bergmann bookkeeping inherited from OLD/11.
 
-    The count is a structural stability argument, not yet the full bracket
-    closure proof.  It is still valuable because it makes the ghost story
-    precise: the background-constrained system has no independent positive
-    energy partner for runaway pair production.
+    The count is a candidate structural stability argument, not yet the full
+    bracket closure proof.  It is valuable only as a target ledger until the
+    Dirac matrix non-degeneracy/anomaly closure is written.
     """
     phase_dim = 14  # h_ij, pi^ij, phi, p_phi
     first_class = 4  # H and H_i
-    second_class = 4  # two biconformal constraints + two secondary constraints
+    second_class_candidate = 4  # two biconformal constraints + two secondary constraints
     dof_unconstrained = sp.Rational(phase_dim - 2 * first_class, 2)
-    dof_constrained = sp.Rational(phase_dim - 2 * first_class - second_class, 2)
+    dof_constrained_candidate = sp.Rational(
+        phase_dim - 2 * first_class - second_class_candidate, 2
+    )
 
     return {
         "phase_space_dimension": phase_dim,
         "first_class_constraints": first_class,
-        "second_class_constraints": second_class,
+        "second_class_constraints_candidate": second_class_candidate,
         "unconstrained_dof": dof_unconstrained,
-        "constrained_dof": dof_constrained,
+        "constrained_dof_candidate": dof_constrained_candidate,
         "formula": "N_DOF = (dim Gamma - 2*n_first - n_second)/2",
         "physical_reading": (
-            "The biconformal background removes the independent metric partner "
-            "that would allow phantom-sector runaway decay."
+            "If the second-class closure is non-degenerate, the biconformal "
+            "background removes the independent wrong-sign partner channel."
         ),
         "scope_warning": (
             "Full second-class bracket non-degeneracy/anomaly closure remains "
@@ -1975,17 +2035,16 @@ def old_stability_gate():
     """
     return {
         "hyperbolicity": "covered above by phase24 principal-symbol and well-posedness checks",
-        "no_ghost_window": "covered above by phase25 background-dependent Y-scheme/EFT window",
-        "lorentz_vacuum": "covered above by phase34 boost stress-tensor constraint",
+        "no_ghost_window": "phase25 covers the phase-sector necessary window; full kinetic-gradient matrix remains required",
+        "lorentz_vacuum": "phase34 covers background stress under one boost; perturbation-sector Lorentz audit remains required",
         "constraint_reduction": old_constraint_dof_count(),
         "no_fifth_force": (
             "one-metric minimal coupling means matter follows g_mn geodesics; "
             "there is no independent matter-frame scalar force in the core theory"
         ),
         "energy_caveat": (
-            "negative scalar energy is dangerous only with an unsuppressed decay "
-            "partner; the constrained background removes that channel, while "
-            "matter-sector channels are Planck/EFT suppressed rather than ignored"
+            "wrong-sign energy channels are not claimed closed until the "
+            "Dirac-bracket closure and EFT matter-channel audit are complete"
         ),
         "old_files_drained": [
             "OLD/1. ISPG_FieldEquations.tex",
@@ -2006,7 +2065,7 @@ def stage_a1_old_backbone_status():
     }
 
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("old"):
     print("=" * 72)
     print("STAGE A1: OLD backbone -> RFG core integration ledger")
     print("=" * 72)
@@ -2034,4 +2093,9 @@ if __name__ == "__main__":
     print("  - OLD field-equation, stress, emergent-geometry and stability ledgers")
     print("    are now represented inside p01_core.py.")
     print("  - Remaining proof target: full second-class bracket closure/anomaly audit.")
+
+
+if __name__ == "__main__" and not _requested_main_sections():
+    print("p01_core.py loaded. Run a section explicitly:")
+    print("  python RFG\\work\\p01_core.py base|spherical|moduli|stress|horndeski|hyperbolicity|eft|lorentz|old")
 
