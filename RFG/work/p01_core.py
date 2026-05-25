@@ -1847,3 +1847,191 @@ if __name__ == "__main__":
     print("  დამატებით, PPN γ=1-თან თავსებადობა მკაცრად მოითხოვს, რომ ფაზური (c_Y2) და")
     print("  ელასტიური (c_I1sq) კვადრატული სიხისტეები იყოს ტოლი: c_Y2 = c_I1sq.")
 
+
+# ===================== OLD BACKBONE INTEGRATION =====================
+
+"""
+STAGE A1: OLD backbone -> RFG core integration ledger
+
+Purpose:
+    This block drains the valuable mathematical backbone of the old files
+
+        OLD/1. ISPG_FieldEquations.tex
+        OLD/2. ISPG_EnergyMomentum.tex
+        OLD/3. ISPG_EmergentGeometry.tex
+        OLD/11. ISPG_Stability.tex
+
+    into the new working core.  It is intentionally a ledger/theorem layer:
+    the detailed stress, Bianchi, Horndeski/EFT, principal-symbol and Lorentz
+    calculations already live above in this same p01_core.py file.
+
+Status:
+    Integrated as RFG-core logic.  The only remaining non-closed item is the
+    full Dirac-Bergmann second-class bracket closure proof; the DOF count and
+    stability scope are made explicit here so the old files no longer carry
+    unique conceptual content.
+"""
+
+
+def old_variational_backbone_ledger():
+    """
+    Compact one-metric variational ledger inherited from OLD/1 and OLD/2.
+
+    The key point is the distinction between:
+      - direct Euler-Lagrange variation of the scalar: Box(phi)=0 under
+        minimal matter coupling;
+      - the matter-sourced scalar equation used in the reduced sector, which
+        is a trace/bi-conformal consistency relation, not a second independent
+        scalar Euler-Lagrange equation.
+    """
+    G, c = sp.symbols("G c", positive=True)
+    kappa = sp.Rational(-1, 2)
+    box_phi, T_matter = sp.symbols("Box_phi T_matter", real=True)
+    dphi_sq = sp.Symbol("(d_phi)^2", real=True)
+
+    return {
+        "single_metric": "Matter couples minimally to one physical metric g_mn; no Einstein/Jordan frame split.",
+        "matter_stress_definition": "delta S_m = -1/2 int sqrt(-g) T_mn^(m) delta g^mn",
+        "scalar_tensor": "T_mn^(phi) = d_m phi d_n phi - 1/2 g_mn (d phi)^2",
+        "scalar_trace": sp.Eq(sp.Symbol("T_phi"), -dphi_sq),
+        "metric_equation": "G_mn = 8*pi*G*T_mn^(m) + kappa*T_mn^(phi)",
+        "kappa": kappa,
+        "direct_scalar_EL": sp.Eq(box_phi, 0),
+        "reduced_trace_relation": sp.Eq(box_phi, -8 * sp.pi * G * T_matter / c**4),
+        "divergence_identity": "nabla^m T_mn^(phi) = Box(phi) * d_n phi",
+        "conservation_loop": (
+            "Bianchi + minimal matter coupling close the system on-shell; "
+            "the sourced scalar relation is reduced-sector consistency."
+        ),
+    }
+
+
+def old_operational_geometry_ledger():
+    """
+    Operational metric derivation inherited from OLD/3.
+
+    The old theory's useful content is not a separate postulate set anymore:
+    it becomes the RFG interpretation of why the diagonal metric is
+    bi-conformal and why gamma_PPN=1 follows structurally.
+    """
+    phi = sp.Symbol("phi", real=True)
+    c, dt, d_sigma = sp.symbols("c dt d_sigma", real=True, positive=True)
+    d_tau = sp.exp(phi / 2) * dt
+    d_ell = sp.exp(-phi / 2) * d_sigma
+    ds2 = -sp.exp(phi) * c**2 * dt**2 + sp.exp(-phi) * d_sigma**2
+
+    return {
+        "pressure_potential": "phi = log(P_stat/P_max), with phi=0 at asymptotic vacuum normalization.",
+        "clock_law": sp.Eq(sp.Symbol("d_tau"), d_tau),
+        "rod_law": sp.Eq(sp.Symbol("d_ell"), d_ell),
+        "biconformal_metric": sp.Eq(sp.Symbol("ds2"), ds2),
+        "weak_field_identification": "Phi_N = Psi = c^2*phi/2",
+        "ppn_gamma": sp.Eq(sp.Symbol("gamma_PPN"), 1),
+        "stationary_extension": "rotation lives in g_0i/A_i; the diagonal pressure metric is not altered.",
+        "one_metric_rule": "No disformal matter metric is introduced; all tests are in the same physical metric.",
+    }
+
+
+def old_constraint_dof_count():
+    """
+    Dirac-Bergmann bookkeeping inherited from OLD/11.
+
+    The count is a structural stability argument, not yet the full bracket
+    closure proof.  It is still valuable because it makes the ghost story
+    precise: the background-constrained system has no independent positive
+    energy partner for runaway pair production.
+    """
+    phase_dim = 14  # h_ij, pi^ij, phi, p_phi
+    first_class = 4  # H and H_i
+    second_class = 4  # two biconformal constraints + two secondary constraints
+    dof_unconstrained = sp.Rational(phase_dim - 2 * first_class, 2)
+    dof_constrained = sp.Rational(phase_dim - 2 * first_class - second_class, 2)
+
+    return {
+        "phase_space_dimension": phase_dim,
+        "first_class_constraints": first_class,
+        "second_class_constraints": second_class,
+        "unconstrained_dof": dof_unconstrained,
+        "constrained_dof": dof_constrained,
+        "formula": "N_DOF = (dim Gamma - 2*n_first - n_second)/2",
+        "physical_reading": (
+            "The biconformal background removes the independent metric partner "
+            "that would allow phantom-sector runaway decay."
+        ),
+        "scope_warning": (
+            "Full second-class bracket non-degeneracy/anomaly closure remains "
+            "a technical proof target; matter-mediated UV stability still needs "
+            "the EFT completion already tracked in phase25."
+        ),
+    }
+
+
+def old_stability_gate():
+    """
+    Consolidated stability claims and limits.
+
+    This is the logical gate for claiming the old stability material has been
+    transferred into the new RFG core.
+    """
+    return {
+        "hyperbolicity": "covered above by phase24 principal-symbol and well-posedness checks",
+        "no_ghost_window": "covered above by phase25 background-dependent Y-scheme/EFT window",
+        "lorentz_vacuum": "covered above by phase34 boost stress-tensor constraint",
+        "constraint_reduction": old_constraint_dof_count(),
+        "no_fifth_force": (
+            "one-metric minimal coupling means matter follows g_mn geodesics; "
+            "there is no independent matter-frame scalar force in the core theory"
+        ),
+        "energy_caveat": (
+            "negative scalar energy is dangerous only with an unsuppressed decay "
+            "partner; the constrained background removes that channel, while "
+            "matter-sector channels are Planck/EFT suppressed rather than ignored"
+        ),
+        "old_files_drained": [
+            "OLD/1. ISPG_FieldEquations.tex",
+            "OLD/2. ISPG_EnergyMomentum.tex",
+            "OLD/3. ISPG_EmergentGeometry.tex",
+            "OLD/11. ISPG_Stability.tex",
+        ],
+    }
+
+
+def stage_a1_old_backbone_status():
+    return {
+        "variational": old_variational_backbone_ledger(),
+        "operational_geometry": old_operational_geometry_ledger(),
+        "constraint_dof": old_constraint_dof_count(),
+        "stability_gate": old_stability_gate(),
+        "integration_status": "Stage A.1 integrated into p01_core.py",
+    }
+
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("STAGE A1: OLD backbone -> RFG core integration ledger")
+    print("=" * 72)
+
+    status = stage_a1_old_backbone_status()
+
+    print("\n1. Variational backbone")
+    for key, value in status["variational"].items():
+        print(f"  {key:26s}: {value}")
+
+    print("\n2. Operational geometry")
+    for key, value in status["operational_geometry"].items():
+        print(f"  {key:26s}: {value}")
+
+    print("\n3. Constraint DOF count")
+    for key, value in status["constraint_dof"].items():
+        print(f"  {key:26s}: {value}")
+
+    print("\n4. Stability gate")
+    gate = status["stability_gate"]
+    for key, value in gate.items():
+        print(f"  {key:26s}: {value}")
+
+    print("\n5. Integration verdict")
+    print("  - OLD field-equation, stress, emergent-geometry and stability ledgers")
+    print("    are now represented inside p01_core.py.")
+    print("  - Remaining proof target: full second-class bracket closure/anomaly audit.")
+

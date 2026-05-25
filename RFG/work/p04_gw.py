@@ -889,12 +889,13 @@ PPK პარამეტრები:
 RFG-ის პროგნოზი:
 - 1PN: GR-ის იდენტური (PPN γ=β=1)
 - 2.5PN orbital decay: ცდის სქელეტი (phase26)
-- Scalar dipole: phase9 ღია (s_A = 0 postulated)
+- Scalar dipole: STAGE A4 correction — s_universal=1/2, observable dipole
+  depends on differential s_excess
 
 ცდის ფარგლი GR vs RFG:
 - 1PN ემთხვევა
 - 2.5PN ცდის სქელეტი
-- Scalar dipole — RFG-ის ღია ცდა
+- Scalar dipole — RFG-ის ღია ცდა only through matter-body s_excess
 """
 
 import math
@@ -949,16 +950,16 @@ def rfg_predictions():
         "omega_dot_RFG": "იდენტური GR-ის (γ=β=1)",
         "Einstein_delay_RFG": "იდენტური GR-ის (Pound-Rebka + gravitational time dilation)",
         "P_b_dot_quadrupole": "იდენტური GR-ის leading order (phase9 c_T=c)",
-        "P_b_dot_dipole_RFG": "phase9-დან s_A = 0 (postulated) ⇒ no dipole",
-        "P_b_dot_dipole_status": "OPEN — strong-field s_A derivation აკლია (Damour-Esposito-Farèse)",
+        "P_b_dot_dipole_RFG": "universal s=1/2 effaces leading dipole; only s_excess differences radiate",
+        "P_b_dot_dipole_status": "OPEN for matter-filled bodies; exact s_excess=0 for vacuum compact objects",
     }
 
 
 def open_tests():
     """ცდის ღია ნაბიჯები."""
     return [
-        "Strong-field s_A derivation Damour-Esposito-Farèse სცენარით",
-        "P_b_dot_dipole_RFG რიცხობრივი ცდა |α_0| < 2e-5 (PSR J1738+0333) ფარგლი",
+        "Matter-body s_excess derivation Damour-Esposito-Farèse სცენარით",
+        "P_b_dot_dipole_RFG რიცხობრივი ცდა |s_excess,NS-s_excess,WD| pulsar bounds ფარგლებში",
         "Geodetic precession Ω̇ — Lense-Thirring (phase30) გადახედვა",
         "ცდის ცხადი interface PTA კოლაბორაციით (NANOGrav, EPTA)",
     ]
@@ -994,7 +995,7 @@ if __name__ == "__main__":
     print("\n5. სტატუსი")
     print("  - 1PN: RFG=GR ფიქსირდება (phase8 γ=β=1)")
     print("  - 2.5PN orbital decay: GR=RFG leading order, dipole ცდის სქელეტი")
-    print("  - Strong-field s_A — ღია (Damour-Esposito-Farèse)")
+    print("  - Strong-field s_universal=1/2; matter-body s_excess — ღია")
     print("  - PSR J0737-3039 ცდის სრული χ² fit — ღია")
 
 
@@ -1021,15 +1022,17 @@ PHASE 28: PSR J1738+0333 — Scalar dipole radiation bound
 scalar-tensor theory predictions:
 - Brans-Dicke: dipole ∝ (α_NS - α_WD)²
 - Damour-Esposito-Farèse: strong-field "spontaneous scalarization"
-- RFG (phase9): s_A = 0 postulated ⇒ no dipole
+- RFG corrected: s_universal = 1/2, and the observable dipole depends on
+  s_excess,A - s_excess,B, not on the universal part.
 
 RFG-ის ცდა:
 1. dipole radiation: ΔP_b/P_b ∝ (s_A - s_B)² · (orbital velocity)²
-2. RFG-ში s_A = ∂ln(m_A)/∂Φ
-3. Minimal coupling ⇒ s_A = 0 (postulated)
-4. Strong-field correction (Damour-Esposito-Farèse): s_A ~ Ω/(mc²)
-5. PSR J1738 binding energy: Ω/(mc²) ~ 0.1 (NS) vs ~10^(-6) (WD)
-6. ცდის ფარგლი: |α_0| ≤ 2 × 10⁻⁵
+2. RFG-ში s_A = -1/2 · ∂ln(M_Komar,A)/∂φ_infinity
+3. Bare/kinematic Komar response gives s_universal = 1/2
+4. Dipole source is the non-universal residue s_excess = s - 1/2
+5. Strong-field correction (Damour-Esposito-Farèse analogue): s_excess may depend on Ω/(mc²)
+6. PSR J1738 binding energy: Ω/(mc²) ~ 0.1 (NS) vs ~10^(-6)-10^(-4) (WD)
+7. ცდის ფარგლი: |α_0| ≤ 2 × 10⁻⁵
 """
 
 import math
@@ -1068,11 +1071,11 @@ def scalar_dipole_prediction():
     """
     return {
         "Brans_Dicke_form": "ΔP_b ∝ (α_A - α_B)²",
-        "RFG_postulated_phase9": "s_A = ∂ln(m_A)/∂Φ = 0 (minimal coupling)",
+        "RFG_corrected_stageA4": "s_universal=1/2; dipole controlled by s_excess,A - s_excess,B",
         "Damour_strong_field": "s_A = α_0 + β_0 · (Ω_A/(m_A c²))",
         "NS_binding_energy": "Ω_NS/(m_NS c²) ~ 0.1 (R~10 km, M~1.4 M_sun)",
         "WD_binding_energy": "Ω_WD/(m_WD c²) ~ 10^(-4) (R~10^4 km)",
-        "asymmetry_bound": f"|s_NS - s_WD| < {PSR_J1738_DATA['delta_alpha0_NS_WD_bound']:.1e}",
+        "asymmetry_bound": f"|s_excess,NS - s_excess,WD| < {PSR_J1738_DATA['delta_alpha0_NS_WD_bound']:.1e}",
         "alpha0_bound": f"|α_0| < {PSR_J1738_DATA['alpha0_bound_95CL']:.1e}",
     }
 
@@ -1082,9 +1085,9 @@ def rfg_strong_field_open():
     return [
         "Komar-integrand argument (phase9 Appendix 16) — s_A ≈ 1/2 leading order",
         "Bi-conformal weight e^(-φ) · ρ_0 — kinematic redshift + spatial volume",
-        "Structural-response correction (open task per phase9)",
+        "Structural-response correction s_excess (open task per OLD/16)",
         "Strong-field NS: Ω/mc² ~ 0.1 — non-perturbative regime",
-        "PSR J1738 χ² fit RFG s_A-დან — ცდა ღია",
+        "PSR J1738 χ² fit RFG s_excess-დან — ცდა ღია",
         "Future: ngVLA + SKA pulsar timing → 100× precision",
     ]
 
@@ -1093,10 +1096,10 @@ def falsification_window():
     """RFG-ის ფალსიფიკაციის ფანჯარა PSR J1738-ში."""
     return {
         "current_bound": "|α_0| < 2 × 10⁻⁵ (PSR J1738)",
-        "RFG_postulated": "s_A = 0 (consistent with bound)",
-        "RFG_derived_value": "OPEN — strong-field calculation needed",
-        "if_s_A_nonzero_NS_O(0.01)": "FALSIFIED (RFG αA-αB ≫ 2e-5)",
-        "if_s_A_zero_strictly": "RFG ემთხვევა, არ ფალსიფიცირდება",
+        "RFG_stageA4": "s_universal=1/2; require small differential s_excess",
+        "RFG_derived_value": "OPEN — matter-filled s_excess calculation needed",
+        "if_s_excess_NS_minus_WD_O(0.01)": "FALSIFIED (RFG differential charge too large)",
+        "if_s_excess_zero_strictly": "RFG ემთხვევა, არ ფალსიფიცირდება",
     }
 
 
@@ -1120,7 +1123,7 @@ if __name__ == "__main__":
     for key, val in dipole.items():
         print(f"  {key:25s}: {val}")
 
-    print("\n4. RFG strong-field s_A — ცდის ღია ნაბიჯები")
+    print("\n4. RFG strong-field s_excess — ცდის ღია ნაბიჯები")
     for i, task in enumerate(rfg_strong_field_open(), 1):
         print(f"  {i}. {task}")
 
@@ -1131,7 +1134,133 @@ if __name__ == "__main__":
 
     print("\n6. სტატუსი")
     print("  - PSR J1738 |α_0| < 2e-5 დაფიქსირებულია")
-    print("  - RFG phase9 s_A = 0 postulated (minimal coupling) — consistent")
-    print("  - Strong-field s_A derivation — ღია (Damour-Esposito-Farèse-ის ანალოგი)")
-    print("  - If derived s_A > 1e-5 in NS — RFG ფალსიფიცირდება")
+    print("  - RFG corrected: s_universal = 1/2; dipole sees only s_excess differences")
+    print("  - Strong-field s_excess derivation — ღია (Damour-Esposito-Farèse-ის ანალოგი)")
+    print("  - If derived differential s_excess is too large in NS-WD — RFG ფალსიფიცირდება")
+
+
+# =============================================================================
+# STAGE A4: OLD scalar sensitivity -> GW/pulsar integration ledger
+# =============================================================================
+
+def stage_a4_sensitivity_definition():
+    """
+    Drain of OLD/16. ISPG_Sensitivity.tex into the new RFG GW sector.
+
+    Corrected core statement:
+    - old wording "s_A=0" is too weak/wrong for RFG;
+    - the Komar/operational response gives a universal sensitivity s=1/2;
+    - scalar charge is not absent, but its universal part is effaced in dipole
+      radiation because binaries see charge differences.
+    """
+    return {
+        "source": "OLD/16. ISPG_Sensitivity.tex",
+        "definition": "s_A = -1/2 * partial ln M_Komar,A / partial phi_infinity",
+        "bare_komar_response": (
+            "M_Komar^(0)(phi_infinity + delta) = exp(-delta) "
+            "* M_Komar^(0)(phi_infinity)"
+        ),
+        "dlnM_dphi_infinity": -1,
+        "universal_sensitivity": sp.Rational(1, 2),
+        "scalar_charge": "q_s,A = -partial M_A / partial phi_infinity is nonzero",
+        "observable_dipole_claim": (
+            "dipole is controlled by the differential non-universal residue, "
+            "not by the common universal charge"
+        ),
+    }
+
+
+def stage_a4_dipole_effacement_formula():
+    """Symbolic cancellation of the universal scalar response in a binary."""
+    s_univ, sx_A, sx_B = sp.symbols("s_universal s_excess_A s_excess_B")
+    s_A = s_univ + sx_A
+    s_B = s_univ + sx_B
+    return {
+        "s_A_decomposition": sp.Eq(sp.Symbol("s_A"), s_A),
+        "s_B_decomposition": sp.Eq(sp.Symbol("s_B"), s_B),
+        "universal_part": sp.Eq(s_univ, sp.Rational(1, 2)),
+        "dipole_source": sp.simplify(s_A - s_B),
+        "dipole_power_scaling": "P_dipole ∝ (s_excess,A - s_excess,B)^2",
+        "interpretation": (
+            "RFG may have scalar charge, but binary dipole radiation is absent "
+            "when the excess sensitivities match or vanish."
+        ),
+    }
+
+
+def stage_a4_modified_tov_ledger():
+    """
+    Matter-body caveat from OLD/16.
+
+    The pressure-gradient part is shift-invariant because it depends on dphi/dr.
+    The full scalar equation contains exp(-phi), so exact strong-field
+    cancellation for matter-filled stars remains a real calculation, not a
+    slogan.
+    """
+    r, rho, p, c, G, phi = sp.symbols("r rho p c G phi", positive=True)
+    dphi_dr = sp.Symbol("dphi_dr")
+    trace_source = rho * c**2 - 3 * p
+    return {
+        "modified_TOV_pressure_gradient": sp.Eq(
+            sp.Symbol("dp_dr"),
+            -(rho + p / c**2) * (c**2 / 2) * dphi_dr,
+        ),
+        "shift_invariant_part": "dp/dr depends on dphi/dr, not on phi itself",
+        "interior_scalar_equation": (
+            "phi'' + (2/r) phi' = (8*pi*G/c^4) * exp(-phi) * (rho*c^2 - 3p)"
+        ),
+        "trace_source": trace_source,
+        "matter_caveat": (
+            "phi -> phi+delta rescales the source by exp(-delta); weak-field "
+            "shift symmetry is good, exact NS cancellation is open."
+        ),
+    }
+
+
+def stage_a4_nohair_and_pulsar_constraints():
+    """Status map for vacuum compact objects, matter bodies, and pulsar bounds."""
+    return {
+        "test_particle": {
+            "s": sp.Rational(1, 2),
+            "s_excess": 0,
+            "status": "exact kinematic/operational response",
+        },
+        "vacuum_compact_object": {
+            "s": sp.Rational(1, 2),
+            "s_excess": 0,
+            "status": "exact no-hair/dipole-effacement branch",
+        },
+        "matter_filled_body": {
+            "s": "1/2 + s_excess",
+            "s_excess": "open structural-response correction",
+            "status": "must be computed with coupled TOV-scalar system",
+        },
+        "PSR_J0337_Nordtvedt_bound": "|s_excess| approximately < 2.6e-6",
+        "PSR_J1738_orbital_decay_bound": "|s_excess,NS - s_excess,WD| constrained; old normalization ~0.05",
+        "LIGO_BH_BH": "exact s_excess=0 branch predicts no scalar dipole for vacuum BH-like objects",
+    }
+
+
+def stage_a4_scalar_sensitivity_status():
+    """Compact checklist showing what OLD/16 contributes to the new theory."""
+    return {
+        "migrated": True,
+        "new_file": "p04_gw.py",
+        "old_file_drained": "OLD/16. ISPG_Sensitivity.tex",
+        "replaces": "s_A=0 postulate",
+        "stronger_RFG_statement": (
+            "s_universal=1/2 and dipole radiation tests only the differential "
+            "excess sensitivity"
+        ),
+        "proved_or_exact": [
+            "Komar bare response gives universal s=1/2",
+            "universal part cancels algebraically from s_A-s_B",
+            "vacuum compact objects sit on exact s_excess=0 branch",
+        ],
+        "open_math": [
+            "full coupled TOV-scalar proof that matter-filled NS/WD have tiny s_excess",
+            "map s_excess into the normalized pulsar-timing alpha_A-alpha_B convention",
+            "fold the result into waveform beta_dipole scans above",
+        ],
+    }
 

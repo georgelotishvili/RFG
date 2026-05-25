@@ -350,3 +350,183 @@ if __name__ == "__main__":
     print("  - rho-ში c_I2, c_I3 წევრები არსებობს — ეს შესწორება სამუშაო ბაზაში დახურულია")
     print("  - p_iso §3-ის ფორმასთან — შემოწმდეს ცალკე")
 
+
+# ===================== OLD PROCESS-TIME INTEGRATION =====================
+
+"""
+STAGE A2: Pressure-history process time
+
+Source drained from:
+    OLD/18. ISPG_ProcessTime.tex
+
+Purpose:
+    Integrate the old process-time appendix into the new RFG cosmology file.
+    This does not replace FLRW cosmic time.  It supplies a bookkeeping layer
+    for pressure-controlled intrinsic rates in the matter/resonance sector.
+
+Core warning:
+    phi_0=0 on the locked FLRW metric branch is not contradicted by a
+    nonzero coarse-grained thermodynamic pressure-history diagnostic
+    phi_bg(z).  The latter does not enter the primary CMB metric as an
+    extra scalar background mode.
+"""
+
+
+def process_time_scaling_ledger():
+    """
+    Unified pressure-history scaling from OLD/18.
+
+    C(z) is normalized to C(0)=1.  It weights intrinsic process-time rates
+    only after the rate variable has been tagged.
+    """
+    z = sp.Symbol("z", real=True, nonnegative=True)
+    phi_bg = sp.Function("phi_bg")
+    C = sp.exp((phi_bg(z) - phi_bg(0)) / 2)
+
+    return {
+        "C_of_z": sp.Eq(sp.Function("C")(z), C),
+        "process_clock": "d tau_proc / dt = C(z)",
+        "rod_scale": "d ell(z) / d ell(0) = C(z)^(-1)",
+        "mass_scale": "m_eff(z) / m_eff(0) = C(z)",
+        "tail_power_perturbative": "P_tail(z) / P_tail(0) = C(z)^4",
+        "normalization": "C(0)=1 by present-epoch calibration",
+    }
+
+
+def flrw_vs_process_time_separation():
+    """
+    Gate that prevents process-time from spoiling the CMB/FLRW branch.
+    """
+    return {
+        "metric_FLRW_branch": "phi_0(t)=0 in matter-clock cosmic-time gauge",
+        "process_diagnostic": "phi_bg(z)=coarse-grained pressure-history diagnostic",
+        "not_a_second_metric_mode": True,
+        "CMB_rule": (
+            "Do not insert phi_bg(z) as an extra homogeneous metric perturbation "
+            "in the Einstein-Boltzmann/CMB sector."
+        ),
+        "where_it_acts": (
+            "Use C(z) only for tagged intrinsic matter/resonance process rates, "
+            "formation histories, and tail-emission bookkeeping."
+        ),
+    }
+
+
+def process_time_integrals():
+    """
+    Symbolic coordinate lookback and pressure-weighted process-time integrals.
+    """
+    z, zp = sp.symbols("z z_prime", real=True, nonnegative=True)
+    H = sp.Function("H")
+    C = sp.Function("C")
+
+    lookback = sp.Integral(1 / ((1 + zp) * H(zp)), (zp, 0, z))
+    process = sp.Integral(C(zp) / ((1 + zp) * H(zp)), (zp, 0, z))
+    enhancement = sp.Symbol("A_proc")
+
+    return {
+        "coordinate_lookback_time": sp.Eq(sp.Function("t_lb")(z), lookback),
+        "cumulative_process_time": sp.Eq(sp.Function("tau_proc")(z), process),
+        "enhancement_factor": sp.Eq(enhancement, process / lookback),
+        "past_reading": "if C(z)>1 for z>0, intrinsic process history exceeds naive lookback time",
+        "future_reading": "if C(t)->0 sufficiently fast, future process-time budget may be finite while coordinate time is infinite",
+    }
+
+
+def rate_conversion_no_double_counting():
+    """
+    OLD/18 rate-conversion table in executable data form.
+    """
+    return [
+        {
+            "rate_tag": "intrinsic_process_time_rate",
+            "symbolic_rule": "dX/dt = C(z) * dX/dtau_proc",
+            "use_for": "microscopic resonance-process laws explicitly defined per tau_proc",
+            "double_counting_check": "apply exactly one C(z) factor",
+        },
+        {
+            "rate_tag": "local_proper_time_rate",
+            "symbolic_rule": "convert only after specifying local clock calibration",
+            "use_for": "local particle decay, local oscillon/tail emission at an epoch",
+            "double_counting_check": "do not also add an independent process-time factor unless the law was redefined per tau_proc",
+        },
+        {
+            "rate_tag": "coordinate_cosmic_time_rate",
+            "symbolic_rule": "no extra C(z)",
+            "use_for": "FLRW background equations, Boltzmann evolution, merger crossing times",
+            "double_counting_check": "the dot already fixes the time variable",
+        },
+        {
+            "rate_tag": "observed_time_rate",
+            "symbolic_rule": "keep standard metric redshift/time dilation",
+            "use_for": "observed spectra, light curves, population-inferred rates",
+            "double_counting_check": "do not reinterpret observed redshift stretch as process time",
+        },
+    ]
+
+
+def process_time_application_map():
+    """
+    Practical map for later MOND/CMB/dark-energy integrations.
+    """
+    return {
+        "MOND_vortex_maturation": (
+            "coordinate-time H_eff remains the main local calibration; process weighting "
+            "is a refinement only for declared intrinsic formation-rate laws"
+        ),
+        "JWST_high_z_galaxies": (
+            "can reduce required intrinsic development time only after the formation "
+            "rate is tagged as process-controlled"
+        ),
+        "resonant_tail_dark_energy": (
+            "tail-power scaling C^4 is a bookkeeping input; the time variable of "
+            "P_tail must be declared before integration"
+        ),
+        "cluster_mergers": (
+            "merger crossing and redistribution times are local epoch quantities; "
+            "do not multiply Bullet/cluster crossing times by C(z)"
+        ),
+        "CMB": (
+            "primary CMB uses locked FLRW branch; C(z) is not an extra background metric mode"
+        ),
+    }
+
+
+def stage_a2_process_time_status():
+    return {
+        "scaling": process_time_scaling_ledger(),
+        "flrw_separation": flrw_vs_process_time_separation(),
+        "integrals": process_time_integrals(),
+        "rate_table": rate_conversion_no_double_counting(),
+        "applications": process_time_application_map(),
+        "integration_status": "Stage A.2 integrated into p02_cosmo.py",
+    }
+
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("STAGE A2: Pressure-history process time")
+    print("=" * 72)
+
+    status = stage_a2_process_time_status()
+
+    print("\n1. Unified scaling")
+    for key, value in status["scaling"].items():
+        print(f"  {key:24s}: {value}")
+
+    print("\n2. FLRW/process-time separation")
+    for key, value in status["flrw_separation"].items():
+        print(f"  {key:24s}: {value}")
+
+    print("\n3. Redshift integrals")
+    for key, value in status["integrals"].items():
+        print(f"  {key:28s}: {value}")
+
+    print("\n4. No-double-counting rate tags")
+    for row in status["rate_table"]:
+        print(f"  - {row['rate_tag']}: {row['symbolic_rule']}")
+
+    print("\n5. Application map")
+    for key, value in status["applications"].items():
+        print(f"  {key:26s}: {value}")
+

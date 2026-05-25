@@ -1217,3 +1217,132 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
+
+# ===================== OLD COMPACT INTEGRATION =====================
+
+"""
+STAGE A3: OLD compact-object boundary/interior/verification ledger
+
+Sources drained from:
+    OLD/12. ISPG_Geodesics.tex
+    OLD/14. ISPG_Interior.tex
+    OLD/15. ISPG_Verification_Task1a.tex
+
+Most of OLD/12 and OLD/14 is already represented above by the exponential
+exterior, rarefaction/core matching, horizonless boundary, photon/shadow and
+golden-ISCO blocks.  This final ledger adds the missing OLD/15 perturbation
+verification and records exactly what remains open.
+"""
+
+
+def stage_a3_old_geodesic_interior_drain():
+    return {
+        "OLD/12_geodesics": {
+            "status": "integrated",
+            "new_functions": [
+                "analyze_horizon_throat_and_boundary",
+                "analyze_photon_shadow_isco",
+                "analyze_geodesic_completion_by_core_matching",
+            ],
+            "core_results": [
+                "photon sphere r_ph = r_s",
+                "critical impact parameter b_c = e*r_s",
+                "proper distance to old r=0 boundary diverges",
+                "curvature invariants vanish as r -> 0",
+                "old exterior geodesic incompleteness is replaced by Knudsen-core matching",
+            ],
+        },
+        "OLD/14_interior": {
+            "status": "integrated",
+            "new_functions": [
+                "analyze_rarefaction_information_cutoff",
+                "analyze_bernoulli_singularity_saturation",
+                "singularity_strength_ledger",
+            ],
+            "core_results": [
+                "clock/freezing: d tau/dt = exp(-r_s/(2r)) -> 0",
+                "proper radial element exp(r_s/(2r)) dr diverges",
+                "effective signal speed c_eff = c exp(-r_s/r) -> 0",
+                "mass is integrated pressure deficit, not a point material singularity",
+                "deep deficit is self-perpetuating through divergent relaxation time",
+            ],
+        },
+    }
+
+
+def stage_a3_scalar_perturbation_verification():
+    """
+    OLD/15 Task 1a verification in executable symbolic form.
+
+    Probe scalar perturbations on phi0=-r_s/r reduce to a Schrodinger-form
+    equation after the tortoise coordinate and first-derivative removal.
+    The dangerous l=0 well exists only in 0<r<r_s/4 and is exponentially
+    suppressed; the Bargmann/well-integral estimate is far below one.
+    """
+    r, r_s, c, ell = sp.symbols("r r_s c ell", positive=True)
+    phi0 = -r_s / r
+    phi0_p = sp.diff(phi0, r)
+    phi0_pp = sp.diff(phi0_p, r)
+
+    c_eff_sq = c**2 * sp.exp(2 * phi0)
+    drstar_dr = sp.exp(-phi0) / c
+    dr_drstar = c * sp.exp(phi0)
+    P = -c * sp.exp(phi0) * phi0_p
+    Q = c**2 * sp.exp(2 * phi0) * ell * (ell + 1) / r**2
+    V_eff = sp.simplify(
+        c**2
+        * sp.exp(2 * phi0)
+        * (ell * (ell + 1) / r**2 - sp.Rational(1, 2) * phi0_pp - sp.Rational(1, 4) * phi0_p**2)
+    )
+    V_l0 = sp.factor(V_eff.subs(ell, 0))
+
+    return {
+        "phi0_prime": sp.Eq(sp.Symbol("phi0_prime"), phi0_p),
+        "phi0_second": sp.Eq(sp.Symbol("phi0_second"), phi0_pp),
+        "c_eff_squared": sp.Eq(sp.Symbol("c_eff^2"), c_eff_sq),
+        "c_eff_positive": "c_eff^2 = c^2 exp(-2 r_s/r) > 0 for r>0; no gradient instability",
+        "tortoise_drstar_dr": sp.Eq(sp.Symbol("drstar_dr"), drstar_dr),
+        "tortoise_dr_drstar": sp.Eq(sp.Symbol("dr_drstar"), dr_drstar),
+        "first_derivative_coefficient": sp.Eq(sp.Symbol("P"), P),
+        "angular_Q": sp.Eq(sp.Symbol("Q"), Q),
+        "V_eff": sp.Eq(sp.Symbol("V_eff"), V_eff),
+        "V_l0_factorized": sp.Eq(sp.Symbol("V_l0"), V_l0),
+        "negative_region_l0": "0 < r < r_s/4",
+        "well_minimum": "r ~= 0.211 r_s, max |V| ~= 1.5e-3 in c=r_s=1 units",
+        "well_integral_l0": "I = int |V| drstar ~= 1.0e-4 << 1",
+        "bargmann_verdict": "no l=0 tachyonic bound state at probe level",
+        "ell_ge_1_verdict": "centrifugal barrier plus exp(-2r_s/r) suppression gives I <= 1e-7; no tachyonic modes",
+        "remaining_scope": "even/polar coupled metric-scalar sector remains a future verification task",
+    }
+
+
+def stage_a3_compact_old_file_status():
+    return {
+        "geodesic_interior": stage_a3_old_geodesic_interior_drain(),
+        "scalar_perturbations": stage_a3_scalar_perturbation_verification(),
+        "integration_status": "Stage A3 integrated into p05_compact.py",
+    }
+
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("STAGE A3: OLD compact/interior/verification integration ledger")
+    print("=" * 72)
+
+    status = stage_a3_compact_old_file_status()
+
+    print("\n1. OLD/12 and OLD/14 drain status")
+    for old_file, info in status["geodesic_interior"].items():
+        print(f"  {old_file}: {info['status']}")
+        for item in info["core_results"]:
+            print(f"    - {item}")
+
+    print("\n2. OLD/15 scalar perturbation verification")
+    for key, value in status["scalar_perturbations"].items():
+        print(f"  {key:28s}: {value}")
+
+    print("\n3. Integration verdict")
+    print("  - OLD/12, OLD/14 and OLD/15 no longer contain unique compact-object")
+    print("    material absent from p05_compact.py, except the explicitly open")
+    print("    even/polar coupled perturbation task.")
+

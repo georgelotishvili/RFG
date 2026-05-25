@@ -418,6 +418,102 @@ def status_upgrade_audit():
     }
 
 
+def stage_b5_cluster_resonant_tail_binding_benchmark():
+    """
+    Drain of OLD/ISPG_MOND.tex cluster-binding section.
+
+    Standard MOND/AQUAL gives much of the cluster enhancement but leaves a
+    residual rich-cluster binding gap.  The old theory's useful idea is that
+    dense intracluster emitters can retain an enhanced resonant-tail background,
+    adding a local Bernoulli pressure deficit on top of the vortex/MOND channel.
+    """
+    m_bary_msun = 1.0e14
+    r_cluster_mpc = 1.0
+    m_bary = m_bary_msun * M_SUN
+    r_cluster = r_cluster_mpc * MPC
+    tau_esc_gyr = (r_cluster / C_LIGHT) / GYR
+    tau_ret_50_gyr = 0.63
+    v_vir = math.sqrt(G_NEWTON * m_bary / r_cluster)
+    t_dyn_gyr = (r_cluster / v_vir) / GYR
+    ell_mfp_50_kpc = (
+        3.0 * r_cluster**2 / (C_LIGHT * tau_ret_50_gyr * GYR)
+    ) / KPC
+
+    retention_table = [
+        {"tau_ret_over_tau_esc": 1, "tau_ret_Gyr": 0.003, "rho_extra_over_rho_cl": "0.003"},
+        {"tau_ret_over_tau_esc": 100, "tau_ret_Gyr": 0.33, "rho_extra_over_rho_cl": "0.25--0.27"},
+        {"tau_ret_over_tau_esc": 190, "tau_ret_Gyr": 0.63, "rho_extra_over_rho_cl": "0.50 threshold"},
+        {"tau_ret_over_tau_esc": 300, "tau_ret_Gyr": 0.98, "rho_extra_over_rho_cl": "0.71--0.88"},
+    ]
+
+    return {
+        "source": "OLD/ISPG_MOND.tex cluster-binding section",
+        "problem": "simple MOND often leaves about a factor-of-two residual in rich clusters",
+        "RFG_mechanism": (
+            "overlapping irreversible resonant tails in dense ICM/galaxy environments "
+            "raise the local background vibration and Bernoulli pressure deficit"
+        ),
+        "fiducial_cluster": {
+            "M_bary_Msun": m_bary_msun,
+            "R_Mpc": r_cluster_mpc,
+            "delta_cl_0": 3.79e3,
+            "delta_w0_high_amplitude_benchmark": 0.24,
+            "tau_escape_Gyr": tau_esc_gyr,
+        },
+        "retention_table": retention_table,
+        "tau_ret_50_Gyr": tau_ret_50_gyr,
+        "t_dyn_Gyr": t_dyn_gyr,
+        "tau_ret_50_over_t_dyn": tau_ret_50_gyr / t_dyn_gyr,
+        "ell_mfp_50_kpc": ell_mfp_50_kpc,
+        "interpretation": (
+            "50% residual binding is reachable if the tail background is retained "
+            "for about 0.4 dynamical times; ballistic escape would not close the gap."
+        ),
+    }
+
+
+def stage_b5_cluster_retention_ode_symbolic():
+    """Symbolic form of the old cluster retention benchmark."""
+    H0, rho_de0, delta_w0, delta_cl, z, eps, tau_ret = symbols(
+        "H0 rho_DE0 delta_w0 delta_cl z epsilon_cl tau_ret",
+        positive=True,
+    )
+    phi_z, phi0 = symbols("phi_z phi0", real=True)
+    source = (
+        3 * H0 * rho_de0 * delta_w0 * delta_cl
+        * (1 + z) ** 3
+        * exp(2 * phi_z) / exp(2 * phi0)
+    )
+    return {
+        "retention_ODE": sp.Eq(Symbol("epsilon_dot_cl"), source - eps / tau_ret),
+        "normalization": "epsilon_dot(0)=3*H0*rho_DE0*delta_w0",
+        "free_physical_variable": "tau_ret, the cluster residence time of the resonant-tail background",
+        "not_a_new_particle": "the retained component is a collective resonant-tail background, not sterile-neutrino DM",
+    }
+
+
+def stage_b5_cluster_predictions_and_open_tasks():
+    """Falsifiable outputs and the exact calculations still missing."""
+    return {
+        "predictions": [
+            "residual binding should correlate with cold-front/sloshing activity at fixed baryonic mass",
+            "extra binding should correlate with total baryonic density, gas plus galaxies",
+            "rho_extra(r) should look like baryons convolved with a scattering/retention kernel",
+            "clusters with weak ICM scattering should show a larger unresolved residual",
+        ],
+        "required_calculations": [
+            "3D scalar solve on Chandra-derived cluster profiles",
+            "wave-scattering calculation for ell_mfp from cold-front thickness and ICM power spectra",
+            "weak-lensing comparison of the radial rho_extra/rho_bary profile",
+            "joint Bullet/Abell520/ElGordo time-dependent N-body+gas+chi simulations",
+        ],
+        "status": (
+            "Stage B5 imports the cluster-residual benchmark; it is a strong "
+            "future paper target, not a completed cluster proof."
+        ),
+    }
+
+
 # ==============================================================================
 # MAIN
 # ==============================================================================
@@ -488,6 +584,21 @@ if __name__ == "__main__":
     audit = status_upgrade_audit()
     for k, v in audit.items():
         print(f"  {k:18s}: {v}")
+
+    print("\n--- ნაბიჯი 8: STAGE B5 cluster residual-binding benchmark ---")
+    cluster = stage_b5_cluster_resonant_tail_binding_benchmark()
+    for k, v in cluster.items():
+        print(f"  {k:30s}: {v}")
+
+    print("\n--- ნაბიჯი 8b: cluster retention ODE ---")
+    retention = stage_b5_cluster_retention_ode_symbolic()
+    for k, v in retention.items():
+        print(f"  {k:30s}: {v}")
+
+    print("\n--- ნაბიჯი 8c: cluster predictions/open tasks ---")
+    cluster_tasks = stage_b5_cluster_predictions_and_open_tasks()
+    for k, v in cluster_tasks.items():
+        print(f"  {k:30s}: {v}")
 
     print("\n" + "=" * 72)
     print("სტატუსი და აგენტთა საბჭოს შენიშვნების დადასტურება:")

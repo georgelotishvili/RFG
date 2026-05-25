@@ -377,6 +377,95 @@ def old_vs_new_inertia_assessment():
     ]
 
 
+def stage_a5_old17_retarded_self_field_drain():
+    """
+    Full OLD/17 drain into the new Noether-based RFG inertia file.
+
+    The old derivation is not discarded.  It is reclassified:
+    - retarded fore/aft asymmetry is the physical mechanism;
+    - the old finite self-force coefficient is not used as the proof of M;
+    - M is fixed by the total Noether energy of the dressed oscillon.
+    """
+    m, G, c, r, r_s, n_dot_a = sp.symbols(
+        'm G c r r_s n_dot_a',
+        positive=True,
+        real=True,
+    )
+    delta_phi_rs = r_s * n_dot_a / (2 * c**2)
+    delta_phi_m = G * m * n_dot_a / c**4
+
+    return {
+        "source": "OLD/17. ISPG_Inertia.tex",
+        "retarded_field_correction": sp.Eq(sp.Symbol('delta_phi'), delta_phi_rs),
+        "same_with_mass": sp.Eq(sp.Symbol('delta_phi_m'), delta_phi_m),
+        "temporal_sector_old": "regularized g00/scalar-momentum bookkeeping gives -m*a/2",
+        "spatial_sector_old": "bi-conformal gij sector supplies the matching -m*a/2 when gamma_PPN=1",
+        "new_RFG_role": (
+            "this explains the medium's reaction under acceleration; the exact "
+            "leading coefficient is fixed independently by the translational "
+            "Noether/collective-coordinate theorem"
+        ),
+        "zero_drag": "uniform motion is a Lorentz-boosted static oscillon+dressing, so self-drag vanishes",
+        "relaxation_scale": "tau_relax ~ R_eff/c; for exterior point bookkeeping R_eff~r_s",
+    }
+
+
+def stage_a5_mach_and_unified_rarefaction_ledger():
+    """
+    OLD/17 contained a useful conceptual bridge:
+    inertia is local and causal like a field theory, but keeps the Machian
+    intuition that inertia is a property of a material/pressurized vacuum.
+    """
+    phi, r_s = sp.symbols('phi r_s', real=True)
+    return {
+        "Mach_comparison": {
+            "Mach": "inertia sourced by distant matter; mechanism unspecified",
+            "RFG": "inertia sourced by local dressed field/medium response; propagation at c",
+            "empty_universe_branch": sp.And(sp.Eq(phi, 0), sp.Eq(r_s, 0)),
+            "scope": (
+                "working hypothesis: without a pressure contrast/dressed oscillon "
+                "there is no operational inertial mass; this should be stated as "
+                "a branch of the medium theory, not as a proved cosmological theorem"
+            ),
+        },
+        "unified_rarefaction_principle": {
+            "gravity": "static Bernoulli pressure deficit around a localized oscillon",
+            "inertia": "dynamic fore/aft pressure asymmetry during acceleration",
+            "MOND": "macroscopic central rarefaction/vortex memory in rotating bound systems",
+            "common_language": (
+                "all three are geometries of measurable-existence/background-pressure "
+                "redistribution in the same continuous medium"
+            ),
+        },
+    }
+
+
+def stage_a5_inertia_status():
+    """Stage marker for the OLD deletion gate."""
+    return {
+        "migrated": True,
+        "old_file_drained": "OLD/17. ISPG_Inertia.tex",
+        "new_file": "p06_inertia.py",
+        "kept_from_old": [
+            "retarded scalar/pressure field of an accelerating body",
+            "zero drag for uniform Lorentz-boosted motion",
+            "relaxation hierarchy tau~R_eff/c",
+            "Mach comparison as local causal medium response",
+            "unified rarefaction principle: gravity/inertia/MOND",
+        ],
+        "strengthened_in_new": [
+            "F=Ma coefficient comes from Noether energy, not a chosen regular finite part",
+            "m_i=m_g=E0/c^2 is explicit",
+            "radiation reaction is separated from leading inertia",
+        ],
+        "open_math": [
+            "full nonlinear ADM/Noether momentum for compact matter-filled bodies",
+            "explicit bi-conformal spatial-sector momentum integral matching the old -m*a/2",
+            "observational bridge for neutron-star merger relaxation times",
+        ],
+    }
+
+
 def main() -> None:
     print("=" * 72)
     print("PHASE 19: RFG inertia theorem")
@@ -394,6 +483,9 @@ def main() -> None:
         ("9. Uniform motion: zero drag", zero_drag_uniform_motion()),
         ("10. Retarded dressing audit", retarded_dressing_audit()),
         ("11. Radiation-reaction power counting", radiation_reaction_power_counting()),
+        ("12. STAGE A5 old retarded self-field drain", stage_a5_old17_retarded_self_field_drain()),
+        ("13. STAGE A5 Mach/unified rarefaction ledger", stage_a5_mach_and_unified_rarefaction_ledger()),
+        ("14. STAGE A5 migration status", stage_a5_inertia_status()),
     ]
 
     for title, data in sections:
@@ -401,14 +493,14 @@ def main() -> None:
         for key, value in data.items():
             print(f"  {key:34s}: {value}")
 
-    print("\n--- 12. Relaxation timescale hierarchy ---")
+    print("\n--- 15. Relaxation timescale hierarchy ---")
     for key, value in relaxation_timescale_hierarchy().items():
         if isinstance(value, float):
             print(f"  {key:34s}: {value:.3e}")
         else:
             print(f"  {key:34s}: {value}")
 
-    print("\n--- 13. Old vs new assessment ---")
+    print("\n--- 16. Old vs new assessment ---")
     for item in old_vs_new_inertia_assessment():
         print(f"  - {item}")
 

@@ -1476,3 +1476,175 @@ if __name__ == "__main__":
     print(g_N)
     print("\nშენიშვნა: სრული MOND ამოხსნა chi-ველის მეხსიერებით იხილეთ p07_mond.py-სა და p09_bullet.py-ში.")
 
+
+# =============================================================================
+# STAGE B1-B4: OLD MOND/Relics -> RFG galactic-sector integration ledger
+# =============================================================================
+
+def stage_b1_chi_route_a_effective_template():
+    """
+    Drain of OLD/13 into the new p07 MOND sector.
+
+    chi is not introduced as particle dark matter.  It is an effective
+    collective memory field for the transported response of the RFG medium
+    around bound structures.
+    """
+    chi, beta, lam, Y_qs = sp.symbols('chi beta lambda Y_qs', positive=True)
+    k, c_sym, omega = sp.symbols('k c omega', positive=True)
+    y = sp.Symbol('y', positive=True)
+    mu_x = y / (1 + y)
+
+    return {
+        "source": "OLD/13. ISPG_Relics.tex",
+        "interpretation": "chi = coarse-grained transported memory field, not a new fundamental particle species",
+        "route_A_action_density": (
+            "L_chi = -1/2 (nabla chi)^2 - lambda/2 * (chi - beta*Y_qs)^2"
+        ),
+        "standalone_field_equation": sp.Eq(
+            sp.Symbol('Box_chi') - lam * chi,
+            -lam * beta * Y_qs,
+        ),
+        "hamiltonian_terms": [
+            "c^2*pi_chi^2/2",
+            "|grad chi|^2/2",
+            "lambda*(chi-beta*Y_qs)^2/2",
+        ],
+        "ghost_free_condition": "lambda > 0 with the standard chi kinetic sign",
+        "dispersion_relation": sp.Eq(omega**2, c_sym**2 * k**2 + lam * c_sym**2),
+        "gradient_stability": "omega^2>0 and group velocity < c for lambda>0",
+        "normal_hyperbolicity": "standalone sourced KG equation is well posed on a prescribed quasi-static phi background",
+        "mu_connection": sp.Eq(sp.Symbol('mu(x)'), mu_x),
+        "caveat": "full backreacting (phi, chi) principal-symbol proof remains open",
+    }
+
+
+def stage_b1_chi_relaxation_reduction():
+    """
+    Route-A quasi-static reduction and its tension with the older
+    gradient-dependent transport ansatz.
+    """
+    lam, c_sym, H, gamma, grad_phi = sp.symbols(
+        'lambda c H gamma grad_phi',
+        positive=True,
+    )
+    tau_inv_hubble = lam * c_sym**2 / (3 * H)
+    tau_inv_gradient = gamma * grad_phi
+
+    return {
+        "overdamped_limit": "|chi_ddot| << lambda*c^2*|chi| and |nabla^2 chi| << lambda*|chi|",
+        "route_A_relaxation_rate": sp.Eq(sp.Symbol('tau_inv_A'), tau_inv_hubble),
+        "old_variant_A_rate": sp.Eq(sp.Symbol('tau_inv_old'), tau_inv_gradient),
+        "interpretation": (
+            "Route A gives a Hubble-regulated effective relaxation in the "
+            "one-way KG template; the older gradient law is retained as a "
+            "candidate Route-B coarse-grained transport limit."
+        ),
+        "observational_discriminant": (
+            "Hubble-regulated and gradient-regulated relaxation predict "
+            "different outer-halo slopes and transition radii."
+        ),
+        "open_task": "derive the macroscopic relaxation law from nonlinear phi/vortex coarse-graining",
+    }
+
+
+def stage_b2_vortex_origin_and_morphology_ledger():
+    """
+    Drain of the vortex-origin chain from OLD/ISPG_MOND.tex.
+
+    This is the galactic-formation-memory part: information about the
+    primordial flow/vortex history should be imprinted in the mature
+    rotation curve and morphology.
+    """
+    delta_v = 600_000.0
+    year = 365.25 * 24.0 * 3600.0
+    myr = 1.0e6 * year
+    mpc_m = 1.0e3 * KPC_M
+    viscosity_ceiling = 2.0e23
+    driving_scale = 1.0 * mpc_m
+
+    kh_times_myr = {}
+    for scale_kpc in (10.0, 100.0, 1000.0):
+        wavelength = scale_kpc * KPC_M
+        gamma_kh = math.pi * delta_v / wavelength
+        kh_times_myr[f"{scale_kpc:g}_kpc"] = 1.0 / gamma_kh / myr
+
+    reynolds_min = driving_scale * delta_v / viscosity_ceiling
+    kolmogorov_cutoff_kpc = (driving_scale * reynolds_min ** (-0.75)) / KPC_M
+
+    return {
+        "source": "OLD/ISPG_MOND.tex vortex-origin sections",
+        "causal_chain": [
+            "CMB pressure/density fluctuations",
+            "inhomogeneous cooling in the RFG medium",
+            "pressure gradients",
+            "large-scale flows",
+            "Kelvin-Helmholtz roll-up / turbulent cascade",
+            "galactic vortices",
+            "central rarefaction",
+            "MOND-like extra inward acceleration",
+        ],
+        "KH_growth_rate": "gamma_KH = pi*DeltaV/lambda",
+        "fiducial_KH_efold_times_Myr": kh_times_myr,
+        "Reynolds_min_from_persistence_ceiling": reynolds_min,
+        "Kolmogorov_cutoff_kpc": kolmogorov_cutoff_kpc,
+        "morphology_map": {
+            "laminar_planar_vortex": "spiral / ordered co-rotation",
+            "convective_poloidal_cell": "elliptical / pressure-supported dispersion",
+            "small_scale_eddy": "dwarf",
+            "chaotic_multistream_zone": "irregular",
+        },
+        "prediction": "rotation-curve residuals and inferred a0 should correlate with vortex age, morphology, and environment",
+        "status": "quantitatively plausible vortex-origin route; population simulations remain open",
+    }
+
+
+def stage_b3_mond_uniqueness_and_open_programme():
+    """
+    Compress the old MOND companion's theorem/open-programme ledger into p07.
+    """
+    return {
+        "already_integrated_in_phase33": [
+            "a0=cH/(2*pi) from the Hubble coherence boundary",
+            "two-channel closure g=g_N+g_h with g_h/g_N=a0/g",
+            "mu(x)=x/(1+x)",
+            "AQUAL equivalence in the mature branch",
+            "BTFR v^4=G*M*a0 in the deep-MOND limit",
+            "External-field effect from total-gradient loading",
+            "finite-radius vortex plateau to avoid an infinite-energy tail",
+        ],
+        "selection_logic": (
+            "the simple mu is no longer only chosen as a fit function in the "
+            "new working theory; it is tied to the mature two-channel vortex "
+            "closure.  The remaining theorem-level task is the action-to-vortex "
+            "coarse-graining that selects that closure uniquely."
+        ),
+        "open_refinements": [
+            "closed-form C_eff(xi) asymptotic spine and error envelope",
+            "closed-form AQUAL Green kernel in disk/cylindrical geometry",
+            "convective-cell PDE check for ellipticals",
+            "disk-thickness/asphericity curl-field residual audit",
+            "full SPARC data chi-square once local rotmod files are present",
+        ],
+    }
+
+
+def stage_b4_mond_old_file_status():
+    """Deletion-gate marker for the MOND/relic old files."""
+    return {
+        "OLD_13_Relics_status": "migrated into p07_mond.py STAGE B1 chi Route-A/stability ledger",
+        "OLD_ISPG_MOND_status": (
+            "core migrated into p07_mond.py Phase33 + STAGE B2-B4; "
+            "cluster-merger branch lives in p09_bullet.py"
+        ),
+        "safe_to_delete_condition": (
+            "safe after p09 cluster residual-binding audit is marked, because "
+            "OLD/ISPG_MOND also contains cluster and Bullet follow-up material"
+        ),
+        "not_claimed_as_finished": [
+            "full backreacting chi/phi principal-symbol proof",
+            "microscopic Route-B derivation of chi and the macroscopic relaxation law",
+            "full SPARC empirical verdict without data files",
+            "N-body+gas+chi time-dependent merger simulations",
+        ],
+    }
+
