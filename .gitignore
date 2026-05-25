@@ -1,0 +1,34 @@
+# Local assistant/tooling state
+.claude/
+CLAUDE.md
+
+# Drafts, notes, and legacy material not included in the code-only snapshot
+OLD/
+RFG/CODES.md
+RFG/Intuitive_Theory.md
+RFG/RFG_Theory 1.md
+RFG/work/*.md
+
+# Python caches and test/build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
