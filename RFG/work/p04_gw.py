@@ -1264,3 +1264,49 @@ def stage_a4_scalar_sensitivity_status():
         ],
     }
 
+
+# =============================================================================
+# STAGE C2: OLD wave/GW polarization gate
+# =============================================================================
+
+def stage_c2_old_wave_status():
+    """Deletion-gate marker for OLD/10. ISPG_Wave.tex."""
+    return {
+        "old_file_drained": "OLD/10. ISPG_Wave.tex",
+        "new_file": "p04_gw.py",
+        "migrated": True,
+        "closed": [
+            "Horndeski/EFT tensor speed: G4_X=0 and G5=0 imply alpha_T=0",
+            "GW170817 luminal speed compatibility is structural",
+            "TT detector response requires the spatial metric sector; LIGO consistency bridge retained",
+            "breathing polarization is allowed as scalar-medium channel",
+        ],
+        "corrected_from_old": [
+            "scalar breathing scaling is kept as A_b/A_T ~ r_s/r working estimate, not a theorem",
+            "no extra quadratic compactness suppression is asserted",
+            "dipole suppression is now tied to universal s=1/2 and small differential s_excess",
+        ],
+        "open": [
+            "explicit PN scalar trace-quadrupole coefficient",
+            "network antenna-pattern forecast for breathing mode",
+            "IMR waveform implementation and LVK/LISA posterior comparison",
+            "full solid-sector massive-dispersion constraint",
+        ],
+    }
+
+
+def stage_c2_breathing_mode_falsification_window():
+    """Compact GW test map preserved from the old wave appendix."""
+    r_s, r = sp.symbols("r_s r", positive=True)
+    return {
+        "source_estimate": sp.Eq(sp.Symbol("A_b/A_T"), r_s / r),
+        "status": "conditional PN estimate",
+        "current_ground_based_window": "small in inspirals with r >> r_s and L-shaped antenna partial suppression",
+        "best_targets": [
+            "massive black-hole mergers in LISA band",
+            "next-generation detector networks with polarization resolution",
+            "near-ISCO ringdown/echo deviations from compact-object boundary physics",
+        ],
+        "hard_fail": "large unsuppressed dipole or breathing amplitude already excluded by pulsar/LVK data",
+    }
+

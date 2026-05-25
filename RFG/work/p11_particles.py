@@ -3165,3 +3165,138 @@ if __name__ == "__main__":
     for item in next_calculation_queue():
         print(f"  - {item}")
 
+
+# =============================================================================
+# STAGE D2-D4: OLD particle / frequency / SM embedding gate
+# =============================================================================
+
+def stage_d2_frequency_to_mass_old_status():
+    """
+    Deletion-gate marker for OLD/ISPG_FrequencyToMass.tex.
+
+    The old file's valuable content is preserved, but the main charged-lepton
+    route is now the C3/Z9 chain rather than the legacy radial N ladder.
+    """
+    return {
+        "old_file_drained": "OLD/ISPG_FrequencyToMass.tex",
+        "new_file": "p11_particles.py",
+        "migrated": True,
+        "kept": [
+            "particles as localized resonant oscillons",
+            "mass tracks internal frequency/energy scale",
+            "effective mass scales as exp(phi/2) in a pressure background",
+            "electron as the first stable occupied charged resonance",
+            "neutrinos are outside the charged massive oscillon ladder",
+        ],
+        "promoted_new_route": (
+            "charged leptons are treated as one C3/Z9 triplet with theta=2/9; "
+            "the old N=5,72,295 / n=14 ladder is retained as legacy audit only"
+        ),
+        "still_useful_legacy": [
+            "Mathieu ladder as broad cross-sector compatibility language",
+            "massive non-neutrino SM states can be indexed on a common ladder at compatibility level",
+            "N=4 329 keV branch is suspended unless the radial ladder is independently derived",
+        ],
+        "open": [
+            "absolute electron scale",
+            "full 3D oscillon fluctuation operator",
+            "radiative protection of C3/Koide pole-frequency relation",
+        ],
+    }
+
+
+def stage_d3_em_charge_spin_program_status():
+    """
+    Drain of the EM/charge/spin/topology ideas from OLD/ISPG_Quantum.tex.
+
+    These are not finished derivations; they are high-value programme targets
+    that must not be left only in OLD.
+    """
+    return {
+        "old_source": "OLD/ISPG_Quantum.tex",
+        "new_file": "p11_particles.py",
+        "photon_EM": {
+            "old_idea": "photon as helicoidal/Kelvin-like transverse medium wave",
+            "RFG_status": "future gauge-completion programme",
+            "needed_theorem": "derive Maxwell equations, U(1) gauge redundancy, and Coulomb 1/r^2 from the medium variables",
+        },
+        "charge_quantization": {
+            "old_idea": "charge tied to framed/winding topology and Calugareanu-Fuller Lk=Wr+Tw",
+            "RFG_status": "candidate topological current/operator programme",
+            "fractional_charges": "Z3/color-orbifold route for 1/3 and 2/3 remains open",
+        },
+        "spin": {
+            "old_idea": "spin-1/2 from Mobius/framed 720-degree closure",
+            "RFG_status": "partly absorbed into h=2 oriented-framed C3/Z9 lepton branch",
+            "open": "derive full Dirac spinor dynamics, Pauli exclusion, and spin-statistics from the defect moduli space",
+        },
+        "g_factor": {
+            "target": "Dirac g=2",
+            "status": "not derived; future QED-strength theorem",
+            "route": "minimal coupling of the emergent spinor to the emergent U(1) connection",
+        },
+        "alpha_EM": {
+            "target": "fine-structure constant 1/137",
+            "status": "open structural number; do not claim derivation",
+            "candidate_sources": ["resonance step count", "topological normalization", "medium impedance ratio"],
+        },
+    }
+
+
+def stage_d4_sm_embedding_old_status():
+    """
+    Deletion-gate marker for OLD/ISPG_SM_Embedding.tex.
+
+    This preserves the partial-embedding result and keeps its warnings: the old
+    file shows compatibility, not a completed derivation of the Standard Model.
+    """
+    return {
+        "old_file_drained": "OLD/ISPG_SM_Embedding.tex",
+        "new_file": "p11_particles.py",
+        "migrated": True,
+        "partial_embedding_kept": [
+            "D3-deformed oscillon supplies an eight-mode gluon-count route",
+            "imported SM hypercharges satisfy anomaly checks and Y*N_c integer grading",
+            "three generations are compatible with a three-axis/framed structure",
+            "neutrinos are excluded from the Mathieu massive charged ladder",
+            "W, Z, H can be hosted on the broad mass-ladder compatibility map",
+        ],
+        "Higgs_replacement_status": {
+            "negative_result": "fundamental RFG action has no SM-type Phi^4 Higgs potential",
+            "candidate": "archion/interior localized broken-phase region for gauge-boson mass generation",
+            "open": "derive the W/Z mass matrix with a protected massless photon from the RFG medium, not by importing the Higgs sector",
+        },
+        "QCD_status": {
+            "kept": "8 gluon count and D3/color route",
+            "open": "derive SU(3) structure constants, vertices, running, and confinement potential",
+        },
+        "electroweak_status": {
+            "kept": "on-shell m_W/m_Z compatibility as a mass-law consistency check",
+            "warning": "not an independent Weinberg-angle prediction while W and Z masses are used as inputs",
+        },
+        "anomaly_status": (
+            "SM anomaly cancellation is imported as a consistency check; "
+            "RFG has not yet derived the unique SM hypercharge assignment"
+        ),
+        "completion_requirements": [
+            "EM U(1) derivation",
+            "SU(2)_L chirality and weak interactions",
+            "SU(3)_c algebra and confinement",
+            "archion-interior W/Z mass matrix with photon protection",
+            "CKM/PMNS and neutrino ordering",
+        ],
+    }
+
+
+def stage_d4_particle_old_file_status():
+    """Compact deletion-gate summary for all remaining old particle files."""
+    return {
+        "OLD_ISPG_Quantum": "migrated across p10_oscillons.py, p11_particles.py, p12_predictions.py; open parts kept as programme targets",
+        "OLD_ISPG_FrequencyToMass": "migrated into p11_particles.py STAGE D2; legacy N-ladder demoted",
+        "OLD_ISPG_SM_Embedding": "migrated into p11_particles.py STAGE D4; partial embedding warnings preserved",
+        "safe_to_delete_condition": (
+            "safe as working material once p12 quantum predictions are marked; "
+            "no finished theorem is left only in OLD, but several future-programme items remain open"
+        ),
+    }
+

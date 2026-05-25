@@ -846,6 +846,45 @@ def boltzmann_status_assessment(model: RFGAlphaModel) -> dict[str, object]:
     }
 
 
+# =============================================================================
+# STAGE C3: OLD CMB/linear-cosmology gate
+# =============================================================================
+
+def stage_c3_old_cmb_status() -> dict[str, object]:
+    """Deletion-gate marker for OLD/9. ISPG_CMB.tex."""
+    return {
+        "old_file_drained": "OLD/9. ISPG_CMB.tex",
+        "new_file": "p08_cmb.py",
+        "migrated": True,
+        "closed_same_matter_branch": [
+            "matter-clock FLRW locking: Phi_0=0 and X_0=0",
+            "Bellini-Sawicki alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
+            "linear scalar stress is quadratic and does not shift metric potentials at first order",
+            "Einstein-Boltzmann hierarchy is inherited for same matter and same primordial spectrum",
+            "linear CMB lensing/ISW sources are unchanged in the same-matter branch",
+        ],
+        "conditional_filters": [
+            "I_k radiation-like terms must satisfy Delta N_eff bounds",
+            "I_k stiff a^-6 branch must be suppressed before BBN",
+            "late nonlinear MOND/memory activation needs line-of-sight lensing/ISW modeling",
+        ],
+        "open_no_particle_dm_branch": [
+            "memory/frozen-well Boltzmann equation",
+            "Planck TT/TE/EE+lensing likelihood without particle CDM",
+            "primordial A_s and n_s from oscillon/tail nucleation",
+        ],
+    }
+
+
+def stage_c3_cmb_deletion_gate_scorecard() -> dict[str, str]:
+    return {
+        "OLD_9_status": "safe as migrated for same-matter linear-CMB claims",
+        "not_claimed": "no-particle-DM CMB solution is still future work",
+        "article_use": "for the first gravity article, cite only the locked-branch inheritance theorem",
+        "program_use": "keep no-particle-DM branch as a later CLASS/CAMB paper target",
+    }
+
+
 # ==============================================================================
 # MAIN
 # ==============================================================================

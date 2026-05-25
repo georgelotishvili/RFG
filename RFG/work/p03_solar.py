@@ -496,3 +496,65 @@ if __name__ == "__main__":
     print("  - RFG leading 1.5PN frame-dragging matches GR under one-metric minimal coupling.")
     print("  - preferred-frame α_1, α_2, α_3 derivation remains the next tightening step.")
 
+
+# =============================================================================
+# STAGE C1: OLD solar-system precision gate
+# =============================================================================
+
+def stage_c1_old_solar_precision_status():
+    """Deletion-gate marker for OLD/4--OLD/8."""
+    return {
+        "OLD_4_PPN": {
+            "status": "migrated",
+            "target": "p03_solar.py",
+            "core": "one-metric bi-conformal weak-field expansion gives gamma=1, beta=1",
+        },
+        "OLD_5_light_deflection": {
+            "status": "migrated",
+            "target": "p03_solar.py PHASE 14",
+            "core": "1PN matches GR; 2PN RFG coefficient is pi*r_s^2/b^2, ratio 16/15 vs GR",
+        },
+        "OLD_6_shapiro": {
+            "status": "migrated",
+            "target": "p03_solar.py PHASE 14",
+            "core": "finite RFG-GR 2PN differential discriminator Delta_B=pi/4",
+        },
+        "OLD_7_perihelion": {
+            "status": "migrated",
+            "target": "p03_solar.py Mercury block",
+            "core": "PPN factor (2+2gamma-beta)/3=1 gives Mercury 42.98 arcsec/century",
+        },
+        "OLD_8_frame_dragging": {
+            "status": "migrated_with_open_tightening",
+            "target": "p03_solar.py PHASE 30",
+            "core": "leading 1.5PN Lense-Thirring inherited under one-metric minimal coupling",
+            "open": "derive preferred-frame/vector PPN alpha_1=alpha_2=alpha_3=0 explicitly",
+        },
+        "rotational_MOND_bridge": {
+            "status": "kept_as_speculative_and_inert_in_solar_system",
+            "suppression": "Z_rot approximately a0/g, so Earth/Sun frame-dragging correction is << current sensitivity",
+        },
+    }
+
+
+def stage_c1_solar_falsification_targets():
+    """What remains observationally useful after the 1PN GR match."""
+    return {
+        "closed_1PN": [
+            "light bending",
+            "Shapiro logarithmic delay",
+            "perihelion precession",
+            "geodetic precession",
+        ],
+        "precision_discriminators": [
+            "2PN Shapiro finite differential Delta_B=pi/4",
+            "2PN bending coefficient enhancement 16/15",
+            "strong-field lensing/timing near Sgr A*, pulsar-BH systems, ngEHT/BHEX",
+        ],
+        "theory_tightening": [
+            "full stationary rotating solution for g_0i",
+            "preferred-frame PPN alpha_i proof",
+            "nonperturbative null geodesics for compact-object imaging",
+        ],
+    }
+

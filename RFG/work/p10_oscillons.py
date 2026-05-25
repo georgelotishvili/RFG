@@ -1004,3 +1004,60 @@ if __name__ == "__main__":
     print("- n = n_t * n_s = e^(-φ) კავშირი გამოსწორდა. ფაქტორი 2 დადასტურდა.")
     print("=" * 72)
 
+
+# =============================================================================
+# STAGE D1: OLD quantum oscillon/Bernoulli gate
+# =============================================================================
+
+def stage_d1_old_quantum_oscillon_status():
+    """
+    Deletion-gate marker for the oscillon/gravity parts of OLD/ISPG_Quantum.tex.
+
+    This keeps the valuable old intuition, but classifies it in the stronger
+    new RFG form: Bernoulli gravity is a derivation chain, while the full
+    finite-energy oscillon existence theorem remains a PDE task.
+    """
+    phi, m0, L0, omega0 = sp.symbols('phi m0 L0 omega0', real=True, positive=True)
+    return {
+        "old_file_drained_part": "OLD/ISPG_Quantum.tex: oscillon, Bernoulli, pressure, mass-scaling",
+        "new_files": ["p10_oscillons.py", "p01_core.py", "p06_inertia.py", "p02_cosmo.py"],
+        "migrated_core": [
+            "oscillons are localized time-periodic resonances of the medium",
+            "zero-frequency time average of oscillon energy sources the exterior 1/r field",
+            "Bernoulli identity converts scalar gradient energy into static pressure deficit",
+            "geodesic motion, not literal pressure pushing, gives Newtonian acceleration",
+            "mass and operational size scale together as exp(phi/2)",
+            "strong-field e^phi factor saturates the pressure deficit near the rarefied core",
+        ],
+        "mass_scaling": sp.Eq(sp.Symbol('m_eff'), m0 * sp.exp(phi / 2)),
+        "operational_size_scaling": sp.Eq(sp.Symbol('L_oper'), L0 * sp.exp(phi / 2)),
+        "carrier_frequency_status": (
+            "omega0 is kept as an internal/substrate resonance-clock hypothesis; "
+            "absolute frequency selection remains a microscopic oscillon theorem"
+        ),
+        "already_strengthened": [
+            "Bernoulli gravity no longer enters as a bare postulate",
+            "m_i=m_g=E0/c^2 is handled in p06_inertia.py",
+            "process-time and resonant-tail bookkeeping are separated in p02_cosmo.py",
+        ],
+        "open_math": [
+            "construct global finite-energy oscillon solutions of the full nonlinear PDE",
+            "prove spectral stability of the localized source sector",
+            "derive the absolute electron/rest-frequency scale, not only ratios",
+            "derive the macroscopic resonant-tail/dark-energy normalization nonperturbatively",
+        ],
+    }
+
+
+def stage_d1_quantum_to_new_file_map():
+    """Where the valuable OLD quantum material now lives."""
+    return {
+        "Bernoulli_gravity": "p10_oscillons.py",
+        "inertia_of_oscillon": "p06_inertia.py",
+        "singularity_rarefaction": "p05_compact.py",
+        "process_time_and_tail_background": "p02_cosmo.py",
+        "charged_lepton_C3_Z9": "p11_particles.py",
+        "SM_embedding_and_gauge_program": "p11_particles.py",
+        "quantum_lab_predictions": "p12_predictions.py",
+    }
+

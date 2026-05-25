@@ -341,6 +341,71 @@ def migrated_prediction_scorecard():
     }
 
 
+# =============================================================================
+# STAGE D5: OLD quantum/lab prediction gate
+# =============================================================================
+
+def stage_d5_old_quantum_prediction_ledger():
+    """
+    Drain of the testable but lower-priority quantum predictions from
+    OLD/ISPG_Quantum.tex into the prediction file.
+    """
+    return {
+        "old_source": "OLD/ISPG_Quantum.tex",
+        "new_file": "p12_predictions.py",
+        "migrated": True,
+        "quantum_dephasing": {
+            "formula": "Gamma_phi = 2*m*|Delta Phi_N|/h",
+            "best_regime": "massive mesoscopic interferometry, not optical photons",
+            "status": "candidate lab prediction; requires noise/environment scan",
+        },
+        "fine_structure_variation": {
+            "old_range": "Delta alpha/alpha ~ 1e-7--1e-6 at z~1--3",
+            "status": "conditional; must be tied to a real EM/gauge-completion mechanism before publication",
+        },
+        "gravitational_birefringence": {
+            "status": "very small, secondary prediction",
+            "best_targets": "strong gradients around compact objects with high-frequency photons",
+            "warning": "do not use as a main claim until the EM sector is derived",
+        },
+        "framed_vortex_lab": {
+            "observable": "half-integer vortex framing/twist classes Tw=n/2 in dipolar supersolids",
+            "status": "cleanest near-term RFG-specific lab-style signature",
+            "candidate_platforms": ["Dy/Er dipolar supersolids", "BEC vortex interferometry"],
+        },
+        "particle_legacy": {
+            "N4_329keV": "legacy conditional branch, suspended under C3 charged-lepton route",
+            "X17": "only a weak harmonic audit; no identification claimed",
+        },
+    }
+
+
+def stage_d5_prediction_priority_order():
+    """Publication/prioritization filter for old predictions."""
+    return [
+        {
+            "priority": 1,
+            "target": "gravity article",
+            "use": "1PN match, 2PN Shapiro/bending, compact-object ISCO/shadow, GW/CMB consistency",
+        },
+        {
+            "priority": 2,
+            "target": "MOND/cluster articles",
+            "use": "a0(z), SPARC, EFE, Bullet, residual cluster binding",
+        },
+        {
+            "priority": 3,
+            "target": "particle/quantum programme",
+            "use": "C3/Z9 lepton ratios, EM/charge/spin/QCD/SM embedding, lab quantum tests",
+        },
+        {
+            "priority": 4,
+            "target": "low-priority speculative tests",
+            "use": "alpha variation, birefringence, X17/N4 legacy branch",
+        },
+    ]
+
+
 if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 36: უნიკალური RFG ფალსიფიკატორები")
