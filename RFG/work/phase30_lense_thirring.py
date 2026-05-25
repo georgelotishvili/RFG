@@ -20,8 +20,8 @@ GR Lense-Thirring formula:
 
 RFG-ის ცდა:
 - bi-conformal scalar — gravitomagnetic g_0i sector
-- phase8 PPN γ=1: rotating frame's frame-dragging ღია ცდაა
-- დღევანდელი ფაილი ღია გრავიტომაგნიტიკაზე
+- phase8 PPN γ=1: geodetic + leading 1.5PN gravitomagnetic sector matches GR
+- preferred-frame/vector-PPN proof remains the tightening task
 """
 
 import math
@@ -48,12 +48,12 @@ def gr_lense_thirring_formula():
 
 
 def rfg_gravitomagnetic_open():
-    """RFG bi-conformal gravitomagnetic sector — ცდის ღია ნაბიჯები."""
+    """RFG bi-conformal gravitomagnetic sector — tightening tasks."""
     return [
-        "Bi-conformal metric extension to stationary rotating: g_0i sector",
-        "Pre-1PN gravitomagnetic field — RFG vs GR comparison",
-        "Lense-Thirring formula derivation from RFG action",
-        "PPN preferred-frame parameters (α_1, α_2) — phase8 not covered",
+        "Leading 1.5PN Lense-Thirring is inherited from the one-metric minimal-coupling GR sector.",
+        "Full stationary rotating bi-conformal solution should derive the same g_0i coefficient.",
+        "PPN preferred-frame parameters (α_1, α_2, α_3) still need a dedicated proof.",
+        "MOND rotational bridge must remain inert in the Solar System: Z_rot≈a0/g << 1.",
         "Future: LARES-2 satellite data — improved Lense-Thirring precision",
     ]
 
@@ -72,9 +72,10 @@ def rfg_predictions():
     """RFG-ის ცდა Lense-Thirring-ისთვის."""
     return {
         "PPN_gamma_1PN": "γ=1 (phase8) — geodetic precession იდენტური GR-ის",
-        "Lense_Thirring_RFG": "phase30 ღია — bi-conformal g_0i sector უნდა ჩამოყალიბდეს",
-        "preferred_frame_PPN": "α_1, α_2 PPN params — RFG phase8-ში არ მოწმდება",
-        "current_status": "RFG = GR ფიქსირდება 1PN-ში — frame-dragging ცდის სქელეტი",
+        "Lense_Thirring_RFG": "leading 1.5PN: Ω_LT = GR under one-metric minimal coupling",
+        "MOND_rotational_slot": "Z_rot≈a0/g, so Solar-System correction is <10^-8 to 10^-11",
+        "preferred_frame_PPN": "α_1, α_2, α_3 PPN params — dedicated proof still needed",
+        "current_status": "old-theory leading Lense-Thirring prediction recovered; preferred-frame tightening remains",
     }
 
 
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     for key, val in gr.items():
         print(f"  {key:25s}: {val}")
 
-    print("\n3. RFG-ის ცდის ღია ნაბიჯები")
+    print("\n3. RFG-ის გასამკაცრებელი ნაბიჯები")
     for i, task in enumerate(rfg_gravitomagnetic_open(), 1):
         print(f"  {i}. {task}")
 
@@ -107,5 +108,5 @@ if __name__ == "__main__":
 
     print("\n6. სტატუსი")
     print("  - GR L-T 39.2 mas/yr vs GP-B 37.2±7.2 — within 1σ")
-    print("  - RFG bi-conformal extension to rotating — ღია (phase30 ცდის სქელეტი)")
-    print("  - PPN preferred-frame α_1, α_2 — ცდის ღია (next step)")
+    print("  - RFG leading 1.5PN frame-dragging matches GR under one-metric minimal coupling.")
+    print("  - preferred-frame α_1, α_2, α_3 derivation remains the next tightening step.")

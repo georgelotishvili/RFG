@@ -183,6 +183,157 @@ def status_assessment():
     }
 
 
+def old_ispg_prediction_constants():
+    """Numerical constants recovered from the old ISPG prediction package."""
+    phi = (1.0 + math.sqrt(5.0)) / 2.0
+    isco_rfg_over_rs = phi**2
+    isco_gr_iso_over_rs = (5.0 + 2.0 * math.sqrt(6.0)) / 4.0
+    shadow_ratio = 2.0 * math.e / (3.0 * math.sqrt(3.0))
+    shapiro_delta_b = math.pi / 4.0
+    bending_ratio = 16.0 / 15.0
+
+    # Phase18 expression: Omega_RFG^2/Omega_GR^2 at their respective ISCO radii.
+    omega_rfg_sq_over_gr_sq = (
+        108.0
+        * math.exp(-4.0 / (math.sqrt(5.0) + 3.0))
+        / (29.0 + 13.0 * math.sqrt(5.0))
+    )
+    frequency_ratio = math.sqrt(omega_rfg_sq_over_gr_sq)
+
+    return {
+        "golden_ratio_phi": phi,
+        "r_ISCO_over_r_s": isco_rfg_over_rs,
+        "GR_isotropic_ISCO_over_r_s": isco_gr_iso_over_rs,
+        "ISCO_radius_ratio_RFG_over_GR_iso": isco_rfg_over_rs / isco_gr_iso_over_rs,
+        "ISCO_frequency_ratio_RFG_over_GR": frequency_ratio,
+        "shadow_ratio_RFG_over_GR": shadow_ratio,
+        "shadow_shift_percent": (shadow_ratio - 1.0) * 100.0,
+        "Shapiro_Delta_B": shapiro_delta_b,
+        "bending_2PN_ratio_RFG_over_GR": bending_ratio,
+        "bending_2PN_enhancement_percent": (bending_ratio - 1.0) * 100.0,
+    }
+
+
+def old_to_rfg_prediction_map():
+    """
+    Inventory of old-theory predictions and where the current RFG work
+    now reproduces them or keeps them conditional.
+    """
+    return [
+        {
+            "sector": "weak field",
+            "old_prediction": "gamma=beta=1; 1PN solar-system tests match GR",
+            "rfg_status": "recovered",
+            "current_file": "phase8_weak_field.py, phase12_perihelion.py",
+            "formula": "gamma=1, beta=1; Mercury=42.98 arcsec/cy",
+        },
+        {
+            "sector": "2PN light propagation",
+            "old_prediction": "2PN Shapiro RFG-GR differential Delta_B=pi/4",
+            "rfg_status": "recovered",
+            "current_file": "phase14_shapiro_2pn.py",
+            "formula": "Delta t=(r_g^2/(c*b))*pi/4",
+        },
+        {
+            "sector": "2PN light propagation",
+            "old_prediction": "2PN bending term enhanced by 16/15 over GR",
+            "rfg_status": "recovered",
+            "current_file": "phase14_shapiro_2pn.py",
+            "formula": "theta_RFG=2r_s/b+pi*r_s^2/b^2",
+        },
+        {
+            "sector": "compact objects",
+            "old_prediction": "curvature invariants vanish at r->0; no finite-radius horizon",
+            "rfg_status": "strengthened",
+            "current_file": "phase18_bh_singularity.py",
+            "formula": "R->0, K->0, Knudsen-core C2 matching completes endpoint",
+        },
+        {
+            "sector": "compact objects",
+            "old_prediction": "golden-ratio ISCO",
+            "rfg_status": "recovered",
+            "current_file": "phase18_bh_singularity.py",
+            "formula": "r_ISCO=phi^2*r_s; f=0.931*f_GR",
+        },
+        {
+            "sector": "compact objects",
+            "old_prediction": "photon sphere r_s and shadow b_c=e*r_s",
+            "rfg_status": "recovered",
+            "current_file": "phase18_bh_singularity.py, phase29_eht_shadow.py",
+            "formula": "RFG shadow diameter is +4.63% vs GR",
+        },
+        {
+            "sector": "gravitational waves",
+            "old_prediction": "c_g=c exactly; breathing mode suppressed",
+            "rfg_status": "partly recovered",
+            "current_file": "phase9_gravitational_waves.py",
+            "formula": "alpha_T=0; A_b/A_t~r_s/r is a working estimate",
+        },
+        {
+            "sector": "MOND/galaxies",
+            "old_prediction": "a0=cH/(2*pi), mu=x/(1+x), BTFR, EFE",
+            "rfg_status": "recovered and strengthened",
+            "current_file": "phase33_sparc_rotation_curves.py",
+            "formula": "g_h/g_N=a0/g -> mu=x/(1+x); v^4=G*M*a0",
+        },
+        {
+            "sector": "MOND/formation memory",
+            "old_prediction": "age/redshift-dependent a0 and BTFR residuals",
+            "rfg_status": "seeded",
+            "current_file": "phase33_sparc_rotation_curves.py",
+            "formula": "a0(z)=cH(z)/(2*pi); vortex memory/lag needs data closure",
+        },
+        {
+            "sector": "CMB/cosmology",
+            "old_prediction": "linear CMB sector matches LCDM in same-matter metric limit",
+            "rfg_status": "present in work tree",
+            "current_file": "phase21_cmb.py, phase32_cmb_boltzmann.py",
+            "formula": "Bellini-Sawicki alpha_i=0 target",
+        },
+        {
+            "sector": "frame dragging",
+            "old_prediction": "1.5PN Lense-Thirring matches GR; MOND rotation slot inert in Solar System",
+            "rfg_status": "partly recovered; preferred-frame tightening",
+            "current_file": "phase30_lense_thirring.py",
+            "formula": "Omega_LT standard if g_0i sector is GR-like",
+        },
+        {
+            "sector": "quantum tests",
+            "old_prediction": "gravitational dephasing, tunneling profile effects, birefringence",
+            "rfg_status": "not yet migrated",
+            "current_file": "future particle/quantum phase, likely phase47 extension",
+            "formula": "Gamma_phi=2m|DeltaPhi_N|/h; other channels conditional",
+        },
+    ]
+
+
+def migrated_prediction_scorecard():
+    rows = old_to_rfg_prediction_map()
+    counts = {"recovered": 0, "strengthened": 0, "partly": 0, "seeded": 0, "open": 0}
+    for row in rows:
+        status = row["rfg_status"]
+        if status.startswith("recovered"):
+            counts["recovered"] += 1
+        elif status.startswith("strengthened"):
+            counts["strengthened"] += 1
+        elif status.startswith("partly"):
+            counts["partly"] += 1
+        elif status.startswith("seeded"):
+            counts["seeded"] += 1
+        else:
+            counts["open"] += 1
+
+    return {
+        "total_old_prediction_families": len(rows),
+        "recovered": counts["recovered"],
+        "strengthened": counts["strengthened"],
+        "partly_recovered": counts["partly"],
+        "seeded": counts["seeded"],
+        "open_or_not_migrated": counts["open"],
+        "verdict": "the main classical old-theory predictions now reappear in RFG; quantum-test channels remain the least migrated.",
+    }
+
+
 if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 36: უნიკალური RFG ფალსიფიკატორები")
@@ -225,3 +376,18 @@ if __name__ == "__main__":
     print("\n6. Status")
     for key, value in status_assessment().items():
         print(f"  {key:12s}: {value}")
+
+    print("\n7. Old ISPG constants recovered in RFG")
+    for key, value in old_ispg_prediction_constants().items():
+        print(f"  {key:38s}: {value:.8g}")
+
+    print("\n8. Old-to-RFG prediction migration map")
+    for item in old_to_rfg_prediction_map():
+        print(
+            f"  {item['sector']:24s} | {item['rfg_status']:24s} "
+            f"| {item['formula']} | {item['current_file']}"
+        )
+
+    print("\n9. Migration scorecard")
+    for key, value in migrated_prediction_scorecard().items():
+        print(f"  {key:28s}: {value}")
