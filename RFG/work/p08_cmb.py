@@ -66,7 +66,7 @@ DESI_DR2 = {
     "status": "DR2 replaces the earlier DR1 placeholder; use full likelihood for parameter fitting.",
 }
 
-DEFAULT_ALPHA_TABLE = Path("RFG/work/phase21_rfg_alpha_table.dat")
+DEFAULT_ALPHA_TABLE = Path("RFG/work/cmb_alpha_table.dat")
 
 
 @dataclass
@@ -833,7 +833,7 @@ def boltzmann_status_assessment(model: RFGAlphaModel) -> dict[str, object]:
     compressed = compressed_observational_chi2()
     same_matter = same_matter_cmb_inheritance_audit()
     return {
-        "alpha_interface": "implemented in phase21_cmb.py",
+        "alpha_interface": "implemented in p08_cmb.py",
         "same_matter_linear_cmb": same_matter["status"],
         "stability_filters": filters,
         "compressed_tension_status": compressed["status"],
