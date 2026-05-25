@@ -63,7 +63,7 @@ if __name__ == "__main__":
     rho_collected = sp.collect(rho_expanded, a)
     print("rho_solid(a) =", rho_collected)
     
-    print("\nშენიშვნა: RFG_Theory.md §3-ში მოყვანილ გამარტივებულ ფორმულას აკლია აქ მიღებული")
+    print("\nშენიშვნა: ძველ გამარტივებულ კოსმოლოგიურ ფორმულას აკლია აქ მიღებული")
     print("          -3*c_I2/a^4 და -c_I3/a^6 წევრები, რომლებიც სრული ვარიაციიდან ჩნდება.")
     
     # ემერჯენტული Λ_eff-ის გამოყოფა: ვუშვებთ, რომ a -> უსასრულობაში
@@ -237,7 +237,7 @@ PHASE 6 (relativistic): FLRW რელატივისტური სტრ�
 - T_{mu nu} = 2*dL/dg^{mu nu} - g_{mu nu}*L
 
 ეს არის FLRW ფონური ცდა, რომელიც phase22-ის ბირთვით (Bianchi/Noether
-იდენტობა) გადადის. შედეგი — rho(a), p_iso(a) — შედარდება RFG_Theory.md §3-ის
+იდენტობა) გადადის. შედეგი — rho(a), p_iso(a) — შედარდება ძველ გამარტივებულ
 ფორმულას.
 
 FLRW ანზაცი:
@@ -269,11 +269,11 @@ def get_flrw_pressures():
 
 def compare_with_theory(rho):
     """
-    RFG_Theory.md §3:57 ფორმულა:
+    ძველი გამარტივებული ფორმულა:
         rho = -3*c_I1/a^2 - 9*c_I1sq/a^4 + c_Y + 3*c_Y2 + 3*c_YI1/a^2
 
     ეს თეორიის ტექსტში გამოტოვებულია c_I2 და c_I3 წევრებისთვის. phase22 სრულ
-    ფორმას ბრუნდება — შესწორება გადასატანია RFG_Theory.md-ში.
+    ფორმას ბრუნდება — შესწორება უნდა დარჩეს სამუშაო ბაზაში და მერე სტატიაში გავიდეს.
     """
     c_Y, c_Y2 = sp.symbols("c_Y c_Y2", real=True)
     c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
@@ -332,11 +332,11 @@ if __name__ == "__main__":
     print(f"  rho = T_00 = {sp.expand(rho)}")
     print(f"  p_iso = T_11/a^2 = {sp.expand(p_iso)}")
 
-    print("\n3. შედარება RFG_Theory.md §3:57-ის ფორმულასთან")
+    print("\n3. შედარება ძველ გამარტივებულ კოსმოლოგიურ ფორმულასთან")
     full_match, md_text_match, missing = compare_with_theory(rho)
     print(f"  სრული ფორმა (c_I2 და c_I3 ჩათვლით) ემთხვევა: {full_match}")
     print(f"  ძველი §3 ფორმა (c_I2, c_I3-ის გარეშე) ემთხვევა: {md_text_match}")
-    print(f"  RFG_Theory.md §3-ში დასამატებელი წევრები: {sp.expand(missing)}")
+    print(f"  ძველ ფორმულაში გამოტოვებული წევრები: {sp.expand(missing)}")
 
     print("\n4. Bianchi residual phase22-ის ცდიდან")
     bianchi_ok, residual = check_bianchi_residual(result)
@@ -347,6 +347,6 @@ if __name__ == "__main__":
     print("  - კონვენცია: NOTATION.md-ის აქტიური ფორმა")
     print("  - სიგნატურა: (+---)")
     print("  - phase22-ის Bianchi იდენტობა FLRW-ზე სრულდება")
-    print("  - rho-ში c_I2, c_I3 წევრები არსებობს — RFG_Theory.md §3-ის შესწორება")
+    print("  - rho-ში c_I2, c_I3 წევრები არსებობს — ეს შესწორება სამუშაო ბაზაში დახურულია")
     print("  - p_iso §3-ის ფორმასთან — შემოწმდეს ცალკე")
 

@@ -545,7 +545,7 @@ if __name__ == "__main__":
     მთავარი ფილტრი — c_T = c (GW170817-დან) მოითხოვს phase9 კონსტრეინტის გათვალისწინებას; სრული ანალიზი ჯერ ღიაა.
     """)
     print("=" * 72)
-    print("RFG_Theory.md-სთვის: § 13-ის გვერდი — § 14 'LIGO და ფაქტორი 2'")
+    print("სტატიისთვის გამოსატანი ბლოკი: LIGO და ფაქტორი 2")
     print("=" * 72)
 
 
@@ -871,7 +871,7 @@ if __name__ == "__main__":
 PHASE 27: Double Pulsar PSR J0737-3039A/B — PPK ცდები
 ================================================================================
 
-რეფერენცია: STRATEGY.md ეტაპი III §2, RFG_Theory.md § 6
+რეფერენცია: p04_gw.py double-pulsar/PPK სამუშაო ბლოკი
 
 დაკვირვება — PSR J0737-3039A/B (Kramer et al. 2021, PRX 11:041050):
 - ორმაგი პულსარი (ერთადერთი ცნობილი)
@@ -967,7 +967,7 @@ def open_tests():
 if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 27: Double Pulsar PSR J0737-3039A/B")
-    print("რეფერენცია: Kramer 2021, PRX 11:041050; phase8, phase9, RFG_Theory § 6")
+    print("რეფერენცია: Kramer 2021, PRX 11:041050; p03_solar.py, p04_gw.py")
     print("=" * 72)
 
     print("\n1. დაკვირვება (PSR J0737-3039, Kramer et al. 2021)")
@@ -1010,7 +1010,7 @@ if __name__ == "__main__":
 PHASE 28: PSR J1738+0333 — Scalar dipole radiation bound
 ================================================================================
 
-რეფერენცია: p04_gw.py, RFG_Theory.md § 7
+რეფერენცია: p04_gw.py
 
 დაკვირვება — PSR J1738+0333 (Freire et al. 2012, Antoniadis et al. 2013):
 - pulsar-white dwarf binary

@@ -1114,7 +1114,7 @@ if __name__ == "__main__":
 PHASE 11: MOND სექტორი — Bekenstein-Milgrom AQUAL ლაგრანჟიანი
 ================================================================================
 
-რეფერენცია: NOTATION.md, p01_core.py, RFG_Theory.md § 4
+რეფერენცია: NOTATION.md, p01_core.py, p07_mond.py
 
 სტატუსი (გულახდილი):
 - ეს ფაილი იყენებს Bekenstein-Milgrom AQUAL ფარგლს χ ველისთვის.
@@ -1362,7 +1362,7 @@ def open_tasks():
 if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 11: MOND სექტორი — Bekenstein-Milgrom AQUAL")
-    print("რეფერენცია: NOTATION.md, phase22, RFG_Theory.md § 4")
+    print("რეფერენცია: NOTATION.md, p01_core.py, p07_mond.py")
     print("=" * 72)
 
     L_chi, mu, EL_lhs, EL_rhs = aqual_lagrangian_explicit()

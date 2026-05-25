@@ -393,7 +393,7 @@ if __name__ == "__main__":
 PHASE 30: Lense-Thirring frame dragging — Gravity Probe B
 ================================================================================
 
-რეფერენცია: RFG_Theory.md § 6 (frame dragging), STRATEGY.md ეტაპი III §2
+რეფერენცია: p03_solar.py frame-dragging/PPN სამუშაო ბლოკი
 
 დაკვირვება — Gravity Probe B (Everitt et al. 2011):
 - gyroscope on satellite, Earth-orbit
@@ -467,7 +467,7 @@ def rfg_predictions():
 if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 30: Lense-Thirring frame dragging — Gravity Probe B")
-    print("რეფერენცია: Everitt 2011, p03_solar, RFG_Theory § 6")
+    print("რეფერენცია: Everitt 2011, p03_solar frame-dragging/PPN ბლოკი")
     print("=" * 72)
 
     print("\n1. დაკვირვება (Gravity Probe B)")
