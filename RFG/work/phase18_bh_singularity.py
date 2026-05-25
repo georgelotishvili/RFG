@@ -309,6 +309,15 @@ def analyze_photon_shadow_isco():
     """
     Strong-field observables of the exponential exterior.
 
+    Timelike geodesics use
+        rdot^2 = E^2 - V_eff,
+        V_eff = exp(-r_s/r) + L^2 exp(-2r_s/r)/r^2.
+
+    Circular orbit:
+        dV_eff/dr = 0.
+    Marginal stability:
+        d^2V_eff/dr^2 = 0.
+
     photon sphere:
         d/dr [exp(-2r_s/r)/r^2]=0 -> r=r_s
     shadow:
@@ -316,25 +325,54 @@ def analyze_photon_shadow_isco():
     massive ISCO:
         r^2 - 3 r_s r + r_s^2 = 0 -> r_ISCO = phi_golden^2 r_s
     """
-    r, r_s, c = sp.symbols('r r_s c', real=True, positive=True)
+    r, r_s, c, L = sp.symbols('r r_s c L', real=True, positive=True)
     phi_golden = (1 + sp.sqrt(5)) / 2
 
     photon_barrier = sp.exp(-2 * r_s / r) / r**2
     photon_condition = sp.factor(sp.diff(photon_barrier, r))
 
+    v_eff = sp.exp(-r_s / r) + L**2 * sp.exp(-2 * r_s / r) / r**2
+    circular_condition = sp.factor(sp.diff(v_eff, r))
+    specific_l2 = sp.simplify(r_s * r**2 * sp.exp(r_s / r) / (2 * (r - r_s)))
+    specific_e2 = sp.simplify(
+        sp.exp(-r_s / r) + specific_l2 * sp.exp(-2 * r_s / r) / r**2
+    )
+
+    v_eff_second = sp.diff(v_eff, r, 2)
+    stability_second_derivative = sp.factor(
+        sp.simplify(v_eff_second.subs(L**2, specific_l2))
+    )
+    stability_polynomial = r**2 - 3 * r_s * r + r_s**2
     isco_poly = r**2 - 3 * r_s * r + r_s**2
     isco_roots = sp.solve(sp.Eq(isco_poly, 0), r)
     isco_physical = sp.simplify(isco_roots[1])
 
     omega_sq = c**2 * r_s * sp.exp(-2 * r_s / r) / (r**2 * (2 * r - r_s))
     omega_isco_sq = sp.simplify(omega_sq.subs(r, isco_physical))
+    omega_gr_sq = c**2 / (54 * r_s**2)
+    omega_ratio = sp.N(sp.sqrt(sp.simplify(omega_isco_sq / omega_gr_sq)), 8)
+
+    local_speed_sq = sp.simplify(c**2 * r_s / (2 * r - r_s))
+    local_speed_isco = sp.simplify(sp.sqrt(local_speed_sq.subs(r, isco_physical)))
+    e2_isco = sp.simplify(specific_e2.subs(r, isco_physical))
+    e_isco = sp.sqrt(e2_isco)
+    binding_efficiency = sp.N(1 - e_isco, 8)
+    gr_binding_efficiency = sp.N(1 - sp.sqrt(sp.Rational(8, 9)), 8)
 
     gr_isco_iso = (5 + 2 * sp.sqrt(6)) * r_s / 4
+    gr_isco_areal = 3 * r_s
+    isco_iso_ratio = sp.N(isco_physical / gr_isco_iso, 8)
     shadow_rfg = sp.E * r_s
     shadow_gr = 3 * sp.sqrt(3) * r_s / 2
     shadow_ratio = sp.N(shadow_rfg / shadow_gr, 8)
 
     return {
+        "effective_potential_timelike": sp.Eq(sp.Symbol('V_eff'), v_eff),
+        "circular_orbit_condition": sp.Eq(circular_condition, 0),
+        "specific_L_squared_circular": sp.Eq(sp.Symbol('L_circ^2'), specific_l2),
+        "specific_E_squared_circular": sp.Eq(sp.Symbol('E_circ^2'), specific_e2),
+        "massive_orbit_existence": "L_circ^2>0 requires r>r_s; r=r_s is the photon boundary.",
+        "local_orbital_speed_squared": sp.Eq(sp.Symbol('v_local^2'), local_speed_sq),
         "photon_barrier": photon_barrier,
         "photon_condition": sp.Eq(photon_condition, 0),
         "photon_sphere": sp.Eq(sp.Symbol('r_ph'), r_s),
@@ -342,13 +380,24 @@ def analyze_photon_shadow_isco():
         "GR_shadow_reference": sp.Eq(sp.Symbol('b_c_GR'), shadow_gr),
         "shadow_ratio_RFG_over_GR": shadow_ratio,
         "shadow_size_shift": f"{float((shadow_ratio - 1) * 100):.2f}%",
+        "stability_second_derivative": stability_second_derivative,
+        "stability_polynomial": sp.Eq(stability_polynomial, 0),
         "ISCO_polynomial": sp.Eq(isco_poly, 0),
         "ISCO_roots": isco_roots,
         "ISCO_physical": sp.Eq(sp.Symbol('r_ISCO'), isco_physical),
         "golden_ratio_identity": sp.Eq(sp.Symbol('r_ISCO'), phi_golden**2 * r_s),
+        "ISCO_local_speed": sp.Eq(sp.Symbol('v_ISCO'), local_speed_isco),
+        "ISCO_specific_energy_squared": sp.Eq(sp.Symbol('E_ISCO^2'), e2_isco),
+        "ISCO_binding_efficiency": binding_efficiency,
+        "GR_binding_efficiency_reference": gr_binding_efficiency,
+        "GR_areal_ISCO_reference": sp.Eq(sp.Symbol('R_ISCO_GR'), gr_isco_areal),
         "GR_isotropic_ISCO_reference": sp.Eq(sp.Symbol('r_ISCO_GR_iso'), gr_isco_iso),
+        "ISCO_radius_ratio_RFG_over_GR_iso": isco_iso_ratio,
         "Omega_ISCO_squared": sp.Eq(sp.Symbol('Omega_ISCO^2'), omega_isco_sq),
-        "frequency_proxy": "old-theory benchmark: f_ISCO approximately 0.931 f_ISCO_GR for the same total mass",
+        "GR_Omega_ISCO_squared_reference": sp.Eq(sp.Symbol('Omega_GR^2'), omega_gr_sq),
+        "frequency_ratio_RFG_over_GR": omega_ratio,
+        "frequency_proxy": "f_ISCO = 0.931 f_ISCO_GR for the same total mass",
+        "mechanism": "golden-ratio ISCO is the marginal-stability root of the exponential-vacuum geodesic potential, not a fitted number.",
     }
 
 
@@ -365,7 +414,9 @@ def singularity_strength_ledger() -> list[str]:
         "There is no finite-radius Killing horizon: exp(-r_s/r)>0 for every r>0.",
         "The areal radius has a throat at r_s/2, with R_min=e*r_s/2.",
         "Photon sphere is r_s and the critical shadow impact parameter is b_c=e*r_s.",
-        "Massive-particle ISCO is r_ISCO=phi_golden^2*r_s.",
+        "Massive circular orbits exist only for r>r_s; r=r_s is the photon-speed boundary.",
+        "Massive-particle ISCO follows from V_eff''=0 and is r_ISCO=phi_golden^2*r_s.",
+        "The predicted ISCO frequency is f_ISCO=0.931 f_ISCO_GR for the same total mass.",
         "External observers see infinite redshift/coordinate-time freezing toward r=0.",
         "Captured geodesics that reached the old r=0 endpoint now enter the finite rarefied core instead.",
         "Therefore the strengthened claim is curvature-regular, horizonless, Bernoulli-saturated, and geodesically completed by Knudsen-core matching.",
@@ -487,6 +538,7 @@ if __name__ == "__main__":
     print("   de Sitter-ის ვაკუუმი (w=-1). ტერმინი MD ტექსტში შეიცვალა 'სასრულ-ენერგიული ბირთვით'.")
     print("4. ძველი exponential exterior უკვე იძლევა horizonless compact-object პროგნოზებს:")
     print("   r_ph=r_s, b_c=e*r_s, r_ISCO=phi_golden^2*r_s.")
+    print("   ISCO გამოდის V_eff-ის მარგინალური სტაბილურობიდან, არა fitting-ით.")
     print("5. ფუძის ნაწილაკების rarefaction closure აჩვენებს: n_eff->0, ell_mfp->infinity,")
     print("   Gamma_coll->0 და Kn->infinity, ამიტომ ინფორმაციის/დარტყმითი გადაცემა ითიშება.")
     print("6. r_s/4-ის შიგნით ბერნულის წნევის გრადიენტის რეაქცია გარეთკენ არის, რაც")
