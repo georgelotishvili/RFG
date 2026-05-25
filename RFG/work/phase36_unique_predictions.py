@@ -284,6 +284,13 @@ def old_to_rfg_prediction_map():
             "formula": "a0(z)=cH(z)/(2*pi); vortex memory/lag needs data closure",
         },
         {
+            "sector": "cluster mergers",
+            "old_prediction": "Bullet Cluster lensing peaks lock to galaxies via frozen hysteresis",
+            "rfg_status": "recovered and strengthened",
+            "current_file": "phase20_bullet_cluster.py",
+            "formula": "tau_rel=c/g_vir ~ 680 Gyr >> tau_cross ~0.33 Gyr; peaks at x~±715 kpc",
+        },
+        {
             "sector": "CMB/cosmology",
             "old_prediction": "linear CMB sector matches LCDM in same-matter metric limit",
             "rfg_status": "recovered and analytically closed",

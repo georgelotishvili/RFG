@@ -248,7 +248,7 @@ def open_tasks():
         "μ(x) RFG-დან გამოყვანა (ფენომენოლოგიური Famaey-Binney არ უდრის RFG-დან გამოყვანას)",
         "a_0 = c·H_0/(2π)-ის მექანიზმი Λ_eff-დან (ნუმეროლოგიური დამთხვევაა ჯერ)",
         "SPARC ~175 გალაქტიკის χ^2 fit (phase33-ის კანდიდატი)",
-        "Bullet/Abell 520/El Gordo lensing შედარება (phase29-ის კანდიდატი)",
+        "Bullet/Abell 520/El Gordo lensing შედარება (phase20_bullet_cluster.py)",
         "χ ლაგრანჟიანის RFG-დან გამოყვანა (ჯერ ცალკე AQUAL-ის ჩასმაა)",
     ]
 

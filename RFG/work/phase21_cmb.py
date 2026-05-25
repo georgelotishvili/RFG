@@ -579,6 +579,111 @@ def same_matter_cmb_inheritance_audit() -> dict[str, object]:
     }
 
 
+def einstein_boltzmann_inheritance_theorem() -> dict[str, object]:
+    """
+    Stronger form of the CMB claim.
+
+    The locked branch does not merely set alpha_i=0. It leaves the complete
+    linear Einstein-Boltzmann hierarchy unchanged, provided the matter content,
+    recombination history, and primordial initial conditions are the same.
+    """
+    return {
+        "metric_closure": [
+            "H(a) inherited",
+            "k^2 Psi = -4*pi*G*a^2*rho*Delta",
+            "Phi-Psi=0 when matter anisotropic stress is the LCDM one",
+        ],
+        "photon_baryon_hierarchy": [
+            "photon continuity/Euler equations unchanged",
+            "Thomson drag term a*n_e*sigma_T*(theta_b-theta_gamma) unchanged",
+            "baryon loading R_b=3*rho_b/(4*rho_gamma) unchanged for same matter",
+        ],
+        "neutrino_hierarchy": "unchanged except for the standard LCDM anisotropic-stress contribution",
+        "transfer_functions": "Theta_l(k), E_l(k), matter transfer T_m(k), and lensing source are inherited",
+        "condition": "same matter content + same recombination + same primordial spectrum",
+        "conclusion": "primary TT/TE/EE and linear lensing spectra are unchanged in this limit",
+    }
+
+
+def cmb_lensing_isw_null_shift_theorem() -> dict[str, object]:
+    """
+    If the Weyl potential is unchanged, both CMB lensing and ISW sources are
+    unchanged at linear order in the same-matter branch.
+    """
+    eta, Phi, Psi = symbols("eta Phi Psi", real=True)
+    weyl = (Phi + Psi) / 2
+
+    return {
+        "weyl_potential": weyl,
+        "delta_weyl_same_matter": sp.Integer(0),
+        "delta_lensing_source": sp.Integer(0),
+        "delta_ISW_source": sp.Integer(0),
+        "linear_CMB_lensing": "C_L^{phiphi,RFG}=C_L^{phiphi,LCDM} in same-matter limit",
+        "linear_ISW": "Delta T_ISW proportional to d(Phi+Psi)/d eta is unchanged",
+        "late_time_warning": "nonlinear MOND/memory activation can still alter low-z lensing/ISW and needs full line-of-sight modeling",
+    }
+
+
+def ik_sector_delta_neff_and_curvature_filters() -> dict[str, object]:
+    """
+    Turn the I_k background scalings into explicit early-universe filters.
+
+    Radiation-like terms are constrained by Delta N_eff; stiff a^-6 terms are
+    more dangerous at BBN; curvature-like a^-2 terms can shift D_A(z*) and the
+    acoustic angular scale.
+    """
+    a, a_bbn = symbols("a a_BBN", positive=True)
+    rho_gamma0, rho_rad0 = symbols("rho_gamma0 rho_rad0", positive=True)
+    c_I1, c_I1sq, c_I2, c_I3 = symbols("c_I1 c_I1sq c_I2 c_I3", real=True)
+    delta_neff_max = Symbol("Delta_Neff_max", positive=True)
+    epsilon_bbn = Symbol("epsilon_BBN", positive=True)
+    epsilon_curv = Symbol("epsilon_curv", positive=True)
+
+    rho_extra_rad = (9 * c_I1sq + 3 * c_I2) / a**4
+    rho_gamma = rho_gamma0 / a**4
+    delta_neff = sp.simplify(sp.Rational(8, 7) * (sp.Rational(11, 4)) ** sp.Rational(4, 3) * rho_extra_rad / rho_gamma)
+
+    rho_stiff = c_I3 / a**6
+    rho_rad = rho_rad0 / a**4
+    stiff_ratio_bbn = sp.simplify((rho_stiff / rho_rad).subs(a, a_bbn))
+
+    rho_curvature_like = 3 * c_I1 / a**2
+    curvature_ratio_star = sp.simplify((rho_curvature_like / rho_rad).subs(a, Symbol("a_star", positive=True)))
+
+    return {
+        "rho_extra_radiation_like": rho_extra_rad,
+        "Delta_Neff_RFG": delta_neff,
+        "Delta_Neff_bound": sp.Le(sp.Abs(delta_neff), delta_neff_max),
+        "stiff_ratio_at_BBN": stiff_ratio_bbn,
+        "stiff_BBN_bound": sp.Le(sp.Abs(stiff_ratio_bbn), epsilon_bbn),
+        "curvature_like_ratio_at_recombination": curvature_ratio_star,
+        "curvature_geometry_bound": sp.Le(sp.Abs(curvature_ratio_star), epsilon_curv),
+        "meaning": "I_k coefficients must be on the locked/suppressed branch or satisfy these early-universe filters",
+    }
+
+
+def cmb_closed_conditional_open_scorecard() -> dict[str, list[str]]:
+    return {
+        "closed": [
+            "Phi_0=X_0=0 matter-clock FLRW locking",
+            "alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
+            "linear Poisson/slip equations inherited",
+            "primary acoustic ruler inherited for same matter and same primordial spectrum",
+            "radiation trace T_gamma=0, so photon acoustic pressure is not directly driven by the RFG trace channel",
+        ],
+        "conditional": [
+            "I_k background terms must pass Delta N_eff, stiff-fluid, and curvature-like filters",
+            "late lensing/ISW remains identical only while the nonlinear MOND/memory response is not active in the line-of-sight model",
+            "off-branch scalar/ESS perturbations require no-ghost and sound-speed checks",
+        ],
+        "open": [
+            "full Planck TT/TE/EE+lensing likelihood",
+            "no-particle-DM replacement of the CDM gravitational wells",
+            "primordial A_s and n_s from oscillon/tail nucleation dynamics",
+        ],
+    }
+
+
 def no_particle_dm_cmb_open_register() -> list[dict[str, str]]:
     """The CMB questions not solved by same-matter inheritance."""
     return [
@@ -842,7 +947,25 @@ if __name__ == "__main__":
     for k, v in same_matter_cmb_inheritance_audit().items():
         print(f"  {k:30s}: {v}")
 
-    print("\n--- ნაბიჯი 10: compressed H0/S8 tensions ---")
+    print("\n--- ნაბიჯი 10: Einstein-Boltzmann inheritance theorem ---")
+    for k, v in einstein_boltzmann_inheritance_theorem().items():
+        print(f"  {k:30s}: {v}")
+
+    print("\n--- ნაბიჯი 11: CMB lensing / ISW null-shift theorem ---")
+    for k, v in cmb_lensing_isw_null_shift_theorem().items():
+        print(f"  {k:30s}: {v}")
+
+    print("\n--- ნაბიჯი 12: I_k early-universe filters ---")
+    for k, v in ik_sector_delta_neff_and_curvature_filters().items():
+        print(f"  {k:36s}: {v}")
+
+    print("\n--- ნაბიჯი 13: CMB closed / conditional / open scorecard ---")
+    for k, values in cmb_closed_conditional_open_scorecard().items():
+        print(f"  {k}:")
+        for value in values:
+            print(f"    - {value}")
+
+    print("\n--- ნაბიჯი 14: compressed H0/S8 tensions ---")
     compressed = compressed_observational_chi2()
     for row in compressed["rows"]:
         print(
@@ -852,20 +975,20 @@ if __name__ == "__main__":
     print(f"  total compressed chi2/dof: {compressed['total_chi2']:.2f}/{compressed['dof']}")
     print(f"  status: {compressed['status']}")
 
-    print("\n--- ნაბიჯი 11: no-particle-DM CMB open register ---")
+    print("\n--- ნაბიჯი 15: no-particle-DM CMB open register ---")
     for row in no_particle_dm_cmb_open_register():
         print(f"  problem: {row['problem']}")
         print(f"    candidate: {row['candidate_RFG_mechanism']}")
         print(f"    needed:    {row['needed_test']}")
 
-    print("\n--- ნაბიჯი 12: full Planck C_l fit readiness ---")
+    print("\n--- ნაბიჯი 16: full Planck C_l fit readiness ---")
     readiness = full_fit_readiness()
     print(f"  status: {readiness.status}")
     print(f"  hi_class_exe: {readiness.hi_class_exe}")
     print(f"  planck_likelihood_dir: {readiness.planck_likelihood_dir}")
     print(f"  reason: {readiness.reason}")
 
-    print("\n--- ნაბიჯი 13: hi_class bridge template ---")
+    print("\n--- ნაბიჯი 17: hi_class bridge template ---")
     for line in hi_class_run_template(model, DEFAULT_ALPHA_TABLE):
         print(f"  {line}")
 
@@ -879,8 +1002,10 @@ if __name__ == "__main__":
     print("   ელასტიური სექტორისთვის აუცილებელია 'EFT of Solid Inflation' (ESS) ჩარჩო.")
     print("4. ძველი CMB ბირთვი გადმოტანილია theorem-ებად: locked FLRW branch -> alpha_i=0")
     print("   -> GR-identical linear metric equations -> inherited acoustic ruler.")
-    print("5. C_l-ის same-matter მემკვიდრეობა ანალიტიკურად დახურულია; no-particle-DM/IS-memory")
+    print("5. Einstein-Boltzmann hierarchy, linear lensing და ISW same-matter ლიმიტში უცვლელია.")
+    print("6. I_k სექტორის early-universe ფილტრები ცხადად ჩაიწერა: Delta N_eff, stiff, curvature.")
+    print("7. C_l-ის same-matter მემკვიდრეობა ანალიტიკურად დახურულია; no-particle-DM/IS-memory")
     print("   სცენარი phase21-ის Boltzmann/CLASS/CAMB ბლოკშია რეგისტრირებული.")
-    print("6. computational audit ერთიანად აქაა: alpha table, readiness, H0/S8 checks.")
-    print("7. GW მასის კონსტრეინტი phase9-დან პირდაპირ იქნა ციტირებული α_T ბლოკში.")
+    print("8. computational audit ერთიანად აქაა: alpha table, readiness, H0/S8 checks.")
+    print("9. GW მასის კონსტრეინტი phase9-დან პირდაპირ იქნა ციტირებული α_T ბლოკში.")
     print("=" * 72)
