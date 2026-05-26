@@ -234,6 +234,58 @@ def module_status():
     }
 
 
+def article_dynamic_phase_clock_theorem():
+    """
+    Article-facing dynamic phase-clock ledger.
+
+    This is the correction to the earlier overuse of the strict Phi=t branch.
+    The dynamic branch keeps u(a)=Phi_dot(a) as the cosmological clock variable
+    and keeps c_YI1 active, so the local phase-space coupling is not switched
+    off by the cosmology shortcut.
+    """
+    current = phase_current_self_check()
+    branch = dynamic_phase_clock_branch()
+    late = late_zero_current_candidate()
+    early = early_scaling_after_zero_current()
+
+    return {
+        "article_use": "dynamic cosmological phase-clock branch replacing strict-clock as the main cosmology direction",
+        "current_self_check": {
+            "status": current["status"],
+            "normalized_density": current["normalized_density"],
+            "normalized_density_residual": current["normalized_density_residual"],
+            "canonical_minus_normalized_EOM_residual": current[
+                "canonical_minus_normalized_EOM_residual"
+            ],
+        },
+        "dynamic_equation": {
+            "status": branch["status"],
+            "normalized_current": branch["normalized_current"],
+            "dynamic_equation_normalized": branch["dynamic_equation_normalized"],
+            "zero_current_roots": branch["zero_current_roots"],
+        },
+        "late_candidate": {
+            "status": late["status"],
+            "late_u2": late["late_u2"],
+            "w_after_substitution": late["w_after_substitution"],
+            "theorem_pass_background_only": late["theorem_pass_background_only"],
+            "viable_sign_window_hint": late["viable_sign_window_hint"],
+        },
+        "early_scaling_warning": {
+            "status": early["status"],
+            "rho_full_zero_current_expanded": early["rho_full_zero_current_expanded"],
+            "added_effective_a_minus_2": early["added_effective_a_minus_2"],
+            "added_effective_a_minus_4": early["added_effective_a_minus_4"],
+        },
+        "article_status": {
+            "dynamic_phase_clock": "PRIMARY_COSMOLOGY_DIRECTION_CANDIDATE",
+            "strict_clock": "DIAGNOSTIC_ONLY_NOT_MAIN_BRANCH",
+            "phase_space_coupling": "c_YI1_REMAINS_ACTIVE",
+            "observational_fit": "REQUIRED",
+        },
+    }
+
+
 if __name__ == "__main__":
     print("=" * 72)
     print("p02c: dynamic phase-clock branch ledger")

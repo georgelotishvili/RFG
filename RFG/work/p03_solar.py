@@ -292,6 +292,37 @@ def solar_1pn_branch_derivation_theorem():
         ),
     }
 
+
+def ppn_scope_and_preferred_frame_gate():
+    """
+    Article-facing boundary for Solar-System claims.
+
+    The current p03 theorem is a static, spherically symmetric, areal-radius
+    branch.  It is not yet the full standard PPN calculation for moving
+    sources or preferred-frame parameters.
+    """
+    return {
+        "status": "STATIC_SPHERICAL_1PN_ONLY_FULL_PPN_OPEN",
+        "closed_here": (
+            "gamma=beta=1 on the nontrivial static spherical areal-radius "
+            "coefficient branch, with stress closed through O(U^1)"
+        ),
+        "coordinate_warning": (
+            "standard Solar-System bounds are quoted in isotropic PPN gauge; "
+            "the areal-radius branch must be mapped before a final PPN export"
+        ),
+        "preferred_frame_risk": (
+            "solid/supersolid backgrounds can generate preferred-frame effects "
+            "unless alpha_1, alpha_2, alpha_3 are explicitly derived as zero"
+        ),
+        "required_before_full_solar_claim": [
+            "coordinate bridge to standard isotropic PPN form",
+            "moving-source solution",
+            "alpha_1=alpha_2=alpha_3 derivation",
+            "rotating-source g_0i / frame-dragging solution",
+        ],
+    }
+
 if __name__ == "__main__":
     res = analyze_ppn()
     U, gamma, beta, a2, G_tt_s, G_rr_s, G_thth_s, T_tt_s, T_rr_s, T_thth_s = res
@@ -876,7 +907,10 @@ def article_solar_theorem():
     stress = weak_field_stress_constraint_gate()
     one_pn = solar_1pn_closure_branch()
     one_pn_derivation = solar_1pn_branch_derivation_theorem()
+    ppn_scope = ppn_scope_and_preferred_frame_gate()
     cassini = cassini_gamma_gate()
+    shapiro_2pn = calculate_shapiro_2pn_discriminator()
+    bending_2pn = calculate_light_deflection_2pn_discriminator()
 
     return {
         "article_use": "1PN Solar-System compatibility branch and 2PN discriminator",
@@ -903,6 +937,7 @@ def article_solar_theorem():
             "gamma_minus_1": cassini["abs_gamma_minus_1"],
             "bound_used": cassini["conservative_bound"],
         },
+        "ppn_scope": ppn_scope,
         "two_pn_discriminator": {
             "status": "OPEN_DISCRIMINATOR",
             "O2_residual_on_1PN_branch": one_pn["O2_residual_on_this_branch"],
@@ -917,10 +952,46 @@ def article_solar_theorem():
                 "the solar-sector discriminator."
             ),
         },
+        "two_pn_observable_candidates": {
+            "status": "CONDITIONAL_CANDIDATES_NOT_FINAL_PREDICTIONS",
+            "shapiro": {
+                "status": shapiro_2pn["status"],
+                "input_status": shapiro_2pn["input_status"],
+                "n_RFG": shapiro_2pn["n_RFG"],
+                "n_GR_isotropic": shapiro_2pn["n_GR_isotropic"],
+                "delta_alpha": shapiro_2pn["delta_alpha"],
+                "Delta_t_2PN_RFG_minus_GR": shapiro_2pn[
+                    "Delta_t_2PN_RFG_minus_GR"
+                ],
+                "finite_endpoint_Delta_t": shapiro_2pn["finite_endpoint_Delta_t"],
+                "Delta_B": shapiro_2pn["Delta_B"],
+            },
+            "light_bending": {
+                "status": bending_2pn["status"],
+                "input_status": bending_2pn["input_status"],
+                "theta_2PN_RFG": bending_2pn["theta_2PN_RFG"],
+                "theta_2PN_GR": bending_2pn["theta_2PN_GR"],
+                "RFG_over_GR_2PN_ratio": bending_2pn[
+                    "RFG_over_GR_2PN_ratio"
+                ],
+                "Delta_theta_2PN_RFG_minus_GR": bending_2pn[
+                    "Delta_theta_2PN_RFG_minus_GR"
+                ],
+            },
+            "blocking_condition": (
+                "promote to final prediction only after n_RFG is derived from "
+                "the RFG exterior metric and the areal-radius branch is mapped "
+                "to isotropic PPN coordinates"
+            ),
+        },
         "article_status": {
             "one_pn": "CLOSED_COEFFICIENT_BRANCH",
+            "full_ppn": ppn_scope["status"],
             "cassini_if_gamma_derived": cassini["status"],
             "two_pn": "OPEN_DISCRIMINATOR",
+            "two_pn_observable_candidates": (
+                "CONDITIONAL_CANDIDATES_NOT_FINAL_PREDICTIONS"
+            ),
             "rotating_sources": frame_dragging_gate()["status"],
         },
     }

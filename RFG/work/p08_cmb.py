@@ -863,7 +863,10 @@ def same_input_cmb_identity_theorem() -> dict[str, object]:
             "delta_lensing_source": lensing["delta_lensing_source"],
             "delta_ISW_source": lensing["delta_ISW_source"],
         },
-        "conclusion": "C_ell^RFG = C_ell^LCDM in the locked same-input linear branch",
+        "conclusion": (
+            "C_ell^RFG = C_ell^LCDM in the locked same-input linear branch; "
+            "this is a consistency/health check, not a new CMB fit"
+        ),
         "not_claimed": "no-particle-dark-matter CMB fit or Planck likelihood pass",
     }
 
@@ -920,7 +923,7 @@ def article_cmb_theorem() -> dict[str, object]:
             "not_substrate_constant": calibration["not_substrate_identity"],
         },
         "article_status": {
-            "linear_same_input_CMB": "ANALYTICALLY_CLOSED_CONDITIONAL_BRANCH",
+            "linear_same_input_CMB": "CONSISTENCY_HEALTH_CHECK_CONDITIONAL_BRANCH",
             "no_particle_dark_matter_CMB": "BOLTZMANN_LIKELIHOOD_REQUIRED",
             "Planck_BAO_fit": "NUMERICAL_LIKELIHOOD_REQUIRED",
         },

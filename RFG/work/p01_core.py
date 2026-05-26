@@ -1875,6 +1875,45 @@ def minimal_action_basis_theorem():
     }
 
 
+def covariance_and_spontaneous_breaking_gate():
+    """
+    Diffeomorphism covariance and solid/supersolid background status.
+
+    The action is built from spacetime scalars Phi and phi^A.  Therefore
+    Y and B^{AB} are spacetime scalars, while A,B are internal medium labels.
+    The homogeneous choice phi^A=x^A is a unitary-gauge/background choice; it
+    selects a medium rest frame spontaneously, not by inserting fixed coordinate
+    tensors into the action.
+    """
+    return {
+        "status": "COVARIANT_ACTION_WITH_SPONTANEOUS_SOLID_BACKGROUND",
+        "fields": {
+            "Phi": "spacetime scalar phase/clock field",
+            "phi_A": "three spacetime scalar comoving medium-label fields",
+        },
+        "diffeomorphism_covariance": (
+            "Y and B^{AB} are built by contracting spacetime indices with "
+            "g^{mu nu}; the action contains no fixed spacetime coordinate "
+            "tensor and is diffeomorphism covariant before a background is chosen."
+        ),
+        "background_choice": "unitary gauge phi^A=x^A gives B^{AB}=delta^{AB}",
+        "symmetry_breaking": (
+            "the homogeneous medium background spontaneously selects a rest "
+            "frame and breaks spacetime Lorentz boosts in the solution, as in "
+            "EFT of solids/supersolids; this is not explicit breaking of the action"
+        ),
+        "restore_covariance_language": (
+            "away from unitary gauge the Goldstone/Stueckelberg fields are the "
+            "fluctuations of phi^A and keep the covariant description visible"
+        ),
+        "open_gate": (
+            "preferred-frame and full perturbation-sector Lorentz audits remain "
+            "separate tests; p01 currently closes only the covariant action "
+            "structure and selected background-stress checks"
+        ),
+    }
+
+
 def article_core_theorem():
     """
     Article-facing theorem ledger for the p01 core.
@@ -1886,6 +1925,7 @@ def article_core_theorem():
     Y, I1, I2, I3 = init_variables()
     L_poly = get_polynomial_lagrangian(Y, I1, I2, I3)
     basis_theorem = minimal_action_basis_theorem()
+    symmetry_gate = covariance_and_spontaneous_breaking_gate()
     K_Phi_c, K_pi_c = analyze_lorentz_constrained_stability()
     horndeski_map = rfg_to_horndeski()
     alphas = bellini_sawicki_alphas()
@@ -1909,6 +1949,7 @@ def article_core_theorem():
         },
         "polynomial_lagrangian": L_poly,
         "minimal_action_basis": basis_theorem,
+        "covariance_and_spontaneous_breaking": symmetry_gate,
         "sign_bridge": {
             "Y_to_X": horndeski_map["Y_to_X"],
             "c_X": "-2*c_Y^(Y)",

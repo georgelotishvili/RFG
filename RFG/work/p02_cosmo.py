@@ -366,7 +366,11 @@ def strict_clock_obstruction_theorem():
 
 def strict_clock_lambda_like_branch_theorem():
     """
-    Conditional algebraic theorem: if the strict-clock closure holds, w=-1.
+    Conditional diagnostic: if the strict-clock closure holds, w=-1.
+
+    This is not the primary cosmological clock mechanism of RFG.  The dynamic
+    Phi_dot(a) branch in p02c keeps c_YI1 active and is the correct place for
+    cosmological time-slowing physics.
     """
     closure = phi_clock_closure_conditions()
     rho = closure["late_rho_after_closure"]
@@ -374,14 +378,14 @@ def strict_clock_lambda_like_branch_theorem():
     w = sp.simplify(p / rho)
 
     return {
-        "status": "CONDITIONAL_THEOREM",
+        "status": "CONDITIONAL_DIAGNOSTIC",
         "conditions": closure["generic_expanding_FLRW_closure"],
         "phase_no_ghost_after_closure": closure["phase_no_ghost_after_closure"],
         "late_rho_after_closure": rho,
         "late_p_after_closure": p,
         "late_w_after_closure": w,
         "theorem_pass": sp.simplify(w + 1) == 0,
-        "claim": "closed strict-clock branch has Lambda-like equation of state w=-1",
+        "claim": "closed strict-clock diagnostic has Lambda-like equation of state w=-1",
         "not_claimed": (
             "observed dark energy, naturalness, full gravity closure, and "
             "perturbation stability remain open"
@@ -565,7 +569,7 @@ def article_cosmology_theorem():
 
     This exposes only the FLRW algebra mature enough for the first article:
     stress tensor closure, Noether/Bianchi closure, and the conditional
-    strict-clock lambda-like branch.
+    strict-clock diagnostic branch.
     """
     stress = flrw_stress_theorem()
     noether = flrw_noether_theorem()
@@ -576,7 +580,7 @@ def article_cosmology_theorem():
     claim_gate = cosmology_claim_gate()
 
     return {
-        "article_use": "FLRW stress algebra, Noether/Bianchi identity, and conditional lambda-like branch",
+        "article_use": "FLRW stress algebra and Noether/Bianchi identity; strict-clock is diagnostic only",
         "flrw_stress": {
             "status": stress["status"],
             "rho": stress["rho_expected"],
@@ -602,6 +606,7 @@ def article_cosmology_theorem():
             "status": lambda_branch["status"],
             "theorem_pass": lambda_branch["theorem_pass"],
             "late_w_after_closure": lambda_branch["late_w_after_closure"],
+            "article_role": "DIAGNOSTIC_ONLY_NOT_MAIN_COSMOLOGY_BRANCH",
         },
         "early_universe_filters": {
             "status": early["status"],
@@ -615,7 +620,8 @@ def article_cosmology_theorem():
         "article_status": {
             "stress_algebra": claim_gate["stress_algebra"],
             "noether_bianchi": claim_gate["bianchi_noether"],
-            "lambda_like_branch": claim_gate["lambda_like_branch_theorem"],
+            "strict_clock_lambda_diagnostic": claim_gate["lambda_like_branch_theorem"],
+            "main_cosmology_branch": "DYNAMIC_PHASE_CLOCK_IN_p02c",
             "dark_energy_observation": "NUMERICAL_FIT_REQUIRED",
             "early_universe": "NUMERICAL_BOUNDS_REQUIRED",
         },
