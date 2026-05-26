@@ -74,8 +74,12 @@ def process_time_source_requirements():
             "self-similar process-time postulate: every epoch measures the "
             "infinite internal past as the same finite age T0 in its own units"
         ),
+        "postulate_to_field_bridge": (
+            "self_similar_Cz_phi_bridge algebraically gives "
+            "C(z)=T0/t_age(z) and phi_bg(z)-phi_bg(0)=2*log(C(z))"
+        ),
         "required_before_physics_claim": [
-            "derive or fit phi_bg(z)",
+            "derive or observationally fit phi_bg(z), not only define it algebraically",
             "state which physical process is parameterized by tau_proc",
             "show C(0)=1 calibration",
             "provide BBN/CMB/structure-growth bounds on C(z)",
@@ -205,6 +209,74 @@ def cosmic_age_invariance_result():
     }
 
 
+def self_similar_Cz_phi_bridge():
+    """
+    Bridge the self-similar postulate to the active C(z)/phi_bg(z) notation.
+
+    After the postulate is accepted, this part is algebraic: if the standard
+    CMB-comoving age at redshift z is t_age(z), then C(z)=T0/t_age(z). The
+    phi_bg(z) expression is the field-space bookkeeping needed to match the
+    existing C(z)=exp((phi_bg(z)-phi_bg(0))/2) convention.
+    """
+    z = sp.Symbol("z", real=True, nonnegative=True)
+    T0 = sp.Symbol("T0", positive=True, real=True)
+    t_age = sp.Function("t_age")
+    C = sp.Function("C")
+    phi_bg = sp.Function("phi_bg")
+    H = sp.Function("H")
+    a = sp.Symbol("a", positive=True)
+
+    cmb_age_integral = sp.Integral(1 / (a * H(a)), (a, 0, 1 / (1 + z)))
+    C_z = T0 / t_age(z)
+    phi_difference = 2 * sp.log(C_z)
+    phi_z_with_zero_today = phi_difference
+    active_C_definition = sp.exp((phi_bg(z) - phi_bg(0)) / 2)
+    bridge_check = sp.simplify(sp.exp(phi_difference / 2))
+
+    return {
+        "status": "ALGEBRAIC_BRIDGE_AFTER_SELF_SIMILAR_POSTULATE",
+        "standard_age_input": sp.Eq(t_age(z), cmb_age_integral),
+        "normalization": sp.Eq(t_age(0), T0),
+        "C_z_self_similar": sp.Eq(C(z), C_z),
+        "phi_bg_difference": sp.Eq(phi_bg(z) - phi_bg(0), phi_difference),
+        "gauge_choice_phi_bg_today_zero": sp.Eq(phi_bg(z), phi_z_with_zero_today),
+        "active_definition_check": sp.Eq(active_C_definition, bridge_check),
+        "meaning": (
+            "C(z) is now fixed by the CMB-comoving age history once the "
+            "self-similar postulate is accepted"
+        ),
+        "remaining_physics_gap": (
+            "phi_bg(z) is still a diagnostic background history until derived "
+            "from an RFG field equation or fitted with observational bounds"
+        ),
+    }
+
+
+def process_rate_vs_lapse_separation():
+    """
+    Keep the intrinsic process-rate factor separate from the metric lapse.
+    """
+    C_proc, alpha = sp.symbols("C_proc alpha", positive=True, real=True)
+    dt_cmb = sp.Symbol("dt_CMB", positive=True, real=True)
+    d_tau_proc = sp.Symbol("d_tau_proc", positive=True, real=True)
+    d_tau_local = sp.Symbol("d_tau_local", positive=True, real=True)
+
+    return {
+        "status": "SEPARATION_REQUIRED",
+        "process_rate_factor": sp.Eq(d_tau_proc, C_proc * dt_cmb),
+        "local_metric_lapse": sp.Eq(d_tau_local, alpha * dt_cmb),
+        "not_identical_by_default": sp.Ne(C_proc, alpha),
+        "identification_allowed_only_if": (
+            "a separate stress/lapse/substrate bridge proves that the same RFG "
+            "field controls both the intrinsic process clock and the local lapse"
+        ),
+        "double_counting_rule": (
+            "never apply both C_proc and alpha to the same observed time "
+            "interval unless the variables and clock channel are explicitly distinct"
+        ),
+    }
+
+
 def clock_pressure_index_definition():
     """
     Operational index built from local cosmic-age reading.
@@ -241,6 +313,41 @@ def clock_pressure_index_definition():
         "not_yet_claimed": (
             "Pi_clock equals physical stress pressure only after an explicit "
             "bridge to RFG stress-energy, lapse, or substrate invariants"
+        ),
+    }
+
+
+def clock_pressure_lapse_bridge():
+    """
+    Geometric bridge from local age reading to lapse.
+
+    This strengthens Pi_clock as a lapse/compression index. It still does not
+    prove equality with thermodynamic or stress-energy pressure.
+    """
+    T0 = sp.Symbol("T0", positive=True, real=True)
+    T_local = sp.Symbol("T_local", positive=True, real=True)
+    alpha = sp.Symbol("alpha", positive=True, real=True)
+    Pi_clock = sp.Symbol("Pi_clock", positive=True, real=True)
+    Phi = sp.Symbol("Phi", real=True)
+
+    return {
+        "status": "GEOMETRIC_LAPSE_BRIDGE_CONDITIONAL",
+        "local_age_lapse_rule": sp.Eq(T_local, alpha * T0),
+        "clock_pressure_index": sp.Eq(Pi_clock, 1 / alpha),
+        "RFG_biconformal_lapse_if_gtt_exp_Phi": sp.Eq(alpha, sp.exp(Phi / 2)),
+        "RFG_field_form_if_bridge_accepted": sp.Eq(Pi_clock, sp.exp(-Phi / 2)),
+        "weak_field": sp.series(sp.exp(-Phi / 2), Phi, 0, 2).removeO(),
+        "strengthened_claim": (
+            "Pi_clock is no longer just a ratio; it is the inverse local lapse "
+            "when local cosmic-age readings are controlled by a metric clock"
+        ),
+        "remaining_physics_gap": (
+            "Pi_clock becomes physical RFG pressure only after a stress-energy "
+            "or substrate-invariant derivation"
+        ),
+        "sign_warning": (
+            "the sign of Phi must follow the active metric convention g_tt=exp(Phi); "
+            "do not mix this with X/Y coefficient sign conventions"
         ),
     }
 
@@ -389,6 +496,50 @@ def jwst_process_time_interval_table(
             "process-time budgets under the postulate"
         ),
         "guardrail": "do not apply these factors to observed redshift time dilation",
+    }
+
+
+def jwst_formation_budget_test(
+    required_formation_times_gyr=(0.3, 1.0, 3.0),
+    intervals=((30.0, 20.0), (20.0, 14.44), (15.0, 10.0), (12.0, 7.3)),
+    present_age_gyr=DEFAULT_PRESENT_AGE_GYR,
+):
+    """
+    Turn the JWST diagnostic into a falsifiable formation-time budget test.
+    """
+    interval_rows = jwst_process_time_interval_table(
+        intervals=intervals,
+        present_age_gyr=present_age_gyr,
+    )["rows"]
+
+    tests = []
+    for row in interval_rows:
+        process_window = row["process_window_gyr"]
+        coordinate_window = row["lcdm_coordinate_window_gyr"]
+        for required_time in required_formation_times_gyr:
+            tests.append(
+                {
+                    "z_window": row["z_window"],
+                    "required_formation_time_gyr": float(required_time),
+                    "lcdm_coordinate_window_gyr": coordinate_window,
+                    "process_window_gyr": process_window,
+                    "coordinate_budget_pass": coordinate_window >= required_time,
+                    "process_budget_pass": process_window >= required_time,
+                    "process_margin_gyr": round(process_window - required_time, 3),
+                    "status": "budget_test_only_not_population_fit",
+                }
+            )
+
+    return {
+        "status": "FITTING_READY_BUDGET_TEST",
+        "criterion": "required formation time <= Delta tau_proc(z_start,z_end)",
+        "tests": tests,
+        "still_required_for_JWST_claim": [
+            "stellar mass and star-formation efficiency model",
+            "metallicity and dust history",
+            "halo abundance / selection function",
+            "spectroscopic-redshift confirmed sample",
+        ],
     }
 
 
@@ -576,11 +727,15 @@ def stage_a2_process_time_status():
         "source_requirements": process_time_source_requirements(),
         "self_similar_postulate": process_time_self_similar_postulate(),
         "cosmic_age_invariance": cosmic_age_invariance_result(),
+        "Cz_phi_bridge": self_similar_Cz_phi_bridge(),
+        "process_rate_vs_lapse": process_rate_vs_lapse_separation(),
         "clock_pressure_index": clock_pressure_index_definition(),
+        "clock_pressure_lapse_bridge": clock_pressure_lapse_bridge(),
         "schwarzschild_reference": schwarzschild_clock_pressure_reference(),
         "age_conversion_example": process_time_age_conversion_example(),
         "JWST_diagnostic_table": jwst_process_time_diagnostic_table(),
         "JWST_interval_table": jwst_process_time_interval_table(),
+        "JWST_budget_test": jwst_formation_budget_test(),
         "scaling": process_time_scaling_ledger(),
         "flrw_separation": flrw_vs_process_time_separation(),
         "allowed_rate_tags": process_time_allowed_rate_tags(),
@@ -600,17 +755,22 @@ def process_time_claim_gate():
     energy = process_time_energy_budget_guardrail()
     postulate = process_time_self_similar_postulate()
     age_result = cosmic_age_invariance_result()
+    cz_bridge = self_similar_Cz_phi_bridge()
     pressure_index = clock_pressure_index_definition()
+    lapse_bridge = clock_pressure_lapse_bridge()
+    budget_test = jwst_formation_budget_test()
 
     return {
         "metric_independence": "PASS" if separation["not_a_second_metric_mode"] else "FAIL",
         "C_z_source": source["C_of_z_source"],
         "self_similar_curve": postulate["status"],
         "age_invariance": age_result["status"],
+        "Cz_phi_bridge": cz_bridge["status"],
         "clock_pressure_index": pressure_index["status"],
+        "clock_pressure_lapse_bridge": lapse_bridge["status"],
         "energy_budget": energy["status"],
         "intrinsic_rate_use": "CONDITIONAL_ONLY_WITH_EXPLICIT_RATE_TAG",
-        "JWST_formation_time_support": "DIAGNOSTIC_CALCULATION_AVAILABLE",
+        "JWST_formation_time_support": budget_test["status"],
         "observational_status": "OPEN_BOUNDS_AND_FIT",
         "allowed_example": process_time_use_gate("intrinsic_process_time_rate"),
         "blocked_metric_example": process_time_use_gate(
@@ -643,7 +803,9 @@ if __name__ == "__main__":
     print("C(z) source status:", process_time_source_requirements()["C_of_z_source"])
     print("self-similar status:", process_time_self_similar_postulate()["status"])
     print("age invariance:", cosmic_age_invariance_result()["status"])
+    print("C(z)-phi bridge:", self_similar_Cz_phi_bridge()["status"])
     print("clock-pressure index:", clock_pressure_index_definition()["status"])
+    print("clock-pressure lapse bridge:", clock_pressure_lapse_bridge()["status"])
     print("Schwarzschild reference:", schwarzschild_clock_pressure_reference()["status"])
     print(
         "2 Gyr future age in future units:",
@@ -652,6 +814,7 @@ if __name__ == "__main__":
     print("JWST interval diagnostics:")
     for row in jwst_process_time_interval_table()["rows"]:
         print(" ", row)
+    print("JWST budget test:", jwst_formation_budget_test()["status"])
     print("energy budget:", process_time_energy_budget_guardrail()["status"])
     print("intrinsic rate gate:", process_time_use_gate("intrinsic_process_time_rate")["status"])
     print("metric rate gate:", process_time_use_gate("metric_FLRW_background", enters_metric_branch=True)["status"])
