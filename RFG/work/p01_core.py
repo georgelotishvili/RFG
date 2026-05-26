@@ -1839,6 +1839,85 @@ def p01_proof_gap_register():
     ]
 
 
+def article_core_theorem():
+    """
+    Article-facing theorem ledger for the p01 core.
+
+    This function is the clean bridge from p01_core.py into the Georgian
+    article draft: it exposes only the action/sign/stability facts that are
+    actually supported inside this file.
+    """
+    Y, I1, I2, I3 = init_variables()
+    L_poly = get_polynomial_lagrangian(Y, I1, I2, I3)
+    K_Phi_c, K_pi_c = analyze_lorentz_constrained_stability()
+    horndeski_map = rfg_to_horndeski()
+    alphas = bellini_sawicki_alphas()
+    coeffs_m, _s, _det, _roots = minkowski_principal_symbol()
+    mixed_conditions = mixed_mode_stability_conditions(coeffs_m)
+
+    c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
+
+    return {
+        "article_use": "core action, sign convention, and necessary local stability gate",
+        "postulate_boundary": (
+            "Y=1, B^{AB}=delta^{AB} is the normalized effective background, "
+            "not a polynomial-minimum derivation."
+        ),
+        "invariants": {
+            "Y": "g^{mu nu} d_mu Phi d_nu Phi",
+            "B_AB": "-g^{mu nu} d_mu phi^A d_nu phi^B",
+            "I1": "tr(B)",
+            "I2": "1/2*(I1^2-tr(B^2))",
+            "I3": "det(B)",
+        },
+        "polynomial_lagrangian": L_poly,
+        "sign_bridge": {
+            "Y_to_X": horndeski_map["Y_to_X"],
+            "c_X": "-2*c_Y^(Y)",
+            "c_X2": "4*c_Y2^(Y)",
+        },
+        "horndeski_Y_sector": {
+            "G_2": horndeski_map["G_2"],
+            "G_3": horndeski_map["G_3"],
+            "G_4": horndeski_map["G_4"],
+            "G_5": horndeski_map["G_5"],
+            "alpha_T": alphas["alpha_T"],
+            "alpha_M": alphas["alpha_M"],
+            "alpha_B": alphas["alpha_B"],
+            "alpha_K": alphas["alpha_K"],
+        },
+        "lorentz_branch_relations": {
+            "c_I1sq": sp.Eq(sp.Symbol("c_I1sq", real=True), sp.Symbol("c_Y2", real=True)),
+            "c_I1": sp.Eq(
+                sp.Symbol("c_I1", real=True),
+                sp.Symbol("c_Y", real=True)
+                - 4 * sp.Symbol("c_Y2", real=True)
+                + 2 * sp.Symbol("c_YI1", real=True)
+                - 2 * sp.Symbol("c_I2", real=True)
+                - sp.Symbol("c_I3", real=True),
+            ),
+        },
+        "necessary_no_ghost_window": {
+            "K_PhiPhi_after_relations": K_Phi_c,
+            "K_pipi_after_relations": K_pi_c,
+            "article_window": [
+                sp.Gt(c_Y2, 0),
+                sp.Gt(c_Y + 3 * c_YI1, -6 * c_Y2),
+                sp.Lt(c_Y + 3 * c_YI1, -2 * c_Y2),
+            ],
+        },
+        "mixed_mode_gate": mixed_conditions,
+        "article_status": {
+            "action": "CLOSED_MINIMAL_POLYNOMIAL",
+            "sign_convention": "CLOSED_Y_TO_X_BRIDGE",
+            "no_ghost": "NECESSARY_LOCAL_WINDOW",
+            "mixed_modes": "LOCAL_PRINCIPAL_SYMBOL_CRITERIA_AVAILABLE",
+            "global_stability": "SEPARATE_PROOF_TARGET",
+            "dof_count": "CANDIDATE_LEDGER_ONLY",
+        },
+    }
+
+
 def compact_det_label():
     return "(A*s + C)*(B*s + D) - M_mix**2*s = 0"
 

@@ -559,6 +559,69 @@ def cosmology_claim_gate():
     }
 
 
+def article_cosmology_theorem():
+    """
+    Article-facing cosmology ledger.
+
+    This exposes only the FLRW algebra mature enough for the first article:
+    stress tensor closure, Noether/Bianchi closure, and the conditional
+    strict-clock lambda-like branch.
+    """
+    stress = flrw_stress_theorem()
+    noether = flrw_noether_theorem()
+    strict = strict_clock_obstruction_theorem()
+    closure = phi_clock_closure_conditions()
+    lambda_branch = strict_clock_lambda_like_branch_theorem()
+    early = early_scaling_theorem()
+    claim_gate = cosmology_claim_gate()
+
+    return {
+        "article_use": "FLRW stress algebra, Noether/Bianchi identity, and conditional lambda-like branch",
+        "flrw_stress": {
+            "status": stress["status"],
+            "rho": stress["rho_expected"],
+            "p": stress["p_iso_expected"],
+            "rho_residual": stress["rho_residual"],
+            "p_residual": stress["p_iso_residual"],
+        },
+        "noether_bianchi": {
+            "status": noether["status"],
+            "identity": noether["claim"],
+            "bianchi_residual": noether["bianchi_residual"],
+            "noether_difference": noether["conservation_minus_EOMPhi_PhiDot"],
+        },
+        "strict_clock_closure": {
+            "status": strict["status"],
+            "closure_conditions": strict["generic_expanding_FLRW_requires"],
+            "residual_after_closure": closure["residual_after_closure"],
+            "late_rho_after_closure": closure["late_rho_after_closure"],
+            "late_p_after_closure": closure["late_p_after_closure"],
+            "late_w_after_closure": closure["late_w_after_closure"],
+        },
+        "lambda_like_branch": {
+            "status": lambda_branch["status"],
+            "theorem_pass": lambda_branch["theorem_pass"],
+            "late_w_after_closure": lambda_branch["late_w_after_closure"],
+        },
+        "early_universe_filters": {
+            "status": early["status"],
+            "extra_terms": {
+                "a^-2": early["curvature_like_a_minus_2"],
+                "a^-4": early["radiation_like_a_minus_4"],
+                "a^-6": early["stiff_like_a_minus_6"],
+            },
+            "fit_gate": claim_gate["early_universe_BBN_CMB_Planck"],
+        },
+        "article_status": {
+            "stress_algebra": claim_gate["stress_algebra"],
+            "noether_bianchi": claim_gate["bianchi_noether"],
+            "lambda_like_branch": claim_gate["lambda_like_branch_theorem"],
+            "dark_energy_observation": "NUMERICAL_FIT_REQUIRED",
+            "early_universe": "NUMERICAL_BOUNDS_REQUIRED",
+        },
+    }
+
+
 def module_status():
     """p02-ის მოკლე სტატუსი საბჭოს შენიშვნების შემდეგ."""
     rho, p_iso, _, result = get_flrw_pressures()

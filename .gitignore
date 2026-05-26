@@ -8,6 +8,7 @@ RFG/CODES.md
 RFG/Intuitive_Theory.md
 RFG/RFG_Theory 1.md
 RFG/work/*.md
+artikle/
 
 # Python caches and test/build artifacts
 __pycache__/

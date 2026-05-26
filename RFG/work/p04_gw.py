@@ -1551,6 +1551,49 @@ def stage_c2_breathing_mode_falsification_window():
     }
 
 
+def article_gw_theorem():
+    """
+    Article-facing gravitational-wave ledger.
+
+    Exports the tensor-speed theorem that is mature enough for the first
+    article and keeps waveform/polarization/dispersion as separate gates.
+    """
+    speed = analyze_horndeski_luminal_speed()
+    scope = tensor_speed_scope_gate()
+    mass_gate = tensor_mass_term_gate()
+    detector = step4c_detector_response_claim_gate()
+
+    return {
+        "article_use": "tensor-speed sector and detector-response interpretation",
+        "tensor_speed_theorem": {
+            "status": "CLOSED_TENSOR_SPEED_SECTOR",
+            "conditions": speed["Horndeski_conditions"],
+            "definition": speed["alpha_T_definition"],
+            "G4_X": speed["G4_X"],
+            "G5": speed["G5"],
+            "alpha_T": speed["alpha_T"],
+            "c_g": speed["c_g"],
+        },
+        "solid_TT_scope": scope["closed"],
+        "detector_response": {
+            "status": detector["status"],
+            "article_reading": detector["what_is_measured"],
+        },
+        "separate_gates": {
+            "massive_dispersion": mass_gate["status"],
+            "waveform": "CATALOG_LEVEL_FIT_REQUIRED",
+            "polarization": "LVK_POLARIZATION_POSTERIOR_REQUIRED",
+            "binary_pulsar": "TENSOR_FLUX_AND_DIPOLE_NORMALIZATION_REQUIRED",
+        },
+        "article_status": {
+            "alpha_T": "CLOSED_ZERO",
+            "c_g": "CLOSED_LUMINAL_IN_MINIMAL_BRANCH",
+            "full_waveform": "SEPARATE_GATE",
+            "extra_polarizations": "SEPARATE_GATE",
+        },
+    }
+
+
 def gw_central_claim_gate():
     """
     One-place export gate for p04_gw.py.

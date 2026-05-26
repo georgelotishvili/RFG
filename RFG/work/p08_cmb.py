@@ -801,6 +801,63 @@ def cmb_lensing_isw_null_shift_theorem() -> dict[str, object]:
     }
 
 
+def article_cmb_theorem() -> dict[str, object]:
+    """
+    Article-facing CMB ledger.
+
+    Exports the same-input locked-branch result: RFG does not shift the linear
+    Einstein-Boltzmann hierarchy when the metric branch, matter content,
+    recombination history, and initial spectrum are inherited.
+    """
+    lock = flrw_metric_sector_locking_theorem()
+    zero_alpha = bellini_sawicki_zero_alpha_theorem()
+    same_matter = same_matter_cmb_inheritance_audit()
+    hierarchy = einstein_boltzmann_inheritance_theorem()
+    lensing = cmb_lensing_isw_null_shift_theorem()
+    calibration = cmb_comoving_time_calibration()
+
+    return {
+        "article_use": "same-input locked CMB consistency identity",
+        "locked_branch": {
+            "status": lock["status"],
+            "condition": {
+                "cosmic_time_lock": lock["cosmic_time_lock"],
+                "homogeneous_solution": lock["homogeneous_solution"],
+                "X0": lock["X0"],
+            },
+            "consequence": lock["consequence"],
+        },
+        "bellini_sawicki_alphas": {
+            "status": "CLOSED_ZERO_ALPHA_ON_LOCKED_BRANCH",
+            "alpha_K": zero_alpha["alpha_K"],
+            "alpha_B": zero_alpha["alpha_B"],
+            "alpha_M": zero_alpha["alpha_M"],
+            "alpha_T": zero_alpha["alpha_T"],
+            "consequence": zero_alpha["consequence"],
+        },
+        "same_matter_inheritance": {
+            "status": same_matter["status"],
+            "background": same_matter["background"],
+            "primary_cls": same_matter["primary_cls"],
+            "sound_horizon": same_matter["sound_horizon"],
+            "angular_scale": same_matter["angular_scale"],
+        },
+        "einstein_boltzmann_hierarchy": hierarchy,
+        "lensing_isw": lensing,
+        "age_calibration": {
+            "status": calibration["status"],
+            "calibration": calibration["age_definition"],
+            "T0_role": calibration["T0_role"],
+            "not_substrate_constant": calibration["not_substrate_identity"],
+        },
+        "article_status": {
+            "linear_same_input_CMB": "ANALYTICALLY_CLOSED_CONDITIONAL_BRANCH",
+            "no_particle_dark_matter_CMB": "BOLTZMANN_LIKELIHOOD_REQUIRED",
+            "Planck_BAO_fit": "NUMERICAL_LIKELIHOOD_REQUIRED",
+        },
+    }
+
+
 def ik_sector_delta_neff_and_curvature_filters() -> dict[str, object]:
     """
     Turn the I_k background scalings into explicit early-universe filters.

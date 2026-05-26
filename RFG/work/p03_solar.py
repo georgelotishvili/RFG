@@ -804,6 +804,62 @@ def stage_c1_solar_falsification_targets():
     }
 
 
+def article_solar_theorem():
+    """
+    Article-facing weak-field ledger.
+
+    This is the p03 bridge for the first article: it exports the nontrivial
+    1PN coefficient branch, its kinetic health condition, and the 2PN residual
+    that becomes the next discriminator.
+    """
+    geometry = ppn_geometry_gate()
+    stress = weak_field_stress_constraint_gate()
+    one_pn = solar_1pn_closure_branch()
+    cassini = cassini_gamma_gate()
+
+    return {
+        "article_use": "1PN Solar-System compatibility branch and 2PN discriminator",
+        "geometry_branch": {
+            "status": geometry["status"],
+            "coordinate_system": geometry["coordinate_system"],
+            "residuals_after_geometry_conditions": geometry["residuals_after_geometry_conditions"],
+        },
+        "nontrivial_1PN_branch": {
+            "status": one_pn["status"],
+            "branch": one_pn["branch"],
+            "free_parameters": one_pn["free_parameters"],
+            "phase_no_ghost_prefactor": one_pn["phase_no_ghost_prefactor"],
+            "solid_no_ghost_prefactor": one_pn["solid_no_ghost_prefactor"],
+            "healthy_window_needed": one_pn["healthy_window_needed"],
+            "PPN_values": {
+                "gamma": sp.Integer(1),
+                "beta": sp.Integer(1),
+            },
+        },
+        "cassini_gate": {
+            "status": cassini["status"],
+            "gamma_minus_1": cassini["abs_gamma_minus_1"],
+            "bound_used": cassini["conservative_bound"],
+        },
+        "two_pn_discriminator": {
+            "status": "OPEN_DISCRIMINATOR",
+            "O2_residual_on_1PN_branch": one_pn["O2_residual_on_this_branch"],
+            "strict_stress_free_solution": stress["strict_O0_O1_O2_solution"],
+            "reading": (
+                "Exact GR-like 2PN stress-free closure sends c_Y2=c_YI1=0 "
+                "on the nontrivial 1PN branch; the nonzero O(U^2) residual is "
+                "the solar-sector discriminator."
+            ),
+        },
+        "article_status": {
+            "one_pn": "CLOSED_COEFFICIENT_BRANCH",
+            "cassini_if_gamma_derived": cassini["status"],
+            "two_pn": "OPEN_DISCRIMINATOR",
+            "rotating_sources": frame_dragging_gate()["status"],
+        },
+    }
+
+
 def solar_system_claim_gate():
     """Top-level status ledger for p03."""
     stress_gate = weak_field_stress_constraint_gate()
