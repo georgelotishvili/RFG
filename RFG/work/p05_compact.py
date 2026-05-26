@@ -6,7 +6,8 @@
 """
 PHASE 18: RFG compact object, Bernoulli saturation, and singularity audit
 
-ეს ფაილი აძლიერებს ძველი თეორიის სინგულარობის ბირთვს:
+ეს ფაილი არის compact-object სამუშაო ledger, არა theory-export proof.
+აქ მოწმდება exponential exterior-ის algebraic/phenomenological branch:
 1. exponential bi-conformal exterior:
        ds^2 = -exp(-r_s/r)c^2dt^2 + exp(r_s/r)(dr^2+r^2dOmega^2)
 2. curvature invariants vanish at r -> 0;
@@ -14,23 +15,402 @@ PHASE 18: RFG compact object, Bernoulli saturation, and singularity audit
 4. finite-radius Killing horizon is absent;
 5. areal throat, photon sphere, shadow radius, and golden-ratio ISCO follow;
 6. exterior-only geodesic incompleteness is kept explicit;
-7. a rarefaction cutoff plus C2 finite-core matching closes the endpoint.
+7. a rarefaction cutoff plus C2 finite-core matching is a conditional
+   regular-extension ansatz.
 
-No new action, no new field, no extra force law.
+Open before theory export:
+    close the p01 polynomial stress/source equations, define physical energy
+    and junction stress, compute coupled perturbations/QNMs/echoes, and add
+    rotating EHT ray tracing.
 """
 import sympy as sp
 from p01_core import get_polynomial_lagrangian
 
 
+def compact_signature_bridge():
+    """
+    Sign-convention firewall.
+
+    The global RFG work files use signature (+---).  The compact-object block
+    below often writes a positive lapse/spatial-factor line element as
+        ds^2 = -B(r)c^2dt^2 + A(r)(dr^2+r^2dOmega^2).
+
+    Therefore B and A are positive metric functions, not direct (+---)
+    components.  Any stress/Y calculation that touches p01 conventions must
+    explicitly pass through this bridge.
+    """
+    r, r_s = sp.symbols('r r_s', positive=True)
+    phi = -r_s / r
+    B_lapse = sp.exp(phi)
+    A_spatial = sp.exp(-phi)
+    return {
+        "global_RFG_signature": "(+---)",
+        "compact_line_element_style": "ds^2=-B(r)c^2dt^2 + A(r)(dr^2+r^2dOmega^2)",
+        "positive_lapse_B": sp.Eq(sp.Symbol('B'), B_lapse),
+        "positive_spatial_A": sp.Eq(sp.Symbol('A'), A_spatial),
+        "direct_component_warning": "B and A are positive functions; do not treat them as raw (+---) components without conversion.",
+        "stress_bridge_status": "REQUIRED_BEFORE_EXPORTING_CENTER_STRESS_CLAIMS",
+    }
+
+
+def derive_exponential_exterior_from_phase_equation():
+    """
+    Exterior derivation at the RFG phase-potential level.
+
+    Outside the compact source the static pressure/phase potential is harmonic:
+        (r^2 phi')' = 0.
+
+    Asymptotic flatness fixes the additive constant; the weak-field Newtonian
+    limit g_tt ~= 1 + phi ~= 1 - r_s/r fixes the remaining integration
+    constant.  The bi-conformal operational map then gives
+        B=e^phi, A=e^-phi.
+
+    This derives the static exponential exterior branch.  It does not yet prove
+    that the p01 polynomial medium stress alone supplies the required source.
+    """
+    r, r_s, C1, C2 = sp.symbols('r r_s C1 C2', positive=True, real=True)
+    phi_fn = sp.Function('phi')
+    phi_general = C1 + C2 / r
+    radial_laplace_residual = sp.simplify(sp.diff(r**2 * sp.diff(phi_general, r), r))
+    phi_exterior = -r_s / r
+    B_lapse = sp.exp(phi_exterior)
+    A_spatial = sp.exp(-phi_exterior)
+
+    weak_gtt_series = sp.series(B_lapse, r_s, 0, 2).removeO()
+    weak_spatial_series = sp.series(A_spatial, r_s, 0, 2).removeO()
+
+    return {
+        "vacuum_phase_equation": sp.Eq(sp.diff(r**2 * sp.diff(phi_fn(r), r), r), 0),
+        "general_spherical_solution": sp.Eq(sp.Symbol('phi'), phi_general),
+        "laplace_residual_for_solution": radial_laplace_residual,
+        "boundary_conditions": "phi(infinity)=0 and weak-field g_tt ~= 1-r_s/r",
+        "exterior_phi": sp.Eq(sp.Symbol('phi_ext'), phi_exterior),
+        "biconformal_lapse_B": sp.Eq(sp.Symbol('B'), B_lapse),
+        "biconformal_spatial_A": sp.Eq(sp.Symbol('A'), A_spatial),
+        "weak_lapse": sp.Eq(sp.Symbol('B_weak'), weak_gtt_series),
+        "weak_spatial": sp.Eq(sp.Symbol('A_weak'), weak_spatial_series),
+        "derivation_status": "DERIVED_FROM_VACUUM_PHASE_EQUATION_PLUS_BICONFORMAL_MAP",
+        "remaining_gate": "p01 polynomial stress/source closure and compact-source matching remain open",
+    }
+
+
+def derive_exponential_effective_source_profile():
+    """
+    Effective Einstein-source profile of the exponential exterior.
+
+    In the (+---) convention with ds^2=B dt^2 - A(dr^2+r^2dOmega^2),
+    B=exp(-r_s/r), A=exp(+r_s/r), the mixed Einstein tensor is proportional
+    to the same self-limiting profile as the Bernoulli deficit.
+    """
+    r, r_s, G = sp.symbols('r r_s G', positive=True, real=True)
+    D = sp.simplify(r_s**2 * sp.exp(-r_s / r) / (4 * r**4))
+    delta_p = sp.simplify(r_s**2 * sp.exp(-r_s / r) / (32 * sp.pi * G * r**4))
+    G_mixed = {
+        "G^t_t": -D,
+        "G^r_r": D,
+        "G^theta_theta": -D,
+        "G^phi_phi": -D,
+    }
+    T_eff = {key.replace("G", "T_eff"): sp.simplify(value / (8 * sp.pi * G)) for key, value in G_mixed.items()}
+    return {
+        "G_mixed_plus_minus_minus": G_mixed,
+        "Bernoulli_Delta_P": sp.Eq(sp.Symbol('Delta_P'), delta_p),
+        "T_eff_if_G_eq_8piG_T": T_eff,
+        "profile_match": sp.Eq(sp.Symbol('G^r_r/(8*pi*G)'), delta_p),
+        "sign_note": "standard Einstein-sign reading gives T^t_t=-Delta_P and T^r_r=+Delta_P; physical energy interpretation is gated by the RFG sign/source convention.",
+        "source_status": "EFFECTIVE_GEOMETRIC_SOURCE_PROFILE_DERIVED__PHYSICAL_MEDIUM_SOURCE_OPEN",
+    }
+
+
+def derive_black_hole_singularity_breaker_gate():
+    """
+    Geometry-level black-hole breaker gate.
+
+    Compare the Schwarzschild finite-radius horizon / r=0 curvature blow-up
+    with the RFG exponential exterior branch.  This is the strongest statement
+    currently available before p01 source closure:
+
+        Schwarzschild: B=1-r_s/r has B=0 at r=r_s and K~r^-6.
+        RFG exponential: B=exp(-r_s/r)>0 for finite r and K->0 at r->0.
+
+    The result excludes the Schwarzschild-type curvature singularity inside
+    the exponential phase metric.  It does not by itself prove collapse
+    completion, because exterior radial geodesics still reach the r=0 boundary
+    in finite affine/proper parameter.
+    """
+    r, r_s, E_geo = sp.symbols('r r_s E_geo', positive=True, real=True)
+    u = r_s / r
+    B_exp = sp.exp(-u)
+    A_exp = sp.exp(u)
+    B_schw = 1 - r_s / r
+    K_schw = 12 * r_s**2 / r**6
+    K_exp = (
+        r_s**2
+        * (48 * r**2 - 32 * r * r_s + 7 * r_s**2)
+        * sp.exp(-2 * r_s / r)
+        / (4 * r**8)
+    )
+    delta_p = sp.simplify(r_s**2 * sp.exp(-r_s / r) / (32 * sp.pi * sp.Symbol('G', positive=True) * r**4))
+    null_radial_velocity_affine = sp.Eq(sp.Symbol('dr_dlambda_null')**2, E_geo**2)
+    timelike_radial_velocity_near_boundary = sp.limit(E_geo**2 - B_exp, r, 0, dir='+')
+
+    return {
+        "Schwarzschild_horizon_condition": sp.Eq(B_schw, 0),
+        "Schwarzschild_horizon_radius": sp.Eq(sp.Symbol('r_h'), r_s),
+        "Schwarzschild_Kretschmann": K_schw,
+        "lim_r_to_0_K_Schwarzschild": sp.limit(K_schw, r, 0, dir='+'),
+        "RFG_lapse": sp.Eq(sp.Symbol('B_exp'), B_exp),
+        "RFG_finite_r_horizon_test": "exp(-r_s/r) is strictly positive for every finite r>0",
+        "RFG_Kretschmann": K_exp,
+        "lim_r_to_0_K_RFG": sp.limit(K_exp, r, 0, dir='+'),
+        "RFG_Bernoulli_profile": sp.Eq(sp.Symbol('Delta_P'), delta_p),
+        "lim_r_to_0_DeltaP_RFG": sp.limit(delta_p, r, 0, dir='+'),
+        "spatial_proper_distance_to_r0": sp.Eq(
+            sp.Integral(sp.sqrt(A_exp), (r, 0, sp.Symbol('r0', positive=True))),
+            sp.oo,
+        ),
+        "radial_null_affine_equation": null_radial_velocity_affine,
+        "timelike_radial_velocity_limit": sp.Eq(
+            sp.Symbol('lim_r_to_0_dr_dtau_squared'),
+            timelike_radial_velocity_near_boundary,
+        ),
+        "geometry_verdict": "SCHWARZSCHILD_CURVATURE_SINGULARITY_REMOVED_IN_EXPONENTIAL_BRANCH",
+        "remaining_gate": "not a full black-hole replacement until p01 source closure, boundary/core completion, and perturbative stability are derived",
+    }
+
+
+def p01_polynomial_static_closure_gate():
+    """
+    Check whether the simplest p01 spherical medium f(r)=r supplies the
+    exponential exterior source by itself.
+
+    Result: the f=r branch is isotropic in the spatial mixed stresses, while
+    the exponential geometry needs radial/tangential anisotropy.  Therefore the
+    exterior is not closed by the simplest p01 polynomial background alone.
+    A nontrivial radial deformation f(r), a derivative/Bernoulli sector, or an
+    additional source derivation is still required.
+    """
+    r, r_s = sp.symbols('r r_s', positive=True, real=True)
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        'c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1',
+        real=True,
+    )
+    u = r_s / r
+    Tt = -(
+        3*c_I1*sp.exp(2*u)
+        + 9*c_I1sq*sp.exp(u)
+        + 3*c_I2*sp.exp(u)
+        + c_I3
+        - c_Y*sp.exp(4*u)
+        - 3*c_Y2*sp.exp(5*u)
+        - 3*c_YI1*sp.exp(3*u)
+    ) * sp.exp(-3*u)
+    Tr = -(
+        c_I1*sp.exp(2*u)
+        - 3*c_I1sq*sp.exp(u)
+        - c_I2*sp.exp(u)
+        - c_I3
+        + c_Y*sp.exp(4*u)
+        + c_Y2*sp.exp(5*u)
+        + c_YI1*sp.exp(3*u)
+    ) * sp.exp(-3*u)
+    Ttheta = Tr
+
+    D = sp.simplify(r_s**2 * sp.exp(-r_s / r) / (4 * r**4))
+    required_anisotropy = sp.simplify(D - (-D))
+
+    return {
+        "assumed_elastic_map": "SO(3) branch f(r)=r, so lambda_r=lambda_t=exp(-r_s/r)",
+        "p01_T^t_t": sp.factor(Tt),
+        "p01_T^r_r": sp.factor(Tr),
+        "p01_T^theta_theta": sp.factor(Ttheta),
+        "p01_spatial_anisotropy": sp.simplify(Tr - Ttheta),
+        "required_geometry_G^r_r_minus_G^theta_theta": required_anisotropy,
+        "closure_status": "FAILS_FOR_F_EQ_R__NEEDS_NONTRIVIAL_F_OR_DERIVATIVE_BERNOULLI_SOURCE",
+    }
+
+
+def derive_p01_anisotropic_deformation_route():
+    """
+    Exact p01 lever that can supply compact-object anisotropy.
+
+    The f=r branch fails because lambda_r=lambda_t.  For a genuine SO(3)
+    radial deformation phi^A=f(r)n^A, the p01 polynomial produces a spatial
+    anisotropy proportional to lambda_r-lambda_t.  This is the missing degree
+    of freedom needed by the exponential geometry.
+
+    This function derives the algebraic anisotropy route; it is not yet the
+    solved f(r) field equation.
+    """
+    r, r_s, A, C, Y, G = sp.symbols('r r_s A C Y G', positive=True, real=True)
+    f = sp.Function('f')(r)
+    lambda_r = sp.Symbol('lambda_r', positive=True)
+    lambda_t = sp.Symbol('lambda_t', positive=True)
+    c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        'c_I1 c_I1sq c_I2 c_I3 c_YI1',
+        real=True,
+    )
+
+    I1 = lambda_r + 2 * lambda_t
+    I2 = 2 * lambda_r * lambda_t + lambda_t**2
+    I3 = lambda_r * lambda_t**2
+    L_solid = (
+        c_I1 * I1
+        + c_I1sq * I1**2
+        + c_I2 * I2
+        + c_I3 * I3
+        + c_YI1 * Y * I1
+    )
+    L_lr = sp.diff(L_solid, lambda_r)
+    L_lt = sp.diff(L_solid, lambda_t) / 2
+    pressure_anisotropy = sp.factor(2 * (lambda_r * L_lr - lambda_t * L_lt))
+
+    lambda_r_map = sp.diff(f, r)**2 / A
+    lambda_t_map = f**2 / C
+    u = r_s / r
+    required_mixed_geometry_anisotropy = sp.simplify(
+        r_s**2 * sp.exp(-u) / (2 * r**4)
+    )
+    required_stress_anisotropy = sp.simplify(
+        required_mixed_geometry_anisotropy / (8 * sp.pi * G)
+    )
+    anisotropy_quadratic = sp.Poly(
+        sp.expand(pressure_anisotropy - required_stress_anisotropy),
+        lambda_r,
+    )
+    lambda_r_roots = sp.solve(
+        sp.Eq(pressure_anisotropy, required_stress_anisotropy),
+        lambda_r,
+    )
+    deformation_lhs = pressure_anisotropy.subs({
+        lambda_r: lambda_r_map,
+        lambda_t: lambda_t_map,
+    })
+    deformation_equation = sp.Eq(deformation_lhs, required_stress_anisotropy)
+    A_ext = sp.exp(u)
+    C_ext = r**2 * sp.exp(u)
+    Y_ext = sp.exp(u)
+    exterior_deformation_equation = sp.Eq(
+        sp.factor(sp.simplify(deformation_lhs.subs({A: A_ext, C: C_ext, Y: Y_ext}))),
+        required_stress_anisotropy,
+    )
+
+    return {
+        "lambda_r_map": sp.Eq(sp.Symbol('lambda_r'), lambda_r_map),
+        "lambda_t_map": sp.Eq(sp.Symbol('lambda_t'), lambda_t_map),
+        "solid_anisotropy_p_t_minus_p_r": pressure_anisotropy,
+        "f_eq_r_failure_reason": "f=r with C=A*r^2 gives lambda_r=lambda_t, so this anisotropy vanishes",
+        "required_geometry_G^r_r_minus_G^theta_theta": required_mixed_geometry_anisotropy,
+        "required_stress_anisotropy": required_stress_anisotropy,
+        "lambda_r_quadratic_coefficients": anisotropy_quadratic.all_coeffs(),
+        "lambda_r_algebraic_roots": lambda_r_roots,
+        "deformation_equation_to_solve": deformation_equation,
+        "exponential_exterior_f_equation": exterior_deformation_equation,
+        "route_status": "EXACT_ANISOTROPY_LEVER_AND_LAMBDA_R_BRANCH_DERIVED__SOLVE_F_R_AND_FULL_STRESS_NEXT",
+    }
+
+
+def derive_minimal_nontrivial_f_branch():
+    """
+    Minimal nontrivial radial-deformation branch.
+
+    To make the p01 anisotropy concrete, freeze the anisotropy modulus to the
+    simplest positive branch:
+
+        c_I1sq = c_I2 = c_YI1 = 0,   c_I1 = K_A > 0.
+
+    Then p_t-p_r = 2 K_A (lambda_r-lambda_t).  On the exponential exterior,
+    lambda_r=e^-u f'^2 and lambda_t=e^-u f^2/r^2, so the required compact
+    anisotropy becomes a first-order ODE for f(r).
+
+    The closed form below is the asymptotic weak-deformation branch.  It proves
+    that f=r is not forced: a nontrivial radial medium map can supply the
+    required radial/tangential stress split at leading order.
+    """
+    r, r_s, G, K_A, eps = sp.symbols(
+        'r r_s G K_A eps',
+        positive=True,
+        real=True,
+    )
+    chi = sp.Function('chi')(r)
+    u = r_s / r
+    f = sp.Function('f')(r)
+    w = sp.Function('w')(r)
+
+    lambda_r = sp.exp(-u) * sp.diff(f, r)**2
+    lambda_t = sp.exp(-u) * f**2 / r**2
+    required = r_s**2 * sp.exp(-u) / (16 * sp.pi * G * r**4)
+    minimal_exact_ode = sp.Eq(
+        sp.simplify(2 * K_A * (lambda_r - lambda_t)),
+        required,
+    )
+    simplified_exact_ode = sp.Eq(
+        sp.diff(f, r)**2 - f**2 / r**2,
+        r_s**2 / (32 * sp.pi * G * K_A * r**4),
+    )
+    w_equation = sp.Eq(
+        r * sp.diff(w, r),
+        -w + sp.sqrt(w**2 + r_s**2 / (32 * sp.pi * G * K_A * r**4)),
+    )
+
+    f_eps = r * (1 + eps * chi)
+    lambda_r_eps = sp.exp(-u) * sp.diff(f_eps, r)**2
+    lambda_t_eps = sp.exp(-u) * f_eps**2 / r**2
+    anisotropy_eps = sp.series(
+        sp.simplify(2 * K_A * (lambda_r_eps - lambda_t_eps)),
+        eps,
+        0,
+        2,
+    ).removeO()
+    linear_anisotropy = sp.simplify(sp.diff(anisotropy_eps, eps).subs(eps, 0))
+    chi_prime_equation = sp.Eq(
+        sp.diff(chi, r),
+        r_s**2 / (64 * sp.pi * G * K_A * r**5),
+    )
+    chi_solution = -r_s**2 / (256 * sp.pi * G * K_A * r**4)
+    f_asymptotic = sp.simplify(r * (1 + chi_solution))
+    f_asymptotic_prime = sp.diff(f_asymptotic, r)
+    asymptotic_lhs_first_order = sp.simplify(
+        2
+        * K_A
+        * sp.exp(-u)
+        * (
+            2
+            * r
+            * sp.diff(chi_solution, r)
+        )
+    )
+    linear_residual = sp.simplify(asymptotic_lhs_first_order - required)
+    exact_residual_order = sp.simplify(
+        2 * K_A * sp.exp(-u) * (f_asymptotic_prime**2 - f_asymptotic**2 / r**2)
+        - required
+    )
+
+    return {
+        "minimal_modulus_branch": "c_I1sq=c_I2=c_YI1=0, K_A=c_I1>0",
+        "exact_minimal_f_ode": minimal_exact_ode,
+        "simplified_exact_ode": simplified_exact_ode,
+        "asymptotically_flat_w_equation_for_f_eq_r_w": w_equation,
+        "linearized_f_definition": sp.Eq(sp.Symbol('f'), r * (1 + chi)),
+        "linear_anisotropy": sp.Eq(sp.Symbol('Delta_p_linear'), linear_anisotropy),
+        "chi_prime_equation": chi_prime_equation,
+        "chi_solution_with_chi_infinity_0": sp.Eq(sp.Symbol('chi'), chi_solution),
+        "nontrivial_f_asymptotic": sp.Eq(sp.Symbol('f_nontrivial'), f_asymptotic),
+        "linear_source_residual": linear_residual,
+        "exact_residual_after_linear_solution": exact_residual_order,
+        "validity": "asymptotic/weak-deformation exterior branch; exact nonlinear f(r), full p01 stress, and core matching remain open",
+        "branch_status": "NONTRIVIAL_F_R_BRANCH_DERIVED_AT_LINEAR_ORDER__EXACT_ODE_READY",
+    }
+
+
 def analyze_exponential_exterior_curvature():
     """
-    ძველი compact-object branch-ის curvature theorem.
+    Exponential compact-object exterior branch.
 
     metric:
-        g_tt = -exp(-r_s/r)
-        g_rr = exp(+r_s/r)
+        ds^2 = -exp(-r_s/r)c^2dt^2 + exp(r_s/r)(dr^2+r^2dOmega^2)
 
-    ძველი თეორიის closed-form invariants:
+    Branch-level invariant check:
         R -> 0 and K -> 0 as r -> 0.
     """
     r, r_s = sp.symbols('r r_s', real=True, positive=True)
@@ -60,7 +440,8 @@ def analyze_exponential_exterior_curvature():
     k_peak_coeff = sp.N(k_shape.subs(u, u_peak), 8) if physical_roots else sp.nan
 
     return {
-        "theorem": "exponential exterior removes the curvature blow-up",
+        "ansatz_result": "within the exponential exterior, curvature scalars do not blow up at r->0",
+        "derivation_status": "DERIVED_AT_PHASE_METRIC_LEVEL__FULL_P01_SOURCE_CLOSURE_OPEN",
         "phi": sp.Eq(sp.Symbol('phi'), phi),
         "g_tt": sp.Eq(sp.Symbol('g_tt'), g_tt),
         "g_rr": sp.Eq(sp.Symbol('g_rr'), g_rr),
@@ -79,13 +460,14 @@ def analyze_exponential_exterior_curvature():
 
 def analyze_bernoulli_singularity_saturation():
     """
-    Bernoulli pressure-deficit explanation of singularity avoidance.
+    Bernoulli pressure-deficit branch check.
 
     Delta P = exp(phi)(phi')^2/(32*pi*G)
     for phi=-r_s/r gives
         Delta P = r_s^2 exp(-r_s/r)/(32*pi*G*r^4).
 
-    It peaks at r_s/4 and vanishes at r->0: the deficit saturates.
+    It peaks at r_s/4 and vanishes at r->0.  This is not by itself an
+    invariant total-energy proof.
     """
     r, r_s, G = sp.symbols('r r_s G', real=True, positive=True)
     phi = -r_s / r
@@ -94,34 +476,39 @@ def analyze_bernoulli_singularity_saturation():
     coordinate_energy = sp.simplify(
         sp.integrate(delta_p * 4 * sp.pi * r**2, (r, 0, sp.oo))
     )
+    proper_volume_integrand = 4 * sp.pi * r**2 * sp.exp(3 * r_s / (2 * r))
+    naive_proper_energy_integrand = sp.simplify(delta_p * proper_volume_integrand)
     u = sp.Symbol('u', real=True, positive=True)
     shape = sp.exp(-u) * u**4
 
     return {
-        "theorem": "Bernoulli pressure deficit is self-limiting",
+        "ansatz_result": "Bernoulli pressure deficit has a finite peak and returns to zero at r->0",
         "Delta_P": sp.Eq(sp.Symbol('Delta_P'), delta_p),
         "P_static": sp.Eq(sp.Symbol('P_static'), p_static),
-        "Bernoulli_identity": sp.Eq(sp.Symbol('P_static + Delta_P'), 0),
+        "Bernoulli_identity_definition": sp.Eq(sp.Symbol('P_static + Delta_P'), 0),
         "dimensionless_shape": sp.Eq(sp.Symbol('shape(u)'), shape),
         "shape_derivative": sp.factor(sp.diff(shape, u)),
         "pressure_peak": sp.Eq(sp.Symbol('r_peak'), r_s / 4),
         "lim_r_to_0_Delta_P": sp.limit(delta_p, r, 0, dir='+'),
         "lim_r_to_inf_Delta_P": sp.limit(delta_p, r, sp.oo),
-        "finite_coordinate_energy": sp.Eq(sp.Symbol('int_DeltaP_d3x'), coordinate_energy),
-        "meaning": "as phi -> -infinity, exp(phi) shuts off the gradient-energy transfer; no curvature blow-up forms.",
+        "coordinate_measure_energy": sp.Eq(sp.Symbol('int_DeltaP_4pi_r2_dr'), coordinate_energy),
+        "naive_proper_energy_integrand": naive_proper_energy_integrand,
+        "lim_r_to_0_naive_proper_integrand": sp.limit(naive_proper_energy_integrand, r, 0, dir='+'),
+        "energy_gate": "coordinate measure is finite, but invariant/proper/ADM energy is not established here",
+        "meaning": "as phi -> -infinity, exp(phi) shuts off this branch's local gradient-energy density; export requires a physical energy measure.",
     }
 
 
 def analyze_rarefaction_information_cutoff():
     """
-    Microscopic closure for the r=0 boundary.
+    Phenomenological microscopic closure for the r=0 boundary.
 
     User intuition, written as a continuum-mechanics criterion:
     in the deepest Bernoulli deficit the active carrier density of the
     vacuum medium is rarefied, collisions become sparse, and the continuum
     no longer transmits information as a connected elastic fluid.
 
-    Minimal closure:
+    Minimal closure ansatz:
         n_eff = n_0 exp(phi),       phi=-r_s/r
         c_eff = c exp(phi)
         ell_mfp = 1/(sigma n_eff)
@@ -153,7 +540,7 @@ def analyze_rarefaction_information_cutoff():
     outward_pressure_force_density = sp.factor(sp.diff(delta_p, r))
 
     return {
-        "theorem": "rarefaction closes the information channel before a material singularity forms",
+        "closure_status": "PHENOMENOLOGICAL_KNUDSEN_CUTOFF_NOT_YET_DERIVED_FROM_ACTION",
         "closure_density": sp.Eq(sp.Symbol('n_eff'), n_eff),
         "mean_spacing": sp.Eq(sp.Symbol('d_eff'), mean_spacing),
         "mean_free_path": sp.Eq(sp.Symbol('ell_mfp'), ell_mfp),
@@ -171,18 +558,20 @@ def analyze_rarefaction_information_cutoff():
         "lim_r_to_0_N_grad": sp.limit(carriers_in_gradient_cell, r, 0, dir='+'),
         "carriers_in_finite_oscillon": sp.Eq(sp.Symbol('N_osc'), carriers_in_finite_oscillon),
         "lim_r_to_0_N_osc": sp.limit(carriers_in_finite_oscillon, r, 0, dir='+'),
-        "outward_pressure_force_density": sp.Eq(sp.Symbol('f_pressure'), outward_pressure_force_density),
+        "medium_stress_gradient": sp.Eq(sp.Symbol('d_DeltaP_dr'), outward_pressure_force_density),
         "force_turning_radius": sp.Eq(sp.Symbol('r_turn'), r_s / 4),
-        "inner_core_sign": "for r<r_s/4, d(Delta_P)/dr>0: the pressure-gradient reaction points outward.",
-        "physical_meaning": "near r=0 the medium becomes dilute and non-communicating; oscillons contain vanishing carrier number in any finite unresolved cell.",
+        "inner_core_sign": "for r<r_s/4, d(Delta_P)/dr>0: medium-stress gradient reverses sign.",
+        "force_firewall": "medium backreaction only; not a literal extra pressure force on matter.",
+        "physical_meaning": "near r=0 the closure ansatz makes the medium dilute and non-communicating; this remains a kinetic derivation task.",
     }
 
 
 def analyze_geodesic_completion_by_core_matching():
     """
-    Boundary-completion theorem.
+    Conditional boundary-extension ansatz.
 
-    The exponential exterior is not forced to run all the way to r=0.
+    The exponential exterior is not forced to run all the way to r=0 if the
+    Knudsen cutoff is physically allowed.
     The continuum description self-terminates where Kn=ell_mfp/r reaches 1:
 
         exp(r_s/r_c)/(n_0 sigma r_c) = 1
@@ -200,8 +589,8 @@ def analyze_geodesic_completion_by_core_matching():
 
     This gives A(0)=1, B(0)=exp(-q)>0, first derivatives vanish at the center,
     and all center curvature scalars are finite.  In Cartesian coordinates the
-    center is regular, so geodesics hitting the old boundary continue through
-    the finite core.
+    center is locally regular.  A full completion proof still requires the
+    core stress tensor, junction conditions, energy bookkeeping and stability.
     """
     r, r_s, r_c, n_0, sigma, q, x = sp.symbols(
         'r r_s r_c n_0 sigma q x',
@@ -243,7 +632,8 @@ def analyze_geodesic_completion_by_core_matching():
     center_kretschmann = sp.simplify(12 * a2**2 + 12 * b2_over_b0**2)
 
     return {
-        "theorem": "finite-core matching completes the old r=0 boundary",
+        "conditional_ansatz": "C2 finite-core matching gives a locally regular extension if the Knudsen cutoff is allowed",
+        "proof_status": "NOT_A_FIELD_EQUATION_DERIVATION__JUNCTION_STRESS_AND_STABILITY_OPEN",
         "Kn_cutoff_equation": sp.Eq(sp.exp(r_s / r_c) / (n_0 * sigma * r_c), 1),
         "core_radius": sp.Eq(sp.Symbol('r_c'), r_kn),
         "core_compactness_q": sp.Eq(sp.Symbol('q_c'), q_kn),
@@ -261,8 +651,52 @@ def analyze_geodesic_completion_by_core_matching():
         "center_B_prime": sp.Eq(sp.Symbol("B'_0"), 0),
         "center_Ricci_scalar": sp.Eq(sp.Symbol('R_0'), center_ricci),
         "center_Kretschmann": sp.Eq(sp.Symbol('K_0'), center_kretschmann),
-        "geodesic_completion_rule": "replace the formal r=0 endpoint by r<=r_c regular core; bounded Christoffels imply local continuation of null/timelike geodesics.",
-        "physical_meaning": "the singular endpoint is not part of the continuum phase; it is pre-empted by a dilute kinetic core fixed by Kn=1.",
+        "local_continuation_rule": "bounded center coefficients allow local geodesic continuation inside the ansatz core.",
+        "global_completion_gate": "open until field-equation source, junction stress, ADM/proper energy and perturbative stability are checked.",
+        "physical_meaning": "the formal endpoint is replaced by a candidate dilute kinetic core fixed by Kn=1.",
+    }
+
+
+def derive_c2_core_matching_coefficients():
+    """
+    Derive the polynomial coefficients used in the conditional C2 core.
+
+    This proves only the matching algebra.  It is not a field-equation source
+    derivation for the core material.
+    """
+    x, q = sp.symbols('x q', positive=True, real=True)
+    a2, a4, a6, b2, b4, b6 = sp.symbols('a2 a4 a6 b2 b4 b6', real=True)
+
+    log_a_poly = q * (a2*x**2 + a4*x**4 + a6*x**6)
+    log_a_ext = q / x
+    a_solution = sp.solve(
+        [
+            sp.Eq(log_a_poly.subs(x, 1), log_a_ext.subs(x, 1)),
+            sp.Eq(sp.diff(log_a_poly, x).subs(x, 1), sp.diff(log_a_ext, x).subs(x, 1)),
+            sp.Eq(sp.diff(log_a_poly, x, 2).subs(x, 1), sp.diff(log_a_ext, x, 2).subs(x, 1)),
+        ],
+        [a2, a4, a6],
+        dict=True,
+    )[0]
+
+    log_b_poly = -q + q * (b2*x**2 + b4*x**4 + b6*x**6)
+    log_b_ext = -q / x
+    b_solution = sp.solve(
+        [
+            sp.Eq(log_b_poly.subs(x, 1), log_b_ext.subs(x, 1)),
+            sp.Eq(sp.diff(log_b_poly, x).subs(x, 1), sp.diff(log_b_ext, x).subs(x, 1)),
+            sp.Eq(sp.diff(log_b_poly, x, 2).subs(x, 1), sp.diff(log_b_ext, x, 2).subs(x, 1)),
+        ],
+        [b2, b4, b6],
+        dict=True,
+    )[0]
+
+    return {
+        "log_A_coefficients": a_solution,
+        "log_B_coefficients": b_solution,
+        "log_A_core_derived": sp.Eq(sp.Symbol('log_A_minus'), sp.simplify(log_a_poly.subs(a_solution))),
+        "log_B_core_derived": sp.Eq(sp.Symbol('log_B_minus'), sp.simplify(log_b_poly.subs(b_solution))),
+        "derivation_status": "C2_MATCHING_COEFFICIENTS_DERIVED__CORE_FIELD_EQUATIONS_OPEN",
     }
 
 
@@ -273,7 +707,7 @@ def analyze_horizon_throat_and_boundary():
     finite r>0-ზე g_tt never vanishes; r=0 is a boundary, not a finite
     horizon. Proper distance to r=0 diverges, while captured geodesics
     reach the boundary at finite affine/proper parameter before the
-    rarefied-core completion is imposed.
+    conditional rarefied-core extension is imposed.
     """
     r, r_s, r_0, c, E_geo = sp.symbols('r r_s r_0 c E_geo', real=True, positive=True)
     phi = -r_s / r
@@ -288,7 +722,7 @@ def analyze_horizon_throat_and_boundary():
     areal_min = sp.simplify(areal_radius.subs(r, throat))
 
     return {
-        "theorem": "no finite-radius Killing horizon; r=0 is a frozen boundary",
+        "exterior_result": "no finite-radius Killing horizon in the static exponential exterior",
         "g_tt_abs": sp.Eq(sp.Symbol('|g_tt|'), g_tt_abs),
         "finite_r_horizon_test": "exp(-r_s/r)>0 for every finite r>0",
         "coordinate_light_speed": sp.Eq(sp.Symbol('dr_dt_null'), c_coord),
@@ -301,7 +735,8 @@ def analyze_horizon_throat_and_boundary():
         "dR_dr": d_areal,
         "throat_coordinate": sp.Eq(sp.Symbol('r_throat'), throat),
         "throat_areal_radius": sp.Eq(sp.Symbol('R_min'), areal_min),
-        "geodesic_status": "exterior-only captured geodesics reach r=0 in finite affine parameter; section 4 replaces that endpoint by a regular Knudsen core.",
+        "boundary_label": "r=0 is an infinite-redshift exterior boundary, not yet a proven collapse endpoint.",
+        "geodesic_status": "exterior-only captured geodesics reach r=0 in finite affine parameter; the Knudsen core is a conditional extension ansatz.",
     }
 
 
@@ -403,23 +838,26 @@ def analyze_photon_shadow_isco():
 
 def singularity_strength_ledger() -> list[str]:
     return [
-        "Curvature blow-up is removed: R->0, Ricci^2->0, K->0 at r->0.",
-        "Bernoulli pressure deficit saturates: Delta_P peaks at r_s/4 and returns to 0 at r->0.",
-        "Microscopic rarefaction gives n_eff->0, mean free path->infinity, and collision/information rate->0 at r->0.",
-        "The Knudsen number Kn=ell_mfp/r diverges, so the continuum approximation self-terminates before an infinite-density core can form.",
-        "Inside r_s/4 the Bernoulli pressure-gradient reaction points outward, giving a built-in core self-regulation channel.",
-        "The formal boundary is replaced at Kn=1 by r_c=r_s/W(n_0*sigma*r_s), a finite positive matching radius.",
-        "A positive C2 logarithmic core matches the exponential exterior through value, slope, and curvature at r_c.",
-        "The matched core has A(0)=1, B(0)>0, A'(0)=B'(0)=0 and finite R_0, K_0, so geodesics continue through a regular center.",
-        "There is no finite-radius Killing horizon: exp(-r_s/r)>0 for every r>0.",
+        "Geometry-level breaker: Schwarzschild has B=0 at r_s and K->infinity at r=0; the RFG exponential branch has B>0 for every finite r>0 and K->0 at r=0.",
+        "Within the exponential exterior ansatz: R->0, Ricci^2->0, K->0 at r->0.",
+        "Within the Bernoulli branch: Delta_P peaks at r_s/4 and returns to 0 at r->0.",
+        "The r=0 endpoint is not a curvature singularity in the exponential branch, but exterior radial geodesics still expose a boundary unless a derived core/boundary law is added.",
+        "The exact p01 anisotropy lever is lambda_r-lambda_t; f=r kills it, so a nontrivial radial deformation f(r) is the next closure target.",
+        "A minimal nontrivial branch gives f=r*(1-r_s^2/(256*pi*G*K_A*r^4)) at linear order and exactly cancels the required anisotropy at that order.",
+        "The rarefaction closure ansatz gives n_eff->0, mean free path->infinity, and collision/information rate->0 at r->0.",
+        "The Knudsen number Kn=ell_mfp/r diverges, so the continuum model flags its own breakdown.",
+        "Inside r_s/4 the medium-stress gradient changes sign; this is backreaction language, not an extra force on matter.",
+        "If Kn=1 is the physical cutoff, the candidate matching radius is r_c=r_s/W(n_0*sigma*r_s).",
+        "The C2 logarithmic core matches the exponential exterior through value, slope, and curvature at r_c.",
+        "The matched core has A(0)=1, B(0)>0, A'(0)=B'(0)=0 and finite R_0, K_0 in the ansatz.",
+        "There is no finite-radius Killing horizon in the static exterior: exp(-r_s/r)>0 for every r>0.",
         "The areal radius has a throat at r_s/2, with R_min=e*r_s/2.",
-        "Photon sphere is r_s and the critical shadow impact parameter is b_c=e*r_s.",
-        "Massive circular orbits exist only for r>r_s; r=r_s is the photon-speed boundary.",
-        "Massive-particle ISCO follows from V_eff''=0 and is r_ISCO=phi_golden^2*r_s.",
-        "The predicted ISCO frequency is f_ISCO=0.931 f_ISCO_GR for the same total mass.",
-        "External observers see infinite redshift/coordinate-time freezing toward r=0.",
-        "Captured geodesics that reached the old r=0 endpoint now enter the finite rarefied core instead.",
-        "Therefore the strengthened claim is curvature-regular, horizonless, Bernoulli-saturated, and geodesically completed by Knudsen-core matching.",
+        "Static photon sphere is r_s and the static critical shadow impact parameter is b_c=e*r_s.",
+        "Massive circular orbits exist only for r>r_s; r=r_s is a static photon-orbit boundary.",
+        "Static massive-particle ISCO follows from V_eff''=0 and is r_ISCO=phi_golden^2*r_s.",
+        "The static ISCO frequency proxy is f_ISCO=0.931 f_ISCO_GR for the same total mass.",
+        "External observers see infinite redshift/coordinate-time freezing toward r=0 in the exterior.",
+        "A full compact-object claim remains blocked by field-equation derivation, physical energy, junction stress, rotation, QNMs/echoes and EHT ray tracing.",
     ]
 
 
@@ -485,7 +923,41 @@ if __name__ == "__main__":
     print("PHASE 18: RFG compact object and singularity audit")
     print("=" * 72)
 
-    print("\n1. Exponential exterior curvature theorem")
+    print("\n0. Sign-convention bridge")
+    for key, value in compact_signature_bridge().items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1. Exterior derivation from vacuum phase equation")
+    phase_derivation = derive_exponential_exterior_from_phase_equation()
+    for key, value in phase_derivation.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1b. Effective source profile of the exponential exterior")
+    source_profile = derive_exponential_effective_source_profile()
+    for key, value in source_profile.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1c. Black-hole singularity breaker gate")
+    bh_breaker = derive_black_hole_singularity_breaker_gate()
+    for key, value in bh_breaker.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1d. p01 polynomial static closure gate")
+    p01_gate = p01_polynomial_static_closure_gate()
+    for key, value in p01_gate.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1e. p01 anisotropic deformation route")
+    anisotropic_route = derive_p01_anisotropic_deformation_route()
+    for key, value in anisotropic_route.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1f. Minimal nontrivial f(r) branch")
+    nontrivial_f = derive_minimal_nontrivial_f_branch()
+    for key, value in nontrivial_f.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n1g. Exponential exterior curvature branch")
     exterior = analyze_exponential_exterior_curvature()
     for key, value in exterior.items():
         print(f"  {key:36s}: {value}")
@@ -500,9 +972,14 @@ if __name__ == "__main__":
     for key, value in rarefaction.items():
         print(f"  {key:36s}: {value}")
 
-    print("\n4. Geodesic completion by finite-core matching")
+    print("\n4. Conditional finite-core matching")
     completion = analyze_geodesic_completion_by_core_matching()
     for key, value in completion.items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n4b. C2 core matching coefficient derivation")
+    core_coeffs = derive_c2_core_matching_coefficients()
+    for key, value in core_coeffs.items():
         print(f"  {key:36s}: {value}")
 
     print("\n5. Horizonless exterior, throat, and boundary status")
@@ -530,24 +1007,23 @@ if __name__ == "__main__":
     print(f"\nT^t_t (ენერგიის სიმკვრივე r=0-ზე) = {T_t}")
     print(f"T^r_r (რადიალური წნევა r=0-ზე) = {T_r}")
     
-    print("\n--- აგენტთა საბჭოს დასკვნები ---")
+    print("\n--- სამუშაო დასკვნები / export gate ---")
     print("1. რეგულარულობის ანზაცით (A=1+O(r^2), B>0) სიმრუდის ინვარიანტები, მათ შორის")
-    print("   უმკაცრესი Kretschmann (K) სკალარი, ცენტრში აბსოლუტურად სასრულია (არა სინგულარული)!")
+    print("   Kretschmann (K), ცენტრში სასრულია ამ local ansatz-ის ფარგლებში.")
     print("2. მედიუმის სტრეს-ტენზორი T^t_t და T^r_r ასევე სასრულია.")
     print("3. T^t_t და T^r_r ზოგად შემთხვევაში არ არიან ტოლი, ამიტომ ეს არ არის სუფთა")
     print("   de Sitter-ის ვაკუუმი (w=-1). ტერმინი MD ტექსტში შეიცვალა 'სასრულ-ენერგიული ბირთვით'.")
-    print("4. ძველი exponential exterior უკვე იძლევა horizonless compact-object პროგნოზებს:")
+    print("4. Static exponential exterior branch იძლევა horizonless benchmark-ებს:")
     print("   r_ph=r_s, b_c=e*r_s, r_ISCO=phi_golden^2*r_s.")
     print("   ISCO გამოდის V_eff-ის მარგინალური სტაბილურობიდან, არა fitting-ით.")
     print("5. ფუძის ნაწილაკების rarefaction closure აჩვენებს: n_eff->0, ell_mfp->infinity,")
-    print("   Gamma_coll->0 და Kn->infinity, ამიტომ ინფორმაციის/დარტყმითი გადაცემა ითიშება.")
-    print("6. r_s/4-ის შიგნით ბერნულის წნევის გრადიენტის რეაქცია გარეთკენ არის, რაც")
-    print("   ბუნებრივ core self-regulation/back-reaction არხს იძლევა.")
+    print("   Gamma_coll->0 და Kn->infinity, თუ closure ansatz ფიზიკურად სწორია.")
+    print("6. r_s/4-ის შიგნით medium-stress gradient ნიშანს იცვლის; ეს არის")
+    print("   backreaction ledger, არა დამატებითი წნევითი ძალა მატერიაზე.")
     print("7. Kn=1 ზედაპირზე მიიღება finite core radius r_c=r_s/W(n_0*sigma*r_s).")
-    print("8. აშენებული C2 matching core ზუსტად აკერებს exponential exterior-ს და ცენტრში")
-    print("   იძლევა A(0)=1, B(0)>0, სასრულ R_0-ს და სასრულ K_0-ს.")
-    print("9. ამიტომ ძველი r=0 endpoint იცვლება რეგულარული rarefied core-ით:")
-    print("   geodesic incompleteness იხურება core-matching completion-ით.")
+    print("8. C2 matching core აკერებს exponential exterior-ს value/slope/curvature დონეზე.")
+    print("9. სრული compact-object proof ჯერ ბლოკირებულია field-equation source,")
+    print("   junction stress, physical energy, rotation, QNM/echo და EHT ray tracing-ით.")
 
 # ===================== CONSOLIDATED PHASE SECTIONS =====================
 
@@ -560,7 +1036,7 @@ if __name__ == "__main__":
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
 
 """
-PHASE 29: EHT shadow - old compact-object prediction recovered in RFG.
+PHASE 29: EHT shadow - static spherical compact-object benchmark in RFG.
 
 Phase 18 now derives the exponential exterior:
 
@@ -578,8 +1054,9 @@ while Schwarzschild gives:
 
     b_c^GR = (3*sqrt(3)/2)*r_s.
 
-Thus the static spherical RFG benchmark predicts a shadow diameter
-larger by 2e/(3sqrt(3))-1 = 4.63%.
+Thus the static spherical RFG benchmark gives a shadow diameter larger by
+2e/(3sqrt(3))-1 = 4.63%.  This is not a full EHT model until rotation,
+plasma/accretion emission and ray-traced image fitting are added.
 """
 
 import math
@@ -679,7 +1156,7 @@ def rfg_shadow_derivation_ledger():
         "photon sphere: dV_null/dr=0 -> r_ph=r_s",
         "critical impact parameter: b_c=r*exp(r_s/r) at r=r_s -> e*r_s",
         "GR reference: b_c=(3*sqrt(3)/2)*r_s",
-        "static spherical prediction: RFG shadow diameter is +4.63% relative to GR",
+        "static spherical benchmark: RFG shadow diameter is +4.63% relative to GR",
     ]
 
 
@@ -687,19 +1164,19 @@ def predictions_summary():
     """RFG vs GR shadow status."""
     ratio = 2.0 * math.e / (3.0 * math.sqrt(3.0))
     return {
-        "current_status": "derived static spherical RFG benchmark, not open",
+        "current_status": "static spherical benchmark derived inside the exponential branch; full EHT verdict open",
         "RFG_b_c": "e*r_s",
         "GR_b_c": "3*sqrt(3)*r_s/2",
         "RFG_over_GR": ratio,
         "shift_percent": (ratio - 1.0) * 100.0,
-        "needed_for_decisive_test": "spin, accretion, mass-distance priors, and ray-traced image modelling",
+        "needed_for_decisive_test": "rotating RFG exterior, accretion/plasma emission, mass-distance priors, and ray-traced image modelling",
         "ngEHT_BHEX_window": "few-percent shadow/ring precision can test the +4.63% benchmark",
     }
 
 
 if __name__ == "__main__":
     print("=" * 72)
-    print("PHASE 29: EHT shadow - RFG b_c=e*r_s benchmark")
+    print("PHASE 29: EHT shadow - RFG b_c=e*r_s static benchmark")
     print("=" * 72)
 
     print("\n1. დაკვირვება (EHT priors used in this local script)")
@@ -736,9 +1213,9 @@ if __name__ == "__main__":
         print(f"  {key:26s}: {val}")
 
     print("\n5. სტატუსი")
-    print("  - ძველი +4.6% shadow პროგნოზი ახალ RFG phase18-დან ზუსტად გამოდის.")
+    print("  - +4.6% shadow shift static exponential benchmark-ად გამოდის.")
     print("  - მიმდინარე EHT რიცხვები არ არის საკმარისი სუფთა GR/RFG გარჩევისთვის.")
-    print("  - decisive test მოითხოვს rotating RFG ray tracing-ს და ngEHT/BHEX კლასის სიზუსტეს.")
+    print("  - decisive test მოითხოვს rotating RFG ray tracing-ს, plasma model-ს და ngEHT/BHEX კლასის სიზუსტეს.")
 
 
 # ===================== merged from p05_compact.py =====================
@@ -874,8 +1351,8 @@ class SequenceSummary:
     rho_c_at_max: float
     radius_1p4_km: float | None
     lambda_1p4_proxy: float | None
-    supports_2p08: bool
-    lambda_bound_pass: bool | None
+    supports_2p08_toy: bool
+    lambda_bound_toy: bool | None
     max_sound_speed_over_c: float
 
 
@@ -1107,8 +1584,8 @@ def summarize_sequence(
         rho_c_at_max=max_solution.central_density_kg_m3,
         radius_1p4_km=onep4[0] if onep4 else None,
         lambda_1p4_proxy=onep4[1] if onep4 else None,
-        supports_2p08=max_solution.mass_solar >= OBSERVATIONS["NICER_J0740"]["mass_solar"],
-        lambda_bound_pass=(onep4[1] < lambda_bound if onep4 else None),
+        supports_2p08_toy=max_solution.mass_solar >= OBSERVATIONS["NICER_J0740"]["mass_solar"],
+        lambda_bound_toy=(onep4[1] < lambda_bound if onep4 else None),
         max_sound_speed_over_c=max(item.max_sound_speed_over_c for item in sequence),
     )
 
@@ -1130,8 +1607,8 @@ def format_summary(summary: SequenceSummary) -> list[str]:
             if summary.lambda_1p4_proxy
             else "Lambda_1.4 proxy: not bracketed"
         ),
-        f"M_max >= 2.08 M_sun: {summary.supports_2p08}",
-        f"Lambda_1.4 < 580 proxy: {summary.lambda_bound_pass}",
+        f"toy M_max >= 2.08 M_sun diagnostic: {summary.supports_2p08_toy}",
+        f"toy Lambda_1.4 proxy < 580 diagnostic: {summary.lambda_bound_toy}",
         f"max c_s/c in sequence: {summary.max_sound_speed_over_c:.3f}",
     ]
 
@@ -1228,17 +1705,17 @@ Sources drained from:
     OLD/14. ISPG_Interior.tex
     OLD/15. ISPG_Verification_Task1a.tex
 
-Most of OLD/12 and OLD/14 is already represented above by the exponential
-exterior, rarefaction/core matching, horizonless boundary, photon/shadow and
-golden-ISCO blocks.  This final ledger adds the missing OLD/15 perturbation
-verification and records exactly what remains open.
+OLD material is represented here as candidate ledger material, not as final
+authority.  The exponential exterior, rarefaction/core matching, horizonless
+boundary, photon/shadow and golden-ISCO blocks still carry the open checks
+listed in the central gate.
 """
 
 
 def stage_a3_old_geodesic_interior_drain():
     return {
         "OLD/12_geodesics": {
-            "status": "integrated",
+            "status": "represented_as_candidate_ledger",
             "new_functions": [
                 "analyze_horizon_throat_and_boundary",
                 "analyze_photon_shadow_isco",
@@ -1249,11 +1726,11 @@ def stage_a3_old_geodesic_interior_drain():
                 "critical impact parameter b_c = e*r_s",
                 "proper distance to old r=0 boundary diverges",
                 "curvature invariants vanish as r -> 0",
-                "old exterior geodesic incompleteness is replaced by Knudsen-core matching",
+                "old exterior geodesic incompleteness is conditionally addressed by Knudsen-core matching",
             ],
         },
         "OLD/14_interior": {
-            "status": "integrated",
+            "status": "represented_as_candidate_ledger",
             "new_functions": [
                 "analyze_rarefaction_information_cutoff",
                 "analyze_bernoulli_singularity_saturation",
@@ -1263,7 +1740,7 @@ def stage_a3_old_geodesic_interior_drain():
                 "clock/freezing: d tau/dt = exp(-r_s/(2r)) -> 0",
                 "proper radial element exp(r_s/(2r)) dr diverges",
                 "effective signal speed c_eff = c exp(-r_s/r) -> 0",
-                "mass is integrated pressure deficit, not a point material singularity",
+                "mass-as-pressure-deficit is retained as a candidate interpretation",
                 "deep deficit is self-perpetuating through divergent relaxation time",
             ],
         },
@@ -1272,14 +1749,16 @@ def stage_a3_old_geodesic_interior_drain():
 
 def stage_a3_scalar_perturbation_verification():
     """
-    OLD/15 Task 1a verification in executable symbolic form.
+    OLD/15 Task 1a probe-level ledger in executable symbolic form.
 
     Probe scalar perturbations on phi0=-r_s/r reduce to a Schrodinger-form
     equation after the tortoise coordinate and first-derivative removal.
     The dangerous l=0 well exists only in 0<r<r_s/4 and is exponentially
-    suppressed; the Bargmann/well-integral estimate is far below one.
+    suppressed.  This block is still a probe scalar test; the coupled
+    even/polar metric-medium sector is open.
     """
     r, r_s, c, ell = sp.symbols("r r_s c ell", positive=True)
+    x = sp.Symbol("x", positive=True)
     phi0 = -r_s / r
     phi0_p = sp.diff(phi0, r)
     phi0_pp = sp.diff(phi0_p, r)
@@ -1295,6 +1774,12 @@ def stage_a3_scalar_perturbation_verification():
         * (ell * (ell + 1) / r**2 - sp.Rational(1, 2) * phi0_pp - sp.Rational(1, 4) * phi0_p**2)
     )
     V_l0 = sp.factor(V_eff.subs(ell, 0))
+    V_l0_dimensionless = sp.simplify(V_l0.subs({c: 1, r_s: 1, r: x}))
+    drstar_dx_dimensionless = sp.exp(1 / x)
+    well_integrand_dr = sp.simplify(-V_l0_dimensionless)
+    well_integrand_drstar = sp.simplify(well_integrand_dr * drstar_dx_dimensionless)
+    well_integral_dr = sp.integrate(well_integrand_dr, (x, 0, sp.Rational(1, 4)))
+    well_integral_drstar = sp.integrate(well_integrand_drstar, (x, 0, sp.Rational(1, 4)))
 
     return {
         "phi0_prime": sp.Eq(sp.Symbol("phi0_prime"), phi0_p),
@@ -1308,10 +1793,14 @@ def stage_a3_scalar_perturbation_verification():
         "V_eff": sp.Eq(sp.Symbol("V_eff"), V_eff),
         "V_l0_factorized": sp.Eq(sp.Symbol("V_l0"), V_l0),
         "negative_region_l0": "0 < r < r_s/4",
-        "well_minimum": "r ~= 0.211 r_s, max |V| ~= 1.5e-3 in c=r_s=1 units",
-        "well_integral_l0": "I = int |V| drstar ~= 1.0e-4 << 1",
-        "bargmann_verdict": "no l=0 tachyonic bound state at probe level",
-        "ell_ge_1_verdict": "centrifugal barrier plus exp(-2r_s/r) suppression gives I <= 1e-7; no tachyonic modes",
+        "V_l0_dimensionless_c_rs_1": V_l0_dimensionless,
+        "well_integrand_absV_dr_c_rs_1": well_integrand_dr,
+        "well_integral_absV_dr_c_rs_1": sp.Eq(sp.Symbol("I_dr"), well_integral_dr),
+        "well_integrand_absV_drstar_c_rs_1": well_integrand_drstar,
+        "well_integral_absV_drstar_c_rs_1": sp.Eq(sp.Symbol("I_drstar"), well_integral_drstar),
+        "well_integral_absV_drstar_numeric": sp.N(well_integral_drstar, 8),
+        "probe_verdict": "small l=0 well at probe level; not a coupled stability theorem",
+        "ell_ge_1_status": "centrifugal barrier is favorable, but no hard-coded bound is exported here",
         "remaining_scope": "even/polar coupled metric-scalar sector remains a future verification task",
     }
 
@@ -1320,7 +1809,45 @@ def stage_a3_compact_old_file_status():
     return {
         "geodesic_interior": stage_a3_old_geodesic_interior_drain(),
         "scalar_perturbations": stage_a3_scalar_perturbation_verification(),
-        "integration_status": "Stage A3 integrated into p05_compact.py",
+        "integration_status": "Stage A3 represented as candidate ledger in p05_compact.py; theory export remains gated",
+    }
+
+
+def compact_central_claim_gate():
+    """
+    One-place export gate for p05_compact.py.
+
+    This keeps the useful algebraic results while blocking the stronger
+    compact-object claim until the missing physical/dynamical checks are done.
+    """
+    signature = compact_signature_bridge()
+    scalar_probe = stage_a3_scalar_perturbation_verification()
+    return {
+        "file_export_status": "NOT_READY_FOR_RFG_THEORY_EXPORT",
+        "signature_bridge": signature["stress_bridge_status"],
+        "exterior_status": "DERIVED_FROM_VACUUM_PHASE_EQUATION_PLUS_BICONFORMAL_MAP",
+        "black_hole_breaker_status": "SCHWARZSCHILD_CURVATURE_SINGULARITY_REMOVED_AT_GEOMETRY_LEVEL__GEODESIC_BOUNDARY_STILL_OPEN",
+        "effective_source_status": "GEOMETRIC_SOURCE_PROFILE_MATCHES_BERNOULLI_DELTA_P",
+        "p01_source_closure": "F_EQ_R_BRANCH_FAILS__LINEAR_NONTRIVIAL_F_R_BRANCH_DERIVED__EXACT_FULL_STRESS_SOLUTION_OPEN",
+        "core_status": "C2_MATCHING_CONDITIONAL_ANSATZ__JUNCTION_STRESS_AND_STABILITY_OPEN",
+        "energy_status": "COORDINATE_ENERGY_FINITE__PHYSICAL_PROPER_ADM_ENERGY_OPEN",
+        "scalar_stability": scalar_probe["probe_verdict"],
+        "shadow_status": "STATIC_SPHERICAL_BENCHMARK_ONLY__ROTATION_PLASMA_RAYTRACING_OPEN",
+        "neutron_star_status": "TOY_POLYTROPE_AND_LAMBDA_PROXY_ONLY__EOS_LOVE_BAYESIAN_FIT_OPEN",
+        "observational_blockers": [
+            "rotating compact-object exterior",
+            "EHT ray-traced images with mass-distance and plasma/accretion priors",
+            "full coupled QNM/ringdown and echo transfer function",
+            "surface/absorption luminosity for horizonless core candidates",
+            "RFG-derived neutron-star EOS/anisotropy and Love-number ODEs",
+        ],
+        "do_not_claim": [
+            "do not claim a derived RFG black-hole replacement from the static ansatz alone",
+            "do not claim geodesic completion from C2 matching alone",
+            "do not claim no-horizon observational viability before QNM/echo/surface tests",
+            "do not claim EHT support from the static +4.63% benchmark alone",
+            "do not claim NICER/GW170817 pass from toy TOV diagnostics",
+        ],
     }
 
 
@@ -1342,7 +1869,11 @@ if __name__ == "__main__":
         print(f"  {key:28s}: {value}")
 
     print("\n3. Integration verdict")
-    print("  - OLD/12, OLD/14 and OLD/15 no longer contain unique compact-object")
-    print("    material absent from p05_compact.py, except the explicitly open")
-    print("    even/polar coupled perturbation task.")
+    print("  - OLD/12, OLD/14 and OLD/15 are represented here as candidate ledger")
+    print("    material. They are not final theory authority until the central")
+    print("    compact-object gates are closed.")
+
+    print("\n4. Central compact-object claim gate")
+    for key, value in compact_central_claim_gate().items():
+        print(f"  {key:30s}: {value}")
 
