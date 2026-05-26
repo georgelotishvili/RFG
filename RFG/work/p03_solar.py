@@ -680,6 +680,61 @@ def calculate_light_deflection_2pn_discriminator():
     }
 
 
+def isotropic_optical_index_2pn_bridge():
+    """
+    General 2PN optical-index bridge in isotropic coordinates.
+
+    For a static isotropic metric
+
+        ds^2 = A(r) dt^2 - B(r) (dr^2 + r^2 dOmega^2),
+        A = 1 - 2u + 2 beta u^2,
+        B = 1 + 2 gamma u + b2 u^2,
+
+    null rays see n=sqrt(B/A). This is the missing bridge between a metric
+    calculation and the older optical-index Shapiro/bending candidates.
+    """
+    u, beta, gamma, b2, q = sp.symbols("u beta gamma b2 q", real=True)
+
+    A = 1 - 2 * u + 2 * beta * u**2
+    B = 1 + 2 * gamma * u + b2 * u**2
+    n_series = sp.series(sp.sqrt(B / A), u, 0, 3).removeO()
+    q_2pn = sp.simplify(sp.expand(n_series).coeff(u, 2))
+
+    gr_q = sp.simplify(q_2pn.subs({gamma: 1, beta: 1, b2: sp.Rational(3, 2)}))
+    exp_q = sp.Integer(2)
+    b2_for_exp = sp.solve(
+        sp.Eq(q_2pn.subs({gamma: 1, beta: 1}), exp_q),
+        b2,
+        dict=True,
+    )
+
+    return {
+        "status": "METRIC_TO_OPTICAL_2PN_BRIDGE_DERIVED",
+        "metric": {
+            "A": A,
+            "B": B,
+            "u": "GM/(c^2 r_iso)",
+        },
+        "optical_index": sp.Eq(sp.Symbol("n"), n_series),
+        "q_2PN": sp.Eq(q, q_2pn),
+        "GR_isotropic": {
+            "b2": sp.Rational(3, 2),
+            "q_2PN": gr_q,
+            "n_GR": "1 + 2u + 7u^2/4 + O(u^3)",
+        },
+        "exponential_branch": {
+            "n_exp": "exp(2u)=1+2u+2u^2+O(u^3)",
+            "required_q_2PN": exp_q,
+            "required_b2_when_gamma_beta_1": b2_for_exp,
+        },
+        "reading": (
+            "the old n_RFG=exp(2u) candidate is equivalent, at 2PN in "
+            "isotropic gauge with gamma=beta=1, to requiring b2=2 rather "
+            "than the GR value b2=3/2"
+        ),
+    }
+
+
 if __name__ == "__main__":
     print("--- Shapiro Time Delay (2PN): RFG-GR candidate discriminator ---")
     shapiro = calculate_shapiro_2pn_discriminator()
@@ -911,6 +966,7 @@ def article_solar_theorem():
     cassini = cassini_gamma_gate()
     shapiro_2pn = calculate_shapiro_2pn_discriminator()
     bending_2pn = calculate_light_deflection_2pn_discriminator()
+    optical_bridge = isotropic_optical_index_2pn_bridge()
 
     return {
         "article_use": "1PN Solar-System compatibility branch and 2PN discriminator",
@@ -954,6 +1010,7 @@ def article_solar_theorem():
         },
         "two_pn_observable_candidates": {
             "status": "CONDITIONAL_CANDIDATES_NOT_FINAL_PREDICTIONS",
+            "metric_to_optical_bridge": optical_bridge,
             "shapiro": {
                 "status": shapiro_2pn["status"],
                 "input_status": shapiro_2pn["input_status"],

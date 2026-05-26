@@ -455,6 +455,53 @@ def early_scaling_theorem():
     }
 
 
+def early_universe_parametric_bounds():
+    """
+    Parametric observation filters for the explicit FLRW scalings.
+
+    This is not a numerical likelihood fit. It gives the inequalities that can
+    be quoted before running a Boltzmann/BBN/BAO fit.
+    """
+    a = sp.Symbol("a", positive=True)
+    a_BBN, a_rec = sp.symbols("a_BBN a_rec", positive=True)
+    Omega_2, Omega_4, Omega_6 = sp.symbols(
+        "Omega_2 Omega_4 Omega_6", real=True
+    )
+    Omega_r, Omega_gamma = sp.symbols("Omega_r Omega_gamma", positive=True)
+    eps_BBN, eps_rec, eps_curv, Delta_Neff = sp.symbols(
+        "epsilon_BBN epsilon_rec epsilon_curv Delta_Neff", positive=True
+    )
+
+    radiation_neff_factor = sp.Rational(7, 8) * (
+        sp.Rational(4, 11)
+    ) ** sp.Rational(4, 3)
+
+    return {
+        "status": "PARAMETRIC_FILTERS_AVAILABLE_NUMERICAL_FIT_STILL_REQUIRED",
+        "normalization": sp.Eq(
+            sp.Symbol("rho_extra") / sp.Symbol("rho_c0"),
+            Omega_2 / a**2 + Omega_4 / a**4 + Omega_6 / a**6,
+        ),
+        "stiff_vs_radiation_ratio": sp.Eq(
+            sp.Symbol("R_6_rad"), Omega_6 / (Omega_r * a**2)
+        ),
+        "stiff_BBN_bound": sp.Le(sp.Abs(Omega_6), eps_BBN * Omega_r * a_BBN**2),
+        "stiff_recombination_bound": sp.Le(
+            sp.Abs(Omega_6), eps_rec * Omega_r * a_rec**2
+        ),
+        "radiation_Neff_bound": sp.Le(
+            sp.Abs(Omega_4),
+            radiation_neff_factor * Delta_Neff * Omega_gamma,
+        ),
+        "curvature_distance_bound": sp.Le(sp.Abs(Omega_2), eps_curv),
+        "reading": (
+            "a^-6 is the hardest early gate because its radiation-relative "
+            "ratio grows as 1/a^2; a^-4 is bounded as extra radiation/Delta_Neff; "
+            "a^-2 is bounded by curvature-distance fits."
+        ),
+    }
+
+
 def late_time_density_status(rho_solid):
     """
     a -> infinity ლიმიტი.
@@ -485,10 +532,12 @@ def late_time_density_status(rho_solid):
 
 def early_component_status():
     """ადრეული ეპოქის დამატებითი წევრები, რომლებიც დაკვირვებით უნდა შეიზღუდოს."""
+    bounds = early_universe_parametric_bounds()
     return {
         "stiff_like": "-c_I3/a^6",
         "radiation_like_extra": "-(9*c_I1sq + 3*c_I2)/a^4",
         "curvature_like_extra": "(-3*c_I1 + 3*c_YI1*Phi_dot^2)/a^2",
+        "parametric_bounds": bounds,
         "pressure_relaxation_reading": (
             "these are substrate pressure/tension-memory components in the "
             "internal RFG language, but observationally they remain constrained "
@@ -577,6 +626,7 @@ def article_cosmology_theorem():
     closure = phi_clock_closure_conditions()
     lambda_branch = strict_clock_lambda_like_branch_theorem()
     early = early_scaling_theorem()
+    early_bounds = early_universe_parametric_bounds()
     claim_gate = cosmology_claim_gate()
 
     return {
@@ -615,6 +665,7 @@ def article_cosmology_theorem():
                 "a^-4": early["radiation_like_a_minus_4"],
                 "a^-6": early["stiff_like_a_minus_6"],
             },
+            "parametric_bounds": early_bounds,
             "fit_gate": claim_gate["early_universe_BBN_CMB_Planck"],
         },
         "article_status": {

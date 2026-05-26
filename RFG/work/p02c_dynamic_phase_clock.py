@@ -145,6 +145,83 @@ def late_zero_current_candidate():
     }
 
 
+def dynamic_background_observables():
+    """
+    Background observables for a numerical H(a), w(a) fit.
+
+    This does not run a likelihood. It gives the exact algebraic quantities
+    that a fit must evaluate after solving the dynamic current equation for
+    u(a)=Phi_dot(a).
+    """
+    a = sp.Symbol("a", positive=True)
+    u = sp.Symbol("u", real=True)
+    H, H0, Mpl = sp.symbols("H H0 M_Pl", positive=True)
+    Omega_m, Omega_r, Omega_Lambda_bare = sp.symbols(
+        "Omega_m Omega_r Omega_Lambda_bare", real=True
+    )
+    c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
+    c_I1, c_I1sq, c_I2, c_I3 = sp.symbols(
+        "c_I1 c_I1sq c_I2 c_I3",
+        real=True,
+    )
+
+    rho_rfg = sp.simplify(
+        -3 * c_I1 / a**2
+        - (9 * c_I1sq + 3 * c_I2) / a**4
+        - c_I3 / a**6
+        + c_Y * u**2
+        + 3 * c_Y2 * u**4
+        + 3 * c_YI1 * u**2 / a**2
+    )
+    p_rfg = sp.simplify(
+        c_I1 / a**2
+        - (3 * c_I1sq + c_I2) / a**4
+        - c_I3 / a**6
+        + c_Y * u**2
+        + c_Y2 * u**4
+        + c_YI1 * u**2 / a**2
+    )
+    w_rfg = sp.simplify(p_rfg / rho_rfg)
+    omega_rfg = sp.simplify(rho_rfg / (3 * Mpl**2 * H0**2))
+    E2 = sp.simplify(
+        Omega_m / a**3
+        + Omega_r / a**4
+        + Omega_Lambda_bare
+        + omega_rfg
+    )
+
+    zero_current_u2 = sp.simplify(-(c_Y + 3 * c_YI1 / a**2) / (2 * c_Y2))
+    rho_zero_current = sp.simplify(rho_rfg.subs(u**2, zero_current_u2))
+    p_zero_current = sp.simplify(p_rfg.subs(u**2, zero_current_u2))
+    w_zero_current = sp.simplify(p_zero_current / rho_zero_current)
+
+    return {
+        "status": "BACKGROUND_OBSERVABLES_READY_FOR_NUMERICAL_FIT",
+        "rho_RFG": rho_rfg,
+        "p_RFG": p_rfg,
+        "w_RFG": w_rfg,
+        "Omega_RFG": omega_rfg,
+        "E2": sp.Eq((H / H0) ** 2, E2),
+        "zero_current_branch": {
+            "u2": sp.Eq(u**2, zero_current_u2),
+            "rho_RFG": rho_zero_current,
+            "p_RFG": p_zero_current,
+            "w_RFG": w_zero_current,
+        },
+        "fit_parameters": [
+            c_Y,
+            c_Y2,
+            c_YI1,
+            c_I1,
+            c_I1sq,
+            c_I2,
+            c_I3,
+            sp.Symbol("Q_norm"),
+        ],
+        "fit_observables": ["H(z)", "w(z)", "BBN", "CMB distance priors", "BAO", "SNe", "growth"],
+    }
+
+
 def early_scaling_after_zero_current():
     """
     Show that substituting the dynamic branch reshuffles early powers.
@@ -246,6 +323,7 @@ def article_dynamic_phase_clock_theorem():
     current = phase_current_self_check()
     branch = dynamic_phase_clock_branch()
     late = late_zero_current_candidate()
+    observables = dynamic_background_observables()
     early = early_scaling_after_zero_current()
 
     return {
@@ -270,6 +348,14 @@ def article_dynamic_phase_clock_theorem():
             "w_after_substitution": late["w_after_substitution"],
             "theorem_pass_background_only": late["theorem_pass_background_only"],
             "viable_sign_window_hint": late["viable_sign_window_hint"],
+        },
+        "background_observables": {
+            "status": observables["status"],
+            "rho_RFG": observables["rho_RFG"],
+            "p_RFG": observables["p_RFG"],
+            "w_RFG": observables["w_RFG"],
+            "E2": observables["E2"],
+            "zero_current_branch": observables["zero_current_branch"],
         },
         "early_scaling_warning": {
             "status": early["status"],
