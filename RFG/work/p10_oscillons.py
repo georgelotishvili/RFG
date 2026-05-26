@@ -2,9 +2,120 @@
 # signature (+---); Y = g^mn d_m Phi d_n Phi; B^AB = -g^mn d_m phi^A d_n phi^B.
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
+# Active coefficient scheme: c_Y denotes the Y-scheme coefficient c_Y^(Y).
 
+from __future__ import annotations
+
+import os
 import sympy as sp
+from dataclasses import dataclass
 from p01_core import init_variables, get_polynomial_lagrangian
+
+
+@dataclass(frozen=True)
+class ClaimGate:
+    claim: str
+    status: str
+    verified_here: str
+    open_requirement: str
+
+
+def oscillon_claim_gate() -> list[ClaimGate]:
+    """Strict theorem gate for p10: separate identities from open physics."""
+    return [
+        ClaimGate(
+            claim="Bernoulli pressure identity",
+            status="CLOSED_SYMBOLIC_IDENTITY",
+            verified_here="For phi=-r_s/r, Delta_P=e^phi*(phi')^2/(32*pi*G) and P_static=-Delta_P give P_static+Delta_P=0 exactly.",
+            open_requirement="derive the same identity as an on-shell branch of the full p01 stress system, not only as a static scalar identity.",
+        ),
+        ClaimGate(
+            claim="localized source gives exterior 1/r tail",
+            status="CLOSED_IF_SOURCE_IS_LOCALIZED",
+            verified_here="Spherical Poisson reconstruction fixes the far-zone 1/r coefficient once a localized source rho(r) is supplied.",
+            open_requirement="prove the full nonlinear oscillon PDE has a regular localized finite-energy source.",
+        ),
+        ClaimGate(
+            claim="Newton law recovery",
+            status="CONDITIONAL_ON_BICONFORMAL_BRANCH_AND_NORMALIZATION",
+            verified_here="Given phi=-r_s/r and r_s=2GM/c^2, geodesic acceleration gives -GM/r^2.",
+            open_requirement="derive the source-to-r_s normalization and the bi-conformal exterior branch from the p01 action.",
+        ),
+        ClaimGate(
+            claim="bi-conformal scaling and light factor 2",
+            status="CLOSED_WITHIN_BICONFORMAL_ANSATZ",
+            verified_here="In the (+---) bi-conformal metric, c_coord/c=(L_oper/L_0)^2 and weak-field light bending gives 2*r_s/b.",
+            open_requirement="show the ansatz is selected by the full static spherical equations, not imposed as a geometry template.",
+        ),
+        ClaimGate(
+            claim="finite-energy oscillon particle",
+            status="OPEN_CORE_THEOREM",
+            verified_here="The file computes Y, averaged energy density, and a virial stationarity integrand for a two-harmonic trial family.",
+            open_requirement="construct global regular finite-energy nonlinear solutions and prove spectral stability.",
+        ),
+        ClaimGate(
+            claim="Solar-system observational pass",
+            status="PARTIAL_WEAK_FIELD_SMOKE_TEST",
+            verified_here="Solar light bending and Pound-Rebka are reproduced at leading weak-field level.",
+            open_requirement="derive PPN gamma/beta plus Shapiro delay, perihelion, Cassini, LLR, and clock/LPI tests.",
+        ),
+        ClaimGate(
+            claim="substrate carrier frequency nu0",
+            status="OPEN_MICROPHYSICAL_HYPOTHESIS",
+            verified_here="nu0 is explicitly marked as a substrate rhythm hypothesis/TODO.",
+            open_requirement="derive the invariant substrate clock from the microscopic RFG vacuum, not from local oscillon composites.",
+        ),
+    ]
+
+
+def oscillon_do_not_claim() -> list[str]:
+    return [
+        "Do not claim that p10 proves particles are finite-energy oscillons.",
+        "Do not claim Newton gravity is fully derived from the RFG action in this file.",
+        "Do not claim the bi-conformal exterior metric is derived rather than selected as an ansatz/branch.",
+        "Do not claim solar-system tests are fully passed; only leading weak-field checks are present.",
+        "Do not claim G is microscopically normalized from oscillon parameters here.",
+        "Do not claim nu0 is derived; it remains an open substrate-clock hypothesis.",
+    ]
+
+
+def signature_bridge_gate():
+    """
+    p10 now keeps the active project signature (+---).
+
+    The earlier Phase-17 notes used the equivalent (-+++) writing.  Multiplying
+    the metric by -1 changes covariant sign conventions, not the physical null
+    relation or the scaling identities, as long as the energy sign is translated.
+    """
+    phi = sp.Symbol("phi", real=True)
+    g_plus = sp.diag(sp.exp(phi), -sp.exp(-phi), -sp.exp(-phi), -sp.exp(-phi))
+    g_minus = -g_plus
+    return {
+        "active_signature": "(+---)",
+        "old_phase17_signature": "(-+++)",
+        "g_plus": g_plus,
+        "g_minus": g_minus,
+        "null_speed_plus": sp.simplify(sp.sqrt(-g_plus[0, 0] / g_plus[1, 1])),
+        "null_speed_minus": sp.simplify(sp.sqrt(-g_minus[0, 0] / g_minus[1, 1])),
+        "same_null_cone": True,
+        "energy_translation": "with (+---), static Killing energy is E=p_t; with (-+++), it was E=-p_t",
+        "status": "PASS_SIGNATURE_BRIDGE_EXPLICIT",
+    }
+
+
+DEFAULT_MAIN_SECTIONS = {"oscillon", "spherical", "tov", "biconformal", "gates"}
+
+
+def _requested_main_sections() -> set[str]:
+    raw = os.environ.get("RFG_P10_SECTIONS", "")
+    return {part.strip().lower() for part in raw.split(",") if part.strip()}
+
+
+def _should_run_main_section(name: str) -> bool:
+    requested = _requested_main_sections()
+    if not requested:
+        return name.lower() in DEFAULT_MAIN_SECTIONS
+    return "all" in requested or name.lower() in requested
 
 
 def bernoulli_static_gravity_identity():
@@ -17,8 +128,9 @@ def bernoulli_static_gravity_identity():
         P_static + Delta P = 0
 
     ეს არის scalar-field Bernoulli identity: gradient energy drains the
-    static pressure. გრავიტაციული მნიშვნელობა პოსტულატი აღარ არის; იგივე
-    scalar profile, რომელიც metric-ს ქმნის, ატარებს pressure deficit-ს.
+    static pressure. გრავიტაციული მნიშვნელობა სრულად არ იხურება მხოლოდ ამ
+    identity-ით; დამატებით საჭიროა source normalization და exterior metric
+    branch-ის p01-დან გამოყვანა.
     """
     r, r_s, G = sp.symbols('r r_s G', real=True, positive=True)
     phi = -r_s / r
@@ -105,7 +217,33 @@ def bernoulli_poisson_reconstruction():
         "enclosed_source": sp.Eq(sp.Symbol('M_enc(r)'), m_enc),
         "poisson_solution": sp.Eq(sp.Symbol('phi_grav(r)'), phi_grav),
         "far_zone_coefficient": sp.Eq(sp.Symbol('lim_-r_phi'), m_total),
-        "proof_result": "Once the localized oscillon source is fixed, the 1/r coefficient is fixed. No extra gravitational charge is inserted.",
+        "proof_result": "Once the localized source coefficient is fixed, the 1/r tail coefficient is fixed. Physical G-normalization is a separate gate.",
+    }
+
+
+def poisson_to_newton_normalization_gate():
+    """
+    Exact normalization gap isolated by the council.
+
+    Poisson reconstruction gives a dimensionless exterior coefficient mu_src:
+        phi = -mu_src/r.
+    Newton is recovered if the metric potential is Phi_N=c^2*phi/2 and the
+    source coefficient is identified with mu_src=2GM/c^2.  This function proves
+    the algebra of that identification, not its microscopic derivation.
+    """
+    r, mu_src, G, M, c = sp.symbols("r mu_src G M c", positive=True)
+    phi = -mu_src / r
+    phi_newton = sp.simplify(c**2 * phi / 2)
+    acceleration = sp.simplify(-sp.diff(phi_newton, r))
+    mu_needed = sp.solve(sp.Eq(acceleration, -G * M / r**2), mu_src)[0]
+
+    return {
+        "dimensionless_exterior_profile": sp.Eq(sp.Symbol("phi"), phi),
+        "newtonian_potential_bridge": sp.Eq(sp.Symbol("Phi_N"), phi_newton),
+        "geodesic_acceleration": sp.Eq(sp.Symbol("a"), acceleration),
+        "required_source_coefficient": sp.Eq(sp.Symbol("mu_src"), mu_needed),
+        "status": "NORMALIZATION_IDENTIFIED_NOT_MICRODERIVED",
+        "open_requirement": "derive mu_src=2GM/c^2 from the oscillon stress integral and p01 coupling constants.",
     }
 
 
@@ -150,11 +288,11 @@ def bernoulli_gravity_chain() -> list[str]:
         "zero-frequency projection <T00> survives time averaging",
         "Bernoulli identity: P_static + e^phi |grad phi|^2/(32*pi*G)=0",
         "pressure deficit: Delta_P=-P_static=e^phi |grad phi|^2/(32*pi*G)",
-        "localized Delta_P/<T00> fixes the source integral",
-        "vacuum exterior solves Laplace equation -> phi_grav=-r_s/r",
-        "Gauss normalization: r_s=2GM/c^2",
-        "bi-conformal geodesic acceleration: a=-(c^2/2) grad phi=-GM/r^2",
-        "two oscillon sources give U(d)=-G M1 M2/d and |F|=G M1 M2/d^2",
+        "localized Delta_P/<T00> fixes the source integral if a finite oscillon exists",
+        "vacuum exterior solves Laplace equation -> phi_grav=-mu_src/r",
+        "Newton normalization requires mu_src=2GM/c^2",
+        "bi-conformal geodesic acceleration then gives a=-(c^2/2) grad phi=-GM/r^2",
+        "two oscillon sources give U(d)=-G M1 M2/d and |F|=G M1 M2/d^2 after normalization",
         "strong-field saturation: e^phi suppresses Delta_P as phi->-infinity",
     ]
 
@@ -211,7 +349,54 @@ def analyze_oscillon():
     
     return Phi_total, Y_eval, rho_avg, E_total, virial_integrand
 
-if __name__ == "__main__":
+
+def oscillon_finite_energy_gate():
+    """
+    Boundary and positivity gates for turning the trial family into a theorem.
+
+    This function does not pretend to solve the nonlinear PDE.  It records the
+    exact analytic requirements that a future solution must satisfy.
+    """
+    r, omega = sp.symbols("r omega", positive=True)
+    E_of_omega = sp.Function("E")(omega)
+    Phi0 = sp.Function("Phi0")(r)
+    Phi1 = sp.Function("Phi1")(r)
+    return {
+        "regular_origin_conditions": [
+            sp.Eq(sp.diff(Phi0, r).subs(r, 0), 0),
+            sp.Eq(sp.diff(Phi1, r).subs(r, 0), 0),
+            "Phi0(0), Phi1(0) finite",
+        ],
+        "finite_energy_asymptotics": [
+            sp.Eq(sp.limit(r * Phi0, r, sp.oo), 0),
+            sp.Eq(sp.limit(r * Phi1, r, sp.oo), 0),
+            "rho_avg*r^2 must be integrable on [0, infinity)",
+        ],
+        "stationarity_condition": sp.Eq(sp.diff(E_of_omega, omega), 0),
+        "stability_gate": "second variation / Floquet spectrum must be non-negative except symmetry zero modes",
+        "status": "OPEN_PDE_EXISTENCE_AND_STABILITY",
+    }
+
+
+def oscillon_energy_status_audit():
+    """Classify what analyze_oscillon proves and what it does not."""
+    return {
+        "proved_here": [
+            "Y is evaluated nonlinearly for a two-harmonic Phi=t+deltaPhi ansatz",
+            "the time-averaged stress density can be computed from the p01 polynomial L",
+            "a virial stationarity integrand can be written symbolically",
+        ],
+        "not_proved_here": [
+            "existence of a global finite-energy solution",
+            "uniqueness of the oscillon profile",
+            "spectral/Floquet stability",
+            "absolute particle mass, charge, spin, and frequency selection",
+        ],
+        "status": "SYMBOLIC_TRIAL_FAMILY_NOT_PARTICLE_THEOREM",
+    }
+
+
+if __name__ == "__main__" and _should_run_main_section("oscillon"):
     Phi_total, Y_eval, rho_avg, E_total, virial_integrand = analyze_oscillon()
     
     print("--- ოსცილონის ანალიზი (Phi ველის ვარიაცია) ---")
@@ -250,6 +435,11 @@ if __name__ == "__main__":
     for key, value in poisson.items():
         print(f"{key}: {value}")
 
+    print("\n--- Poisson -> Newton normalization gate ---")
+    norm_gate = poisson_to_newton_normalization_gate()
+    for key, value in norm_gate.items():
+        print(f"{key}: {value}")
+
     print("\n--- Newton law recovery from Bernoulli + geodesics ---")
     newton = bernoulli_newton_law_recovery()
     for key, value in newton.items():
@@ -269,11 +459,11 @@ if __name__ == "__main__":
     print("   პოზიტიურობა მოითხოვს rho_avg-ის სრული გამოსახულების ანალიზს.")
     print("5. omega-ს ფიქსაციის ფორმალური პირობაა dE/domega = 0; რეალური omega-ს მისაღებად")
     print("   საჭიროა პროფილის ამოხსნა და საზღვრული პირობები.")
-    print("6. Bernoulli gravity ნაწილი უკვე მკაცრად აჩვენებს: static scalar profile ატარებს")
-    print("   pressure deficit-ს, zero-frequency oscillon source იძლევა 1/r ველს, ხოლო")
-    print("   geodesic equation აბრუნებს Newton-ის კანონს.")
+    print("6. Bernoulli gravity ნაწილი მკაცრად აჩვენებს pressure identity-ს და")
+    print("   Newton-ის ალგებრულ დაბრუნებას იმ შემთხვევაში, თუ source normalization")
+    print("   და bi-conformal branch მიღებულია.")
     print("7. ცალკე ღიად რჩება სრული nonlinear finite-energy oscillon profile-ის არსებობის")
-    print("   სრული დამტკიცება; მაგრამ gravity mechanism აღარ არის პოსტულატი.")
+    print("   სრული დამტკიცება; ამიტომ სრული oscillon->gravity proof ჯერ არ დაიხურა.")
 
 # ===================== CONSOLIDATED PHASE SECTIONS =====================
 
@@ -386,7 +576,57 @@ def solve_static_spherical():
     
     return G_tt, G_rr, G_thth, T_tt, T_rr, T_thth, scalar_eq, Eq_tt_w, Eq_rr_w, Eq_thth_w, Eq_tt_O0, Eq_tt_O1, Eq_rr_O0, Eq_rr_O1, Eq_thth_O0, Eq_thth_O1, Delta_T_O1, clean_Delta_T_O1, bc_constraint
 
-if __name__ == "__main__":
+
+def static_spherical_theorem_gate():
+    """
+    Council gate for the exterior branch.
+
+    solve_static_spherical() is useful, but the full weak-field theorem requires
+    all O(eps) equations to vanish together after the Minkowski vacuum
+    constraints.  The old single Delta_T/biconformal constraint is necessary
+    only for one aspect of the branch.
+    """
+    (
+        _G_tt,
+        _G_rr,
+        _G_thth,
+        _T_tt,
+        _T_rr,
+        _T_thth,
+        _scalar_eq,
+        _Eq_tt_w,
+        _Eq_rr_w,
+        _Eq_thth_w,
+        Eq_tt_O0,
+        Eq_tt_O1,
+        Eq_rr_O0,
+        Eq_rr_O1,
+        Eq_thth_O0,
+        Eq_thth_O1,
+        Delta_T_O1,
+        clean_Delta_T_O1,
+        bc_constraint,
+    ) = solve_static_spherical()
+
+    c_Y2, c_I1sq, c_YI1 = sp.symbols("c_Y2 c_I1sq c_YI1", real=True)
+    a1 = sp.Symbol("a1", real=True)
+
+    return {
+        "vacuum_background_equations": [Eq_tt_O0, Eq_rr_O0, Eq_thth_O0],
+        "first_order_equations_to_solve_together": [Eq_tt_O1, Eq_rr_O1, Eq_thth_O1],
+        "biconformal_constraint_only": bc_constraint,
+        "council_candidate_constraints_for_a1_1": [
+            sp.Eq(c_YI1, 2 * c_Y2),
+            sp.Eq(c_YI1, 2 * c_I1sq),
+            "plus the angular O(eps) combination; solve full system before claiming exterior proof",
+        ],
+        "why_not_closed": "O(eps) contains independent radial powers and all components must vanish simultaneously.",
+        "status": "OPEN_FULL_STATIC_SPHERICAL_BRANCH",
+        "a1_note": "a1 must be solved or fixed by the branch; it cannot be silently inserted.",
+    }
+
+
+if __name__ == "__main__" and _should_run_main_section("spherical"):
     res = solve_static_spherical()
     G_tt, G_rr, G_thth, T_tt, T_rr, T_thth, scalar_eq, Eq_tt_w, Eq_rr_w, Eq_thth_w, Eq_tt_O0, Eq_tt_O1, Eq_rr_O0, Eq_rr_O1, Eq_thth_O0, Eq_thth_O1, Delta_T_O1, clean_Delta_T_O1, bc_constraint = res
     print("--- ამოხსნა სფერული ანზაცისთვის ---")
@@ -418,6 +658,11 @@ if __name__ == "__main__":
     print("Delta_T(O(eps)) =", Delta_T_O1)
     print("Delta_T(O(eps)) სუფთა (Minkowski ვაკუუმის კონსტრეინტებით) =", clean_Delta_T_O1)
     print("კონსტრეინტი ბი-კონფორმულობისთვის:", bc_constraint)
+
+    print("\n--- static spherical theorem gate ---")
+    spherical_gate = static_spherical_theorem_gate()
+    for key, value in spherical_gate.items():
+        print(f"{key}: {value}")
     
     print("\n--- აგენტთა საბჭოს დასკვნები ---")
     print("1. Angular კომპონენტი დაემატა; სრული სფერული სისტემის დახურვა საჭიროებს corrected O(eps) განტოლებების ერთობლივ ამოხსნას.")
@@ -467,7 +712,7 @@ def analyze_matter_coupling_tov():
     g_sol = sols[0]
     return sp.simplify(g_sol)
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("tov"):
     g_sol = analyze_matter_coupling_tov()
     print("--- ანიზოტროპიული TOV განტოლება ნიუტონურ ლიმიტში ---")
     print("პოტენციალის გრადიენტი (Phi') შიდა წონასწორობაში:")
@@ -498,15 +743,16 @@ PHASE 17: ეფექტური მასის სკალირება �
 ================================================================================
 
 სტატუსი:
-ეს ფაილი წარმოადგენს ბი-კონფორმული operational ansatz-ის შედეგების შემოწმებას
-(consistency check). მეტრიკა აქ წინაპირობაა და არა მოქმედებიდან დამოუკიდებლად გამოყვანილი.
+ეს სექცია წარმოადგენს ბი-კონფორმული operational branch-ის შედეგების შემოწმებას
+(consistency check). მეტრიკა აქ წინაპირობა/branch template-ია და არა
+მოქმედებიდან დამოუკიდებლად დასრულებული გამოყვანა.
 სინათლის გადახრა და Pound-Rebka მოწმდება phi = -r_s/r ფონზე.
 
 ცენტრალური ფიზიკური მექანიზმი, რომელიც ადრე ცალკე თეორიულ ტექსტში უნდა გადასულიყო:
 როგორ ცვლის ფონური წნევითი პოტენციალი φ(x) ეფექტურ მასას, ოპერაციულ
 ზომას, საათის ტემპს და კოორდინატულ სიხშირეს.
 
-ცენტრალური შედეგი (გამოყვანილია, არა მიღებული):
+ცენტრალური შედეგი (გამოყვანილია ამ branch/ansatz-ის შიგნით):
     m_eff(φ) = m_0 · e^(φ/2)
     L_oper(φ) = L_0 · e^(φ/2)
     T_period(φ) = T_0 · e^(-φ/2)
@@ -514,11 +760,11 @@ PHASE 17: ეფექტური მასის სკალირება �
 
 ფაქტორი 2:  c_coord/c = (L_oper/L_0)²   ← ბუნებრივად, არა ad-hoc
 
-შემოწმებული დაკვირვებები:
-  ✓ სინათლის გადახრა მზესთან: 1.7505 arcsec  [Eddington 1919, VLBI]
-  ✓ Pound-Rebka რედშიფტი:    2.46×10⁻¹⁵      [PR 1960, 1σ შიგნით]
-  ✓ ფაქტორი 2 (1911 vs 1915): ემერჯენტული
-  ✓ ლოკალური ფარდობითობის პრინციპი: α და უგანზომილო ფარდობები უცვლელია
+weak-field smoke-tests:
+  - სინათლის გადახრა მზესთან: 1.7505 arcsec  [Eddington 1919, VLBI]
+  - Pound-Rebka რედშიფტი:    2.46×10⁻¹⁵      [PR 1960, 1σ შიგნით]
+  - ფაქტორი 2 (1911 vs 1915): ემერჯენტული branch identity
+  - ლოკალური ფარდობითობის პრინციპი: α და უგანზომილო ფარდობები უცვლელია
   🟡 ν₀ (სუბსტრატის ფონური რიტმი): ჰიპოთეზა / TODO
 """
 
@@ -532,13 +778,13 @@ import sympy as sp
 def setup_metric():
     """
     ბი-კონფორმული მეტრიკა (c=1 ერთეულებში):
-        ds² = -e^φ dt² + e^(-φ) (dx² + dy² + dz²)
+        ds² = e^φ dt² - e^(-φ) (dx² + dy² + dz²)
 
-    Signature: (-, +, +, +)
+    Signature: (+, -, -, -), matching NOTATION.md.
     φ — ფონური წნევითი პოტენციალი (სკალარული)
     """
     phi = sp.Symbol('phi', real=True)
-    g = sp.diag(-sp.exp(phi), sp.exp(-phi), sp.exp(-phi), sp.exp(-phi))
+    g = sp.diag(sp.exp(phi), -sp.exp(-phi), -sp.exp(-phi), -sp.exp(-phi))
     return g, phi
 
 
@@ -565,12 +811,12 @@ def step1_biconformal_property():
 def step2_proper_time_and_length():
     """
     სტატიკური დამკვირვებლისთვის:
-        dτ/dt = √(-g_tt) = e^(φ/2)        ← საათის ტემპი
-        dl/dx = √(g_xx) = e^(-φ/2)         ← სიგრძის სკალირება
+        dτ/dt = √(g_tt) = e^(φ/2)          ← საათის ტემპი
+        dl/dx = √(-g_xx) = e^(-φ/2)        ← სიგრძის სკალირება
     """
     g, phi = setup_metric()
-    dtau_dt = sp.simplify(sp.sqrt(-g[0, 0]))
-    dl_dx = sp.simplify(sp.sqrt(g[1, 1]))
+    dtau_dt = sp.simplify(sp.sqrt(g[0, 0]))
+    dl_dx = sp.simplify(sp.sqrt(-g[1, 1]))
     return dtau_dt, dl_dx
 
 
@@ -583,28 +829,28 @@ def step3_effective_mass():
     სტატიკური (შებოჭილი/tethered) ნაწილაკი ბი-კონფორმულ მეტრიკაში.
     სტატიკური მსოფლიო-ხაზი φ≠const ფონზე არ არის თავისუფალი გეოდეზიური!
     
-        u^t = dt/dτ = 1/√(-g_tt) = e^(-φ/2)
+        u^t = dt/dτ = 1/√(g_tt) = e^(-φ/2)
         p^t = m_0 · u^t = m_0 · e^(-φ/2)
-        p_t = g_tt · p^t = -e^φ · m_0 · e^(-φ/2) = -m_0 · e^(φ/2)
+        p_t = g_tt · p^t = e^φ · m_0 · e^(-φ/2) = m_0 · e^(φ/2)
 
     Killing ენერგია (Killing ვექტორი ξ = ∂_t) — უსასრულობაში (φ→0) გაზომილი მასა:
-        E = -p_μ ξ^μ = -p_t = m_0 · e^(φ/2)
+        E = p_μ ξ^μ = p_t = m_0 · e^(φ/2)
 
     ლოკალური დამკვირვებლის მიერ გაზომილი ენერგია:
         u^μ_obs = (e^(-φ/2), 0, 0, 0)
-        E_loc = -p_μ u^μ_obs = -(-m_0 e^(φ/2)) * e^(-φ/2) = m_0 (უცვლელი!)
+        E_loc = p_μ u^μ_obs = m_0 e^(φ/2) * e^(-φ/2) = m_0 (უცვლელი!)
         
     აქ m_eff არის გარედან დანახული (Killing) მასა.
     """
     g, phi = setup_metric()
     m_0 = sp.Symbol('m_0', positive=True)
 
-    u_t_up = 1 / sp.sqrt(-g[0, 0])           # = e^(-φ/2)
+    u_t_up = 1 / sp.sqrt(g[0, 0])            # = e^(-φ/2)
     p_t_up = m_0 * u_t_up                    # p^t = m_0 e^(-φ/2)
-    p_t_down = g[0, 0] * p_t_up              # p_t = -m_0 e^(φ/2)
+    p_t_down = g[0, 0] * p_t_up              # p_t = m_0 e^(φ/2)
 
-    E_killing = sp.simplify(-p_t_down)        # E = m_0 e^(φ/2)
-    E_loc = sp.simplify(-p_t_down * u_t_up)   # ლოკალურად გაზომილი E_loc = m_0
+    E_killing = sp.simplify(p_t_down)         # E = m_0 e^(φ/2)
+    E_loc = sp.simplify(p_t_down * u_t_up)    # ლოკალურად გაზომილი E_loc = m_0
     m_eff = sp.simplify(E_killing)            # m_eff (c=1)
 
     return m_eff, m_0, E_loc, sp.simplify(u_t_up), sp.simplify(p_t_down)
@@ -617,14 +863,14 @@ def step3_effective_mass():
 def step4_operational_size():
     """
     ფიქსირებული საკუთრივი ზომის (L_0) ობიექტი:
-        dl_proper = √(g_xx) dx  →  dx = L_0/√(g_xx)
+        dl_proper = √(-g_xx) dx  →  dx = L_0/√(-g_xx)
         L_oper = L_0 / e^(-φ/2) = L_0 · e^(φ/2)
 
     იგივე ექსპონენტი, რაც m_eff-ის → L_oper ∝ m_eff   ✓
     """
     g, phi = setup_metric()
     L_0 = sp.Symbol('L_0', positive=True)
-    L_oper = sp.simplify(L_0 / sp.sqrt(g[1, 1]))
+    L_oper = sp.simplify(L_0 / sp.sqrt(-g[1, 1]))
     return L_oper, L_0
 
 
@@ -635,7 +881,7 @@ def step4_operational_size():
 def step5_coordinate_speed():
     """
     ნულოვანი გეოდეზიური (ds² = 0) x-ის გასწვრივ:
-        0 = -e^φ dt² + e^(-φ) dx²
+        0 = e^φ dt² - e^(-φ) dx²
         (dx/dt)² = e^(2φ)
         c_coord = e^φ   (c=1 ერთეულებში)
         c_coord = c · e^φ   (SI ერთეულებში)
@@ -709,7 +955,7 @@ def step7_light_deflection():
 def step8_split_1911_1915():
     """
     Einstein 1911: მხოლოდ დროითი წევრი (g_tt)
-        n_t = 1/√(-g_tt) = e^(-φ/2) ≈ 1 + r_s/(2r)
+        n_t = 1/√(g_tt) = e^(-φ/2) ≈ 1 + r_s/(2r)
         δ_t = r_s/b
 
     GR 1915 / RFG full: დროითი + სივრცული (g_ii)
@@ -725,7 +971,7 @@ def step8_split_1911_1915():
     # Schwarzschild ბი-კონფორმული
     phi_schw = -r_s / r
 
-    # დროითი ნაწილი (1911): n_t = 1/√(-g_tt) = e^(-φ/2)
+    # დროითი ნაწილი (1911): n_t = 1/√(g_tt) = e^(-φ/2)
     n_t = sp.exp(-phi_schw / 2)
     n_t_lead = sp.simplify(sp.series(n_t, r_s, 0, 2).removeO() - 1)
 
@@ -854,11 +1100,65 @@ def step12_cosmological_nu0():
     return "TODO / ჰიპოთეზა: ν_0 (substrate) = INVARIANT — სრული Φ ფონური ვაკუუმის ანალიზი ჯერ არ გაკეთებულა."
 
 
+def ppn_and_observation_gate():
+    """
+    Observation firewall.
+
+    Light bending and Pound-Rebka are important smoke tests, but they are not
+    the full Solar-System validation suite.
+    """
+    gamma, beta = sp.symbols("gamma beta", real=True)
+    return {
+        "checked_here": [
+            "leading weak-field solar light bending: delta=2*r_s/b",
+            "Pound-Rebka redshift at Harvard tower scale",
+            "local dimensionless ratios in the bi-conformal ansatz",
+        ],
+        "not_checked_here": [
+            "PPN gamma and beta extraction from the full exterior solution",
+            "Cassini/Shapiro time delay",
+            "Mercury perihelion and ephemeris residuals",
+            "lunar laser ranging",
+            "binary pulsars and strong-field timing",
+            "modern atomic-clock local-position-invariance tests",
+        ],
+        "target_ppn_values": [sp.Eq(gamma, 1), sp.Eq(beta, 1)],
+        "status": "PARTIAL_GR_WEAK_FIELD_SMOKE_TESTS_ONLY",
+    }
+
+
+def p10_status_audit():
+    """Compact status ledger for the whole file."""
+    return {
+        "overall_status": "strong symbolic consistency ledger; not complete oscillon-to-gravity proof",
+        "closed": [
+            "Bernoulli pressure identity",
+            "Poisson 1/r reconstruction for a supplied localized source",
+            "Newton law algebra after mu_src=2GM/c^2 normalization",
+            "bi-conformal scaling identities inside the selected branch",
+            "leading light-bending and Pound-Rebka smoke tests",
+        ],
+        "conditional": [
+            "bi-conformal metric branch",
+            "source-to-G normalization",
+            "Newton recovery as an RFG first-principles theorem",
+        ],
+        "open": [
+            "finite-energy nonlinear oscillon existence",
+            "spectral/Floquet stability",
+            "full static spherical p01 solution",
+            "PPN/Cassini/ephemeris validation",
+            "nu0 substrate-clock derivation",
+            "particle mass/charge/spin matching",
+        ],
+    }
+
+
 # ==============================================================================
 # MAIN
 # ==============================================================================
 
-if __name__ == "__main__":
+if __name__ == "__main__" and _should_run_main_section("biconformal"):
     print("=" * 72)
     print("PHASE 17: ეფექტური მასის სკალირება და ბი-კონფორმული გეომეტრია")
     print("=" * 72)
@@ -882,7 +1182,7 @@ if __name__ == "__main__":
     m_eff, m_0, E_loc, u_t, p_t = step3_effective_mass()
     print(f"  u^t (4-სიჩქარის t-კომპონენტი) = {u_t}")
     print(f"  p_t (ქვევით) = {p_t}")
-    print(f"  E_Killing (გარედან დანახული მასა) = -p_t = {m_eff}")
+    print(f"  E_Killing (გარედან დანახული მასა) = p_t = {m_eff}")
     print(f"  → m_eff = m_0 · e^(φ/2)   ✓")
     print(f"  E_loc (ლოკალურად გაზომილი ენერგია) = {E_loc}   ✓ (უცვლელი!)")
     print(f"  m_eff ეხება შებოჭილ (tethered) მდგომარეობას უსასრულობის მიმართ.")
@@ -975,7 +1275,7 @@ if __name__ == "__main__":
         ("[External] m_eff / m_0",  "p = e^(φ/2)",        "Killing ენერგია (შებოჭილი ნაწილაკი)"),
         ("[External] L_oper / L_0", "p = e^(φ/2)",        "გარე კოორდინატული ზომა"),
         ("[External] λ_C_oper",     "p = e^(φ/2)",        "ოპერაციული ზომის სკალირებით"),
-        ("[External] T_oper / T_0", "1/p = e^(-φ/2)",     "g_tt = -e^φ"),
+        ("[External] T_oper / T_0", "1/p = e^(-φ/2)",     "g_tt = e^φ"),
         ("[External] c_coord / c",  "p² = e^φ",           "Null geodesic"),
         ("[Local] m_loc / m_0",     "1 (INVARIANT)",      "ლოკალური დამკვირვებელი (E_loc = m_0)"),
         ("[Local] L_loc / L_0",     "1 (INVARIANT)",      "ლოკალური სახაზავი"),
@@ -1003,6 +1303,47 @@ if __name__ == "__main__":
     print("- E_Killing vs E_local გაიმიჯნა. ლოკალური ენერგია უცვლელია (m_0).")
     print("- n = n_t * n_s = e^(-φ) კავშირი გამოსწორდა. ფაქტორი 2 დადასტურდა.")
     print("=" * 72)
+
+
+if __name__ == "__main__" and _should_run_main_section("gates"):
+    print("\n" + "=" * 72)
+    print("P10 CLAIM GATES / STATUS FIREWALL")
+    print("=" * 72)
+
+    print("\n--- Signature bridge ---")
+    sig_gate = signature_bridge_gate()
+    for key, value in sig_gate.items():
+        print(f"{key}: {value}")
+
+    print("\n--- Oscillon finite-energy gate ---")
+    finite_gate = oscillon_finite_energy_gate()
+    for key, value in finite_gate.items():
+        print(f"{key}: {value}")
+
+    print("\n--- Oscillon energy status audit ---")
+    energy_audit = oscillon_energy_status_audit()
+    for key, value in energy_audit.items():
+        print(f"{key}: {value}")
+
+    print("\n--- PPN / observation gate ---")
+    ppn_gate = ppn_and_observation_gate()
+    for key, value in ppn_gate.items():
+        print(f"{key}: {value}")
+
+    print("\n--- Whole-file status audit ---")
+    status = p10_status_audit()
+    for key, value in status.items():
+        print(f"{key}: {value}")
+
+    print("\n--- Claim gate ---")
+    for gate in oscillon_claim_gate():
+        print(f"{gate.claim}: {gate.status}")
+        print(f"  verified_here: {gate.verified_here}")
+        print(f"  open_requirement: {gate.open_requirement}")
+
+    print("\n--- Do-not-claim ---")
+    for item in oscillon_do_not_claim():
+        print(f"- {item}")
 
 
 # =============================================================================
@@ -1036,10 +1377,11 @@ def stage_d1_old_quantum_oscillon_status():
             "absolute frequency selection remains a microscopic oscillon theorem"
         ),
         "already_strengthened": [
-            "Bernoulli gravity no longer enters as a bare postulate",
+            "Bernoulli pressure identity is explicit; full gravity proof still requires branch/normalization gates",
             "m_i=m_g=E0/c^2 is handled in p06_inertia.py",
             "process-time and resonant-tail bookkeeping are separated in p02_cosmo.py",
         ],
+        "claim_gate": [gate.status for gate in oscillon_claim_gate()],
         "open_math": [
             "construct global finite-energy oscillon solutions of the full nonlinear PDE",
             "prove spectral stability of the localized source sector",
