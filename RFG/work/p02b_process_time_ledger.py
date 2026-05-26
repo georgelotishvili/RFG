@@ -277,6 +277,121 @@ def process_rate_vs_lapse_separation():
     }
 
 
+def process_time_channel_law():
+    """
+    Channel law for applying C(z).
+
+    The self-similar C(z) is dangerous if treated as a universal multiplier for
+    all physics. This table restricts it to explicitly tagged intrinsic
+    substrate/formation channels and blocks direct use in metric, photon,
+    atomic, and early-universe standard-clock sectors until bounded.
+    """
+    return {
+        "status": "CHANNEL_RESTRICTION_REQUIRED",
+        "core_rule": (
+            "C(z) may multiply exactly one explicitly tagged intrinsic "
+            "process-rate channel; it is not a universal replacement for dt"
+        ),
+        "allowed_active_channels": [
+            {
+                "channel": "oscillon_tail_internal_relaxation",
+                "rate_tag": "intrinsic_process_time_rate",
+                "rule": "dX/dt_CMB = C(z) * dX/dtau_proc",
+                "claim_level": "allowed diagnostic channel",
+                "needed_closure": "derive the X evolution law in tau_proc",
+            },
+            {
+                "channel": "early_galaxy_internal_formation_clock",
+                "rate_tag": "formation_history_intrinsic_rate",
+                "rule": "Delta_tau_proc controls internal maturation budget",
+                "claim_level": "JWST budget support only",
+                "needed_closure": "fit stellar mass, SFR efficiency, metallicity, dust, halo abundance",
+            },
+            {
+                "channel": "resonance_internal_clock",
+                "rate_tag": "resonance_internal_clock_rate",
+                "rule": "local resonance phase can be parameterized by tau_proc",
+                "claim_level": "conditional",
+                "needed_closure": "show no conflict with observed spectral redshift/time dilation",
+            },
+        ],
+        "blocked_standard_clock_channels": [
+            {
+                "channel": "photon_propagation_redshift",
+                "reason": "would become tired-light or double-count metric redshift",
+            },
+            {
+                "channel": "observed_supernova_or_quasar_time_dilation",
+                "reason": "observed light-curve stretch remains metric (1+z)",
+            },
+            {
+                "channel": "Einstein_Boltzmann_CMB_background",
+                "reason": "would move p02b into the primary CMB metric branch",
+            },
+            {
+                "channel": "BBN_nuclear_reaction_clock",
+                "reason": "would change light-element yields unless separately bounded",
+            },
+            {
+                "channel": "atomic_transition_frequency_clock",
+                "reason": "would imply varying constants/laboratory-clock bounds",
+            },
+            {
+                "channel": "stellar_evolution_microphysics",
+                "reason": "would alter nuclear burning times unless a microphysical bridge is derived",
+            },
+        ],
+        "conditional_channels_need_bound": [
+            "tail_power_scaling",
+            "entropy_production",
+            "structure_growth_rate",
+            "black-hole-near-lapse analogies",
+        ],
+        "single_factor_rule": (
+            "If a rate is written per tau_proc, convert once with C(z). If a "
+            "rate is already per FLRW/proper/observed time, do not add C(z)."
+        ),
+    }
+
+
+def process_time_channel_gate(channel, rate_tag=None):
+    """Gate a proposed channel use before applying C(z)."""
+    law = process_time_channel_law()
+    allowed = {row["channel"]: row for row in law["allowed_active_channels"]}
+    blocked = {row["channel"]: row for row in law["blocked_standard_clock_channels"]}
+
+    if channel in allowed:
+        row = allowed[channel]
+        tag_ok = rate_tag is None or rate_tag == row["rate_tag"]
+        return {
+            "channel": channel,
+            "status": "PASS" if tag_ok else "BLOCKED",
+            "reason": (
+                "allowed tagged intrinsic process channel"
+                if tag_ok
+                else f"wrong rate_tag; expected {row['rate_tag']}"
+            ),
+            "rule": row["rule"],
+            "needed_closure": row["needed_closure"],
+        }
+
+    if channel in blocked:
+        row = blocked[channel]
+        return {
+            "channel": channel,
+            "status": "BLOCKED",
+            "reason": row["reason"],
+            "rule": "do not apply C(z)",
+        }
+
+    return {
+        "channel": channel,
+        "status": "BLOCKED",
+        "reason": "unknown channel; add explicit channel-law entry before applying C(z)",
+        "rule": "no implicit C(z) factor",
+    }
+
+
 def clock_pressure_index_definition():
     """
     Operational index built from local cosmic-age reading.
@@ -577,6 +692,10 @@ def process_time_allowed_rate_tags():
             "einstein_boltzmann_CMB_background",
             "coordinate_cosmic_time_rate",
             "observed_redshift_time_dilation",
+            "photon_propagation_redshift",
+            "BBN_nuclear_reaction_clock",
+            "atomic_transition_frequency_clock",
+            "stellar_evolution_microphysics",
             "cluster_crossing_time",
             "merger_crossing_time",
         },
@@ -611,6 +730,19 @@ def process_time_use_gate(rate_tag, *, enters_metric_branch=False, adds_extra_re
     }
 
 
+def process_time_channel_audit_examples():
+    """Representative channel-gate examples for the ledger output."""
+    return {
+        "allowed_galaxy_internal": process_time_channel_gate(
+            "early_galaxy_internal_formation_clock",
+            "formation_history_intrinsic_rate",
+        ),
+        "blocked_BBN": process_time_channel_gate("BBN_nuclear_reaction_clock"),
+        "blocked_photon_redshift": process_time_channel_gate("photon_propagation_redshift"),
+        "blocked_unknown": process_time_channel_gate("unregistered_process_channel"),
+    }
+
+
 def process_time_integrals():
     """Coordinate lookback და pressure-weighted process-time ინტეგრალები."""
     z, zp = sp.symbols("z z_prime", real=True, nonnegative=True)
@@ -635,8 +767,11 @@ def process_time_observational_anchor_requirements():
     Observational anchors needed before C(z) can be treated as a fitted model.
     """
     return {
-        "BBN": "OPEN_BOUND: constrain C(z_BBN) and any induced rate/power changes",
-        "CMB": "OPEN_BOUND: C(z) must not enter as metric background mode",
+        "BBN": (
+            "BLOCKED_AS_STANDARD_CLOCK: do not apply C(z) to nuclear reaction "
+            "rates unless a separate bounded microphysical bridge is derived"
+        ),
+        "CMB": "BLOCKED_METRIC_BRANCH: C(z) must not enter as metric background mode",
         "structure_growth": "OPEN_BOUND: formation-rate use needs galaxy/halo benchmark",
         "local_epoch": "CALIBRATION: C(0)=1 by definition",
         "JWST_high_z": (
@@ -717,6 +852,10 @@ def process_time_application_map():
             "primary CMB იყენებს locked FLRW branch-ს; C(z) არ არის დამატებითი "
             "background metric mode"
         ),
+        "BBN_atomic_clocks": (
+            "standard nuclear/atomic clocks are blocked channels unless a "
+            "separate varying-constants/microphysics bridge is derived and bounded"
+        ),
     }
 
 
@@ -729,6 +868,8 @@ def stage_a2_process_time_status():
         "cosmic_age_invariance": cosmic_age_invariance_result(),
         "Cz_phi_bridge": self_similar_Cz_phi_bridge(),
         "process_rate_vs_lapse": process_rate_vs_lapse_separation(),
+        "channel_law": process_time_channel_law(),
+        "channel_audit_examples": process_time_channel_audit_examples(),
         "clock_pressure_index": clock_pressure_index_definition(),
         "clock_pressure_lapse_bridge": clock_pressure_lapse_bridge(),
         "schwarzschild_reference": schwarzschild_clock_pressure_reference(),
@@ -756,6 +897,7 @@ def process_time_claim_gate():
     postulate = process_time_self_similar_postulate()
     age_result = cosmic_age_invariance_result()
     cz_bridge = self_similar_Cz_phi_bridge()
+    channel_law = process_time_channel_law()
     pressure_index = clock_pressure_index_definition()
     lapse_bridge = clock_pressure_lapse_bridge()
     budget_test = jwst_formation_budget_test()
@@ -766,6 +908,7 @@ def process_time_claim_gate():
         "self_similar_curve": postulate["status"],
         "age_invariance": age_result["status"],
         "Cz_phi_bridge": cz_bridge["status"],
+        "channel_law": channel_law["status"],
         "clock_pressure_index": pressure_index["status"],
         "clock_pressure_lapse_bridge": lapse_bridge["status"],
         "energy_budget": energy["status"],
@@ -782,6 +925,7 @@ def process_time_claim_gate():
             "do not claim H0-tension solution",
             "do not claim dark-energy mechanism",
             "do not claim BBN/CMB compatibility",
+            "do not apply C(z) to BBN, atomic, photon, or stellar microphysics clocks",
             "do not read process time as tired-light or redshift replacement",
             "do not call Pi_clock physical pressure before the stress/lapse bridge",
             "do not promote 13.8 Gyr to a new fundamental constant; keep T0 symbolic",
@@ -804,6 +948,7 @@ if __name__ == "__main__":
     print("self-similar status:", process_time_self_similar_postulate()["status"])
     print("age invariance:", cosmic_age_invariance_result()["status"])
     print("C(z)-phi bridge:", self_similar_Cz_phi_bridge()["status"])
+    print("channel law:", process_time_channel_law()["status"])
     print("clock-pressure index:", clock_pressure_index_definition()["status"])
     print("clock-pressure lapse bridge:", clock_pressure_lapse_bridge()["status"])
     print("Schwarzschild reference:", schwarzschild_clock_pressure_reference()["status"])
@@ -816,6 +961,7 @@ if __name__ == "__main__":
         print(" ", row)
     print("JWST budget test:", jwst_formation_budget_test()["status"])
     print("energy budget:", process_time_energy_budget_guardrail()["status"])
+    print("BBN channel gate:", process_time_channel_gate("BBN_nuclear_reaction_clock")["status"])
     print("intrinsic rate gate:", process_time_use_gate("intrinsic_process_time_rate")["status"])
     print("metric rate gate:", process_time_use_gate("metric_FLRW_background", enters_metric_branch=True)["status"])
     print("claim gate:", process_time_claim_gate()["observational_status"])
