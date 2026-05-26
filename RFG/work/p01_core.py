@@ -2,10 +2,52 @@
 # signature (+---); Y = g^mn d_m Phi d_n Phi; B^AB = -g^mn d_m phi^A d_n phi^B.
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
+# Intuitive_Theory.md section 0: measurability axiom.
+# Free substrate is not directly measurable; measurable physics begins when an
+# oscillon-tail trace makes the substrate locally distinguishable.  p01 uses
+# Y=1, B=delta as the effective normalized background representation of that
+# axiom and tests consistency around it.
 
 import sys
+from enum import Enum
+from typing import NamedTuple
 
 import sympy as sp
+
+
+class NoGhostResult(NamedTuple):
+    K_PhiPhi_FLRW: sp.Expr
+    K_pipi_FLRW: sp.Expr
+    K_PhiPhi_Minkowski: sp.Expr
+    K_pipi_Minkowski: sp.Expr
+
+
+class SphericalInvariants(NamedTuple):
+    r: sp.Expr
+    theta: sp.Expr
+    A: sp.Expr
+    B: sp.Expr
+    C: sp.Expr
+    f: sp.Expr
+    Y: sp.Expr
+    I1: sp.Expr
+    I2: sp.Expr
+    I3: sp.Expr
+
+
+class BackgroundName(str, Enum):
+    MINKOWSKI = "minkowski"
+    FLRW = "flrw"
+    BIANCHI_I = "bianchi_i"
+    SCHWARZSCHILD = "schwarzschild"
+
+
+class BackgroundData(NamedTuple):
+    coords: list[sp.Expr]
+    g_cov_diag: list[sp.Expr]
+    g_inv_diag: list[sp.Expr]
+    sqrt_minus_g: sp.Expr
+    fields: list[sp.Expr]
 
 
 P01_MAIN_SECTIONS = {
@@ -79,14 +121,16 @@ def calculate_stress_tensor(L, metric_inverse_diagonal):
         for q_i in metric_inverse_diagonal
     ]
 
-def analyze_no_ghost():
+def analyze_no_ghost() -> NoGhostResult:
     a = sp.Symbol('a', real=True, positive=True) # FLRW scale factor
     dPhi_dot = sp.Symbol('dPhi_dot', real=True)
     pi1_dot, pi2_dot, pi3_dot = sp.symbols('pi1_dot pi2_dot pi3_dot', real=True)
     pi_dot_sq = pi1_dot**2 + pi2_dot**2 + pi3_dot**2
     
     # ფლუქტუაციები
-    # შენიშვნა: ფონის შერჩევა (Y=1, B=δ) არის ჩასმული ansatz-ი, რაც ფარული fine-tuning-ის სტატუსს ატარებს.
+    # შენიშვნა: Y=1, B=δ არის Intuitive_Theory.md §0-ის გაზომვადობის
+    # აქსიომის ეფექტური ნორმალიზებული ფონი. p01 ამ აქსიომას არ ამტკიცებს;
+    # ის ამოწმებს, თავსებადია თუ არა ეფექტური პოლინომი ამ ფონის გარშემო.
     Y_pert = 1 + 2*dPhi_dot + dPhi_dot**2
     I1_pert = 3/a**2 - pi_dot_sq
     I2_pert = 3/a**4 - 2/a**2 * pi_dot_sq
@@ -108,7 +152,7 @@ def analyze_no_ghost():
     K_PhiPhi_Mink = sp.simplify(K_PhiPhi.subs(a, 1))
     K_pipi_Mink = sp.simplify(K_pipi.subs(a, 1))
     
-    return K_PhiPhi, K_pipi, K_PhiPhi_Mink, K_pipi_Mink
+    return NoGhostResult(K_PhiPhi, K_pipi, K_PhiPhi_Mink, K_pipi_Mink)
 
 def analyze_lorentz_constrained_stability():
     """
@@ -133,12 +177,46 @@ def analyze_lorentz_constrained_stability():
     return K_Phi_constr, K_pi_constr
 
 
-def vacuum_background_ansatz_audit():
+def foundational_axiom_bridge():
+    """
+    Record the foundational axiom bridge used by p01.
+
+    Intuitive_Theory.md section 0 states the measurability axiom: free
+    substrate is not directly measurable; measurable physics begins only when
+    an oscillon-tail trace creates local distinguishability.  p01 does not
+    derive this primitive.  It represents its unexcited effective background
+    by Y=1, B=delta and tests consistency around that normalized branch.
+    """
+    return {
+        "source": "Intuitive_Theory.md section 0",
+        "foundational_axiom": (
+            "Free substrate is not directly measurable; it becomes measurable "
+            "only through oscillon-tail-induced distinguishable nodal, phase, "
+            "or pressure traces."
+        ),
+        "formal_role_in_p01": (
+            "Y=1, B^{AB}=delta^{AB} is the normalized local homogeneous "
+            "effective background used for stress, no-ghost and hyperbolicity tests."
+        ),
+        "not_claimed_here": (
+            "p01 does not prove or derive the foundational axiom from the "
+            "polynomial core."
+        ),
+        "p01_obligation": (
+            "declare the axiom boundary, keep the background normalized, and "
+            "check algebraic zero-stress plus perturbative consistency conditions."
+        ),
+    }
+
+
+def normalized_substrate_background_audit():
     """
     Make the Y=1, B=delta background status explicit.
 
-    This does not derive the vacuum dynamically.  It computes the algebraic
-    zero-stress constraints that must hold if this background is chosen.
+    This is the effective representation of the foundational measurability
+    axiom, not a dynamically derived minimum.  The function computes the
+    algebraic zero-stress constraints that must hold when p01 is expanded
+    around the normalized background.
     """
     c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
         'c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1', real=True
@@ -162,19 +240,115 @@ def vacuum_background_ansatz_audit():
 
     return {
         "background": "Y=1, B^{AB}=delta^{AB}",
-        "status": "ANSATZ_NOT_DERIVED",
-        "weakness": (
-            "The chosen homogeneous vacuum is algebraically consistent only "
-            "after zero-stress constraints; a dynamical selection theorem is still open."
+        "status": "FOUNDATIONAL_AXIOM_EFFECTIVE_BACKGROUND",
+        "axiom_bridge": foundational_axiom_bridge(),
+        "axiom_boundary": (
+            "This is a declared primitive of the theory stack, not a p01 proof "
+            "target and not a polynomial minimum claim."
+        ),
+        "p01_consistency_obligation": (
+            "p01 must check zero-stress, no-ghost, gradient/mixed-mode and "
+            "stress/Lorentz-background consistency around this normalized input."
         ),
         "rho0": rho0,
         "p0": p0,
         "zero_stress_solution_for_cY_cI1": solution,
         "K_phi_on_zero_stress_branch": K_phi_on_vacuum,
         "K_pi_on_zero_stress_branch": K_pi_on_vacuum,
-        "next_proof_target": (
-            "derive this branch as an extremum/minimum of the full action, "
-            "not as an inserted background"
+        "next_test_target": (
+            "keep strengthening the effective consistency checks around the "
+            "axiomatic normalized background"
+        ),
+    }
+
+
+def homogeneous_vacuum_derivation_attempt():
+    """
+    Diagnostic guardrail against deriving Y=1, B=b*delta from the polynomial core.
+
+    Result:
+    - Constant-gradient field equations do not select y=b=1 by themselves;
+      they are automatically solved when the currents are constant.
+    - Zero stress gives an algebraic vacuum branch.
+    - If we also demand phase stationarity L_y=0 at y=b=1, the solid kinetic
+      coefficient K_pi becomes zero on that branch.
+
+    This is a guardrail against over-claiming, not a required closure route.
+    In the current theory stack, y=b=1 is the effective normalized background
+    of the foundational measurability axiom, not a minimum derived inside p01.
+    """
+    y, b = sp.symbols("y b", positive=True)
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        "c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1", real=True
+    )
+
+    L_iso = sp.simplify(
+        c_Y * y
+        + c_Y2 * y**2
+        + 3 * c_I1 * b
+        + (9 * c_I1sq + 3 * c_I2) * b**2
+        + c_I3 * b**3
+        + 3 * c_YI1 * y * b
+    )
+    rho_iso = sp.simplify(2 * y * sp.diff(L_iso, y) - L_iso)
+    p_iso = sp.simplify(L_iso - sp.Rational(2, 3) * b * sp.diff(L_iso, b))
+
+    at_vac = {y: 1, b: 1}
+    rho0 = sp.simplify(rho_iso.subs(at_vac))
+    p0 = sp.simplify(p_iso.subs(at_vac))
+    L_y0 = sp.simplify(sp.diff(L_iso, y).subs(at_vac))
+    L_b0 = sp.simplify(sp.diff(L_iso, b).subs(at_vac))
+
+    zero_stress_solution = sp.solve([rho0, p0], [c_Y, c_I1], dict=True)[0]
+    phase_stationary_solution = sp.solve(
+        [rho0, p0, L_y0],
+        [c_Y, c_I1, c_I2],
+        dict=True,
+    )[0]
+    full_modulus_stationary_solution = sp.solve(
+        [rho0, p0, L_y0, L_b0],
+        [c_Y, c_I1, c_I2, c_I3],
+        dict=True,
+    )
+    full_modulus_stationary_solution = (
+        full_modulus_stationary_solution[0]
+        if full_modulus_stationary_solution
+        else {}
+    )
+
+    K_phi = sp.simplify(c_Y + 6 * c_Y2 + 3 * c_YI1)
+    K_pi = sp.simplify(-c_I1 - 6 * c_I1sq - 2 * c_I2 - c_I3 - c_YI1)
+
+    return {
+        "isotropic_L_y_b": L_iso,
+        "rho_y_b": rho_iso,
+        "p_y_b": p_iso,
+        "rho0": rho0,
+        "p0": p0,
+        "phase_stationarity_L_y0": L_y0,
+        "solid_scale_stationarity_L_b0": L_b0,
+        "zero_stress_solution": zero_stress_solution,
+        "K_phi_zero_stress": sp.simplify(K_phi.subs(zero_stress_solution)),
+        "K_pi_zero_stress": sp.simplify(K_pi.subs(zero_stress_solution)),
+        "phase_stationary_solution": phase_stationary_solution,
+        "K_phi_phase_stationary": sp.simplify(K_phi.subs(phase_stationary_solution)),
+        "K_pi_phase_stationary": sp.simplify(K_pi.subs(phase_stationary_solution)),
+        "full_modulus_stationary_solution": full_modulus_stationary_solution,
+        "K_phi_full_modulus_stationary": sp.simplify(
+            K_phi.subs(full_modulus_stationary_solution)
+        ) if full_modulus_stationary_solution else None,
+        "K_pi_full_modulus_stationary": sp.simplify(
+            K_pi.subs(full_modulus_stationary_solution)
+        ) if full_modulus_stationary_solution else None,
+        "obstruction": (
+            "zero-stress plus L_y=0 gives K_pi=0; therefore the current "
+            "polynomial core must not claim to derive the healthy Y=1, "
+            "B=delta background as a simple homogeneous modulus extremum."
+        ),
+        "guardrail": (
+            "do not add homogeneous phase-stationarity as a p01 axiom-closure "
+            "requirement; keep Y=1, B=delta as axiomatic normalized input and "
+            "test its effective consequences"
         ),
     }
 
@@ -276,16 +450,28 @@ if __name__ == "__main__" and _should_run_main_section("base"):
     print("K_PhiPhi > 0 =>", K_PhiPhi, "> 0")
     print("K_pipi > 0 =>", K_pipi, "> 0")
 
-    print("\n--- Vacuum background ansatz audit ---")
-    vacuum_audit = vacuum_background_ansatz_audit()
+    print("\n--- Foundational axiom effective-background audit ---")
+    vacuum_audit = normalized_substrate_background_audit()
     print("ფონი:", vacuum_audit["background"])
     print("სტატუსი:", vacuum_audit["status"])
+    print("აქსიომის ხიდი:", vacuum_audit["axiom_bridge"]["formal_role_in_p01"])
+    print("p01 ვალდებულება:", vacuum_audit["p01_consistency_obligation"])
     print("rho0 =", vacuum_audit["rho0"])
     print("p0   =", vacuum_audit["p0"])
     print("zero-stress solution:", vacuum_audit["zero_stress_solution_for_cY_cI1"])
     print("K_Phi zero-stress branch:", vacuum_audit["K_phi_on_zero_stress_branch"])
     print("K_pi zero-stress branch:", vacuum_audit["K_pi_on_zero_stress_branch"])
-    print("ღია სამიზნე:", vacuum_audit["next_proof_target"])
+    print("შემდეგი ტესტ-სამიზნე:", vacuum_audit["next_test_target"])
+
+    print("\n--- Polynomial-minimum no-go diagnostic ---")
+    derivation_attempt = homogeneous_vacuum_derivation_attempt()
+    print("phase stationarity L_y0 =", derivation_attempt["phase_stationarity_L_y0"])
+    print("solid scale stationarity L_b0 =", derivation_attempt["solid_scale_stationarity_L_b0"])
+    print("phase-stationary solution:", derivation_attempt["phase_stationary_solution"])
+    print("K_Phi on phase-stationary branch:", derivation_attempt["K_phi_phase_stationary"])
+    print("K_pi on phase-stationary branch:", derivation_attempt["K_pi_phase_stationary"])
+    print("obstruction:", derivation_attempt["obstruction"])
+    print("guardrail:", derivation_attempt["guardrail"])
 
     cs2_T, eq_cs2, coeffs, cs2_roots = analyze_sound_speeds(solve_roots=False)
     print("\n--- Sound Speeds (c_s^2) ---")
@@ -307,7 +493,7 @@ if __name__ == "__main__" and _should_run_main_section("base"):
         print("სიმბოლური ფესვები default რეჟიმში არ იხსნება; გამოიყენება პოლინომი და decoupled ლიმიტი.")
 
     K_Phi_c, K_pi_c = analyze_lorentz_constrained_stability()
-    print("\n--- ლოურენც-ინვარიანტული ვაკუუმის სტაბილურობა ---")
+    print("\n--- აქსიომატურად ნორმალიზებული ფონის სტაბილურობა ---")
     print("კონსტრეინტების (c_Y2 = c_I1sq და PPN) ჩასმის შემდეგ No-Ghost პირობები:")
     print(f"K_PhiPhi > 0 => {K_Phi_c} > 0")
     print(f"K_pipi > 0   => {K_pi_c} > 0")
@@ -316,7 +502,8 @@ if __name__ == "__main__" and _should_run_main_section("base"):
     print("ეს არის აუცილებელი ფანჯარა; gradient/cross-mode/eigenmode სტაბილურობა ცალკე ღიაა.")
 
     print("\n--- აგენტთა საბჭოს შენიშვნები ---")
-    print("- ფონის შერჩევა (Y=1, B=δ) ჩასმული ansatz-ია, ფარული fine-tuning-ის სტატუსით.")
+    print("- ფონი (Y=1, B=δ) არის გაზომვადობის აქსიომის ნორმალიზებული ეფექტური ფონი;")
+    print("  p01 აქსიომას არ ამტკიცებს, მხოლოდ ამოწმებს მის გარშემო ეფექტურ პირობებს.")
     print("- 2*pi3_z მოდის ფონის phi^3=z რუკიდან და არის გრძივი პერტურბაციის ხაზოვანი წევრი.")
     print("- ჯვარედინი შერევა დეტალურად აისახა 2x2 მატრიცის დეტერმინანტით.")
     print("- cs^2 განტოლება ჩაწერილია det(K*cs^2 + G)=0 ფორმით;")
@@ -361,7 +548,7 @@ import sympy as sp
 # merged import removed: from p01_core import get_polynomial_lagrangian
 
 
-def get_spherical_invariants():
+def get_spherical_invariants() -> SphericalInvariants:
     """
     სფერული სტატიკური ანზაცის ინვარიანტები NOTATION.md-ის კონვენციით.
 
@@ -391,7 +578,7 @@ def get_spherical_invariants():
     I2 = sp.simplify(2 * lambda_r * lambda_t + lambda_t**2)
     I3 = sp.simplify(lambda_r * lambda_t**2)
 
-    return r, theta, A, B, C, f, Y, I1, I2, I3
+    return SphericalInvariants(r, theta, A, B, C, f, Y, I1, I2, I3)
 
 
 def get_lagrangian_spherical():
@@ -738,18 +925,31 @@ def offdiag_variation_smoke_test():
 # ============================================================================
 
 
-def background(name):
+def normalize_background_name(name: str | BackgroundName) -> BackgroundName:
+    """Accept enum values and case-insensitive strings at the API boundary."""
+    if isinstance(name, BackgroundName):
+        return name
+
+    try:
+        return BackgroundName(str(name).lower())
+    except ValueError as exc:
+        known = ", ".join(bg.value for bg in BackgroundName)
+        raise ValueError(f"unknown background: {name}; expected one of: {known}") from exc
+
+
+def background(name: str | BackgroundName) -> BackgroundData:
     """coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields."""
-    if name == "minkowski":
+    name = normalize_background_name(name)
+    if name == BackgroundName.MINKOWSKI:
         t, x, y, z = sp.symbols("t x y z", real=True)
         coords = [t, x, y, z]
         g_cov_diag = [1, -1, -1, -1]
         g_inv_diag = [1, -1, -1, -1]
         sqrt_minus_g = sp.Integer(1)
         fields = [t, x, y, z]
-        return coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields
+        return BackgroundData(coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields)
 
-    if name == "flrw":
+    if name == BackgroundName.FLRW:
         t, x, y, z = sp.symbols("t x y z", real=True)
         coords = [t, x, y, z]
         a = sp.Function("a")(t)
@@ -758,9 +958,9 @@ def background(name):
         g_inv_diag = [1, -1 / a**2, -1 / a**2, -1 / a**2]
         sqrt_minus_g = a**3
         fields = [Phi, x, y, z]
-        return coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields
+        return BackgroundData(coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields)
 
-    if name == "bianchi_i":
+    if name == BackgroundName.BIANCHI_I:
         t, x, y, z = sp.symbols("t x y z", real=True)
         coords = [t, x, y, z]
         a = sp.Function("a")(t)
@@ -771,9 +971,9 @@ def background(name):
         g_inv_diag = [1, -1 / a**2, -1 / b**2, -1 / c**2]
         sqrt_minus_g = a * b * c
         fields = [Phi, x, y, z]
-        return coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields
+        return BackgroundData(coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields)
 
-    if name == "schwarzschild":
+    if name == BackgroundName.SCHWARZSCHILD:
         t, r, th, ph = sp.symbols("t r theta phi", real=True, positive=True)
         coords = [t, r, th, ph]
         r_s = sp.Symbol("r_s", real=True, positive=True)
@@ -782,7 +982,7 @@ def background(name):
         g_inv_diag = [1 / f, -f, -1 / r**2, -1 / (r**2 * sp.sin(th)**2)]
         sqrt_minus_g = r**2 * sp.sin(th)
         fields = [t, r, th, ph]
-        return coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields
+        return BackgroundData(coords, g_cov_diag, g_inv_diag, sqrt_minus_g, fields)
 
     raise ValueError(f"unknown background: {name}")
 
@@ -1593,13 +1793,24 @@ def status_assessment():
 
 
 def p01_proof_gap_register():
-    """Direct list of p01 weaknesses that must not be hidden."""
+    """Direct list of p01 axiom boundaries and weaknesses that must not be hidden."""
     return [
         {
-            "gap": "vacuum_background_selection",
-            "current_status": "Y=1, B=delta is an ansatz with zero-stress algebraic constraints",
-            "risk": "without a dynamical minimum theorem this is a tuned branch, not a derived vacuum",
-            "next_step": "derive the homogeneous vacuum as a stable extremum of the full action",
+            "gap": "foundational_measurability_axiom_boundary",
+            "current_status": (
+                "Y=1, B=delta is explicitly marked as the effective normalized "
+                "background representation of the Intuitive_Theory.md §0 "
+                "measurability axiom"
+            ),
+            "risk": (
+                "the only risk is mislabeling this axiom as a p01-derived "
+                "polynomial minimum; the homogeneous modulus-extremum route "
+                "would give K_pi=0 if incorrectly imposed"
+            ),
+            "next_step": (
+                "keep it declared as a foundational axiom and strengthen only "
+                "the effective consistency tests around it"
+            ),
         },
         {
             "gap": "mixed_mode_stability",
@@ -2000,15 +2211,16 @@ if __name__ == "__main__" and _should_run_main_section("eft"):
 
 """
 ================================================================================
-PHASE 34: ვაკუუმური სუპერსოლიდი — ლოურენც-ინვარიანტობის მკაცრი შემოწმება
+PHASE 34: ნორმალიზებული სუპერსოლიდური ფონი — ლოურენცის background-stress შემოწმება
 ================================================================================
 
 სტატუსი:
 ეს ბლოკი წარმოადგენს Priority A / X1-ის ფორმალური შემოწმების სამუშაო ბლოკს.
-ამოცანა: დავამტკიცოთ, შეუძლია თუ არა სუპერსოლიდურ ვაკუუმს (სადაც φ^A = x^A) 
-შეინარჩუნოს ლოურენც-ინვარიანტობა გლობალური ბუსტის (Lorentz boost) მიმართ.
+ამოცანა: შევამოწმოთ, რა ალგებრული პირობა სჭირდება ნორმალიზებულ
+სუპერსოლიდურ ფონს (სადაც φ^A = x^A), რომ x-boost-ის შემდეგ მისი
+background stress დარჩეს იზოტროპული.
 
-თუ ვაკუუმი ლოურენც-ინვარიანტულია, მაშინ ბუსტირებულ ათვლის სისტემაშიც მისი 
+თუ background-stress დონეზე ფონი ლოურენც-სიმეტრიულად იკითხება, მაშინ ბუსტირებულ ათვლის სისტემაშიც მისი 
 ენერგია-იმპულსის ტენზორი უნდა დარჩეს T_μν ∝ η_μν ფორმის. კერძოდ:
 1. არ უნდა გაჩნდეს იმპულსის ნაკადი: T_01 = 0
 2. არ უნდა გაჩნდეს სივრცული ანიზოტროპია: T_11 - T_22 = 0
@@ -2017,7 +2229,7 @@ PHASE 34: ვაკუუმური სუპერსოლიდი — ლ�
 ბუსტს v სიჩქარით, ვითვლით სრულ T_μν-ს და გამოგვაქვს ის ზუსტი ალგებრული 
 პირობა კოეფიციენტებზე, რომელიც ანულებს T_01-ს.
 
-შედეგი: background stress-ის დონეზე ვაკუუმური სუპერსოლიდი ლოურენც-ინვარიანტულია
+შედეგი: x-boost background stress-ის დონეზე ნორმალიზებული სუპერსოლიდური ფონი ლოურენც-სიმეტრიულად იკითხება
 მხოლოდ მაშინ, თუ სრულდება კონკრეტული კონსტრეინტი. სრული perturbation-sector
 Lorentz audit ცალკე დასახური რჩება.
 """
@@ -2104,16 +2316,16 @@ def compare_with_ppn():
 
 if __name__ == "__main__" and _should_run_main_section("lorentz"):
     print("=" * 72)
-    print("PHASE 34: ლოურენც-ინვარიანტობის მკაცრი შემოწმება")
+    print("PHASE 34: ლოურენცის background-stress შემოწმება")
     print("=" * 72)
 
     lorentz_constr, aniso_constr = analyze_lorentz_boost()
     
-    print("\n1. იმპულსის ნაკადი ბუსტირებულ ვაკუუმში (T_01)")
+    print("\n1. იმპულსის ნაკადი ბუსტირებულ ნორმალიზებულ ფონში (T_01)")
     print(f"  T_01 ∝ -2 * γ² * v * [ {lorentz_constr} ]")
-    print(f"  ლოურენც-ინვარიანტობის პირობა T_01 = 0 ითხოვს, რომ ფრჩხილი განულდეს.")
+    print(f"  background-stress სიმეტრიის პირობა T_01 = 0 ითხოვს, რომ ფრჩხილი განულდეს.")
     
-    print("\n2. სივრცული ანიზოტროპია ბუსტირებულ ვაკუუმში (T_11 - T_22)")
+    print("\n2. სივრცული ანიზოტროპია ბუსტირებულ ნორმალიზებულ ფონში (T_11 - T_22)")
     print(f"  T_11 - T_22 ∝ 2 * γ² * v² * [ {aniso_constr} ]")
     print("  ანიზოტროპიის განულება იგივე ალგებრულ პირობას ითხოვს.")
     
@@ -2124,8 +2336,9 @@ if __name__ == "__main__" and _should_run_main_section("lorentz"):
     print(f"  ამ ორი პირობის სხვაობა: {diff} = 0  =>  c_Y2 = c_I1sq")
     
     print("\n4. ფიზიკური დასკვნა")
-    print("  RFG სუპერსოლიდური ვაკუუმი *არღვევს* ლოურენც-ინვარიანტობას ზოგად შემთხვევაში,")
-    print("  თუმცა, თუ კოეფიციენტები აკმაყოფილებს მიღებულ კონსტრეინტს, ვაკუუმის სტრეს-ტენზორი")
+    print("  RFG-ის ნორმალიზებული სუპერსოლიდური ფონი ზოგად შემთხვევაში არ არის")
+    print("  background-stress დონეზე boost-სიმეტრიული.")
+    print("  თუ კოეფიციენტები აკმაყოფილებს მიღებულ კონსტრეინტს, ფონის სტრეს-ტენზორი")
     print("  x-boost background-stress დონეზე რჩება T_μν ∝ η_μν.")
     print("  სრული ლოურენცის claim საჭიროებს ყველა boost direction-ისა და perturbation sector-ის audit-ს.")
     print("  დამატებით, p03-ის PPN γ=1 პირობასთან ერთად მიიღება ფაზური და")
@@ -2265,7 +2478,7 @@ def old_stability_gate():
     return {
         "hyperbolicity": "covered above by phase24 principal-symbol and well-posedness checks",
         "no_ghost_window": "phase25 covers the phase-sector necessary window; full kinetic-gradient matrix remains required",
-        "lorentz_vacuum": "phase34 covers background stress under one boost; perturbation-sector Lorentz audit remains required",
+        "lorentz_background_stress": "phase34 covers background stress under one boost; perturbation-sector Lorentz audit remains required",
         "constraint_reduction": old_constraint_dof_count(),
         "no_fifth_force": (
             "one-metric minimal coupling means matter follows g_mn geodesics; "
@@ -2327,13 +2540,32 @@ if __name__ == "__main__" and _should_run_main_section("old"):
 
 if __name__ == "__main__" and _should_run_main_section("audit"):
     print("=" * 72)
-    print("P01 direct weakness / proof-gap register")
+    print("P01 axiom-boundary / proof-gap register")
     print("=" * 72)
 
-    print("\n1. Vacuum ansatz")
-    vacuum_audit = vacuum_background_ansatz_audit()
+    print("\n1. Foundational axiom effective background")
+    vacuum_audit = normalized_substrate_background_audit()
     for key, value in vacuum_audit.items():
+        if key == "axiom_bridge":
+            print(f"  {key:34s}:")
+            for bridge_key, bridge_value in value.items():
+                print(f"    {bridge_key:32s}: {bridge_value}")
+            continue
         print(f"  {key:34s}: {value}")
+
+    print("\n1b. Polynomial-minimum no-go diagnostic")
+    derivation_attempt = homogeneous_vacuum_derivation_attempt()
+    for key in [
+        "phase_stationarity_L_y0",
+        "solid_scale_stationarity_L_b0",
+        "zero_stress_solution",
+        "phase_stationary_solution",
+        "K_phi_phase_stationary",
+        "K_pi_phase_stationary",
+        "obstruction",
+        "guardrail",
+    ]:
+        print(f"  {key:34s}: {derivation_attempt[key]}")
 
     print("\n2. Local mixed-mode stability gate")
     coeffs_m, _s, _det, _roots = minkowski_principal_symbol()
@@ -2343,7 +2575,7 @@ if __name__ == "__main__" and _should_run_main_section("audit"):
     print(f"  conditions                        : {mixed_conditions['mixed_speed_required']['conditions']}")
     print(f"  scope                             : {mixed_conditions['scope']}")
 
-    print("\n3. Remaining proof gaps")
+    print("\n3. Axiom boundary and remaining proof gaps")
     for item in p01_proof_gap_register():
         print(f"\n  - {item['gap']}")
         print(f"    current_status: {item['current_status']}")
