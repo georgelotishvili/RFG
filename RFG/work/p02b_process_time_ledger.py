@@ -9,6 +9,10 @@ p02b: process-time ledger.
 
 ეს ფაილი არის ცალკე ledger process-time იდეებისთვის. ის არ არის primary
 FLRW/CMB metric branch და არ ამტკიცებს დამოუკიდებელ metric mode-ს.
+
+Diagnostic tables in this file are reparameterization/bookkeeping tests only.
+They do not add predictive power until a channel-specific dynamics and
+observational fit are supplied.
 """
 
 import sympy as sp
@@ -51,7 +55,10 @@ def process_time_scaling_ledger():
         "process_clock": "d tau_proc / dt = C(z)",
         "rod_scale": "d ell(z) / d ell(0) = C(z)^(-1)",
         "mass_scale": "m_eff(z) / m_eff(0) = C(z)",
-        "tail_power_perturbative": "P_tail(z) / P_tail(0) = C(z)^4",
+        "tail_power_perturbative": (
+            "P_tail(z) / P_tail(0) = C(z)^4 is blocked until FIRAS/CMB "
+            "spectral-distortion and energy-budget bounds are satisfied"
+        ),
         "normalization": "C(0)=1 by present-epoch calibration",
         "status": "bookkeeping only; not an independent metric mode",
     }
@@ -146,7 +153,7 @@ def process_time_self_similar_postulate():
             evaluate=False,
         ),
         "future_age_simplified": sp.simplify(future_age_in_future_units),
-        "age_invariance_status": "DERIVED_WITHIN_THIS_POSTULATE_NOT_SEPARATE_POSTULATE",
+        "age_invariance_status": "ALGEBRAIC_CONSEQUENCE_OF_SELF_SIMILAR_POSTULATE",
         "equivalent_age_rule": "C(t_age) = T0 / t_age in present-calibrated age units",
         "JWST_use": (
             "can enlarge intrinsic formation/process time without replacing "
@@ -162,7 +169,7 @@ def process_time_self_similar_postulate():
 
 def cosmic_age_invariance_result():
     """
-    The age-invariance result derived from the self-similar postulate.
+    The age-invariance arithmetic identity from the self-similar postulate.
     """
     T0 = sp.Symbol("T0", positive=True, real=True)
     Delta_today = sp.Symbol("Delta_today", nonnegative=True, real=True)
@@ -180,7 +187,7 @@ def cosmic_age_invariance_result():
     )
 
     return {
-        "status": "DERIVED_RESULT_NOT_NEW_POSTULATE",
+        "status": "ALGEBRAIC_IDENTITY_FROM_POSTULATE",
         "input_postulate": "process_time_self_similar_postulate",
         "epoch_unit_ratio": sp.Eq(
             lambda_epoch_symbol,
@@ -452,9 +459,9 @@ def clock_pressure_lapse_bridge():
         "RFG_biconformal_lapse_if_gtt_exp_Phi": sp.Eq(alpha, sp.exp(Phi / 2)),
         "RFG_field_form_if_bridge_accepted": sp.Eq(Pi_clock, sp.exp(-Phi / 2)),
         "weak_field": sp.series(sp.exp(-Phi / 2), Phi, 0, 2).removeO(),
-        "strengthened_claim": (
-            "Pi_clock is no longer just a ratio; it is the inverse local lapse "
-            "when local cosmic-age readings are controlled by a metric clock"
+        "reformulated_as_lapse": (
+            "Pi_clock can be rewritten as the inverse local lapse when local "
+            "cosmic-age readings are controlled by a metric clock"
         ),
         "remaining_physics_gap": (
             "Pi_clock becomes physical RFG pressure only after a stress-energy "
@@ -566,6 +573,10 @@ def jwst_process_time_diagnostic_table(
         "postulate_used": "self-similar process-time",
         "T0_role": "symbolic; numeric value here is CMB-comoving present calibration",
         "present_age_calibration_gyr": T0,
+        "sign_note": (
+            "internal_tau_from_present_gyr < 0 at high z denotes a past internal "
+            "coordinate relative to today; formation budgets use positive intervals"
+        ),
         "age_approximation": (
             "high-z matter-era LCDM approximation with H0=67.4, Omega_m=0.315"
         ),
@@ -743,6 +754,108 @@ def process_time_channel_audit_examples():
     }
 
 
+def observational_consistency_guardrails():
+    """
+    Observation-facing no-go tests.
+
+    These are not optional style rules. They prevent the process-time ansatz
+    from drifting into channels that are already tightly checked by CMB, BBN,
+    supernova/quasar time dilation, atomic clocks, and standard redshift tests.
+    """
+    return {
+        "status": "OBSERVATIONAL_GUARDRAILS_ACTIVE",
+        "T0_calibration": {
+            "reference": "Planck 2018 base-LambdaCDM age ~= 13.797 +/- 0.023 Gyr",
+            "rule": "T0 is a CMB-comoving fit calibration, not a new constant",
+            "allowed": "use T0 symbolically; use 13.8 Gyr only as numerical example",
+        },
+        "CMB_metric_branch": {
+            "constraint": "Planck CMB spectra fit LambdaCDM very tightly",
+            "rule": "C(z) must not modify H(z), primary CMB peaks, or Einstein-Boltzmann background",
+            "file_gate": process_time_channel_gate("Einstein_Boltzmann_CMB_background")["status"],
+        },
+        "observed_time_dilation": {
+            "constraint": "SN Ia and quasar light curves show metric (1+z) time dilation",
+            "rule": "C(z) must not multiply observed light-curve durations or photon redshift",
+            "photon_gate": process_time_channel_gate("photon_propagation_redshift")["status"],
+            "observed_rate_gate": process_time_use_gate("observed_redshift_time_dilation")["status"],
+        },
+        "BBN_light_elements": {
+            "constraint": "BBN constrains early expansion and nuclear reaction clocks",
+            "rule": "C(z) is blocked for nuclear reaction rates unless a separate bounded microphysics bridge exists",
+            "file_gate": process_time_channel_gate("BBN_nuclear_reaction_clock")["status"],
+        },
+        "atomic_clock_and_constants": {
+            "constraint": "atomic clocks and spectra strongly constrain varying constants",
+            "rule": "C(z) must not rescale atomic transition frequencies or local proper-time standards",
+            "file_gate": process_time_channel_gate("atomic_transition_frequency_clock")["status"],
+        },
+        "JWST_high_z": {
+            "constraint": "early galaxies are an active formation-model tension, not a settled cosmology break",
+            "rule": (
+                "use process-time only as an internal formation-budget support "
+                "test; require spectroscopic redshifts, masses, SFR, metallicity, "
+                "dust, and halo abundance before a solution claim"
+            ),
+            "allowed_gate": process_time_channel_gate(
+                "early_galaxy_internal_formation_clock",
+                "formation_history_intrinsic_rate",
+            )["status"],
+        },
+        "distance_ladder_and_H0": {
+            "constraint": "distance ladder, BAO, and H0 inferences use metric distances and calibrated clocks",
+            "rule": "p02b does not claim H0-tension relief unless a distance-redshift fit is added",
+        },
+    }
+
+
+def observational_conflict_test_suite():
+    """
+    Boolean audit: every hard observational no-go channel must be blocked.
+    """
+    tests = [
+        {
+            "name": "CMB metric branch blocked",
+            "pass": process_time_channel_gate("Einstein_Boltzmann_CMB_background")["status"] == "BLOCKED",
+            "failure_means": "C(z) would alter primary CMB/H(z) without Planck fit",
+        },
+        {
+            "name": "photon redshift blocked",
+            "pass": process_time_channel_gate("photon_propagation_redshift")["status"] == "BLOCKED",
+            "failure_means": "model becomes tired-light/redshift replacement",
+        },
+        {
+            "name": "observed time dilation blocked",
+            "pass": process_time_use_gate("observed_redshift_time_dilation")["status"] == "BLOCKED",
+            "failure_means": "conflicts with SN/quasar (1+z) time dilation",
+        },
+        {
+            "name": "BBN nuclear clock blocked",
+            "pass": process_time_channel_gate("BBN_nuclear_reaction_clock")["status"] == "BLOCKED",
+            "failure_means": "light-element abundances must be refit",
+        },
+        {
+            "name": "atomic transition clock blocked",
+            "pass": process_time_channel_gate("atomic_transition_frequency_clock")["status"] == "BLOCKED",
+            "failure_means": "varying-constant / atomic-clock constraints triggered",
+        },
+        {
+            "name": "JWST internal formation allowed",
+            "pass": process_time_channel_gate(
+                "early_galaxy_internal_formation_clock",
+                "formation_history_intrinsic_rate",
+            )["status"] == "PASS",
+            "failure_means": "process-time has no allowed galaxy-formation channel",
+        },
+    ]
+
+    return {
+        "status": "PASS" if all(row["pass"] for row in tests) else "FAIL",
+        "tests": tests,
+        "rule": "any FAIL blocks observational use of p02b",
+    }
+
+
 def process_time_integrals():
     """Coordinate lookback და pressure-weighted process-time ინტეგრალები."""
     z, zp = sp.symbols("z z_prime", real=True, nonnegative=True)
@@ -786,15 +899,31 @@ def process_time_energy_budget_guardrail():
     """
     Energy/entropy accounting needed for tail-power or formation-rate claims.
     """
+    z, T0, t_age = sp.symbols("z T0 t_age", positive=True, real=True)
+    C = T0 / t_age
+    tail_factor = C**4
+    mu = sp.Symbol("mu", real=True)
+
     return {
-        "tail_power_scaling": "P_tail(z)/P_tail(0)=C(z)^4 is bookkeeping only",
+        "tail_power_scaling": "P_tail(z)/P_tail(0)=C(z)^4",
+        "tail_power_status": "BLOCKED_UNTIL_BOUNDED",
+        "self_similar_tail_factor": sp.Eq(
+            sp.Symbol("P_tail_ratio", positive=True, real=True),
+            tail_factor,
+        ),
+        "FIRAS_mu_distortion_guardrail": sp.Le(sp.Abs(mu), sp.Float("9e-5")),
+        "FIRAS_warning": (
+            "large high-z C(z)^4 factors can overproduce CMB spectral distortions "
+            "unless the tail channel is absent, hidden, non-radiative, or bounded"
+        ),
         "required_budget": [
+            "apply FIRAS/CMB spectral-distortion bounds before any radiative tail-power claim",
             "identify which reservoir supplies/removes changed tail power",
             "show no conflict with FLRW stress-energy bookkeeping in p02",
             "separate internal rate acceleration from observed luminosity/redshift effects",
             "state whether entropy production is changed or only reparameterized",
         ],
-        "status": "OPEN_ENERGY_BUDGET",
+        "status": "BLOCKED_UNTIL_BOUNDED",
     }
 
 
@@ -881,6 +1010,8 @@ def stage_a2_process_time_status():
         "flrw_separation": flrw_vs_process_time_separation(),
         "allowed_rate_tags": process_time_allowed_rate_tags(),
         "observational_anchors": process_time_observational_anchor_requirements(),
+        "observational_guardrails": observational_consistency_guardrails(),
+        "observational_conflict_tests": observational_conflict_test_suite(),
         "energy_budget": process_time_energy_budget_guardrail(),
         "integrals": process_time_integrals(),
         "rate_table": rate_conversion_no_double_counting(),
@@ -901,6 +1032,7 @@ def process_time_claim_gate():
     pressure_index = clock_pressure_index_definition()
     lapse_bridge = clock_pressure_lapse_bridge()
     budget_test = jwst_formation_budget_test()
+    obs_tests = observational_conflict_test_suite()
 
     return {
         "metric_independence": "PASS" if separation["not_a_second_metric_mode"] else "FAIL",
@@ -915,6 +1047,7 @@ def process_time_claim_gate():
         "intrinsic_rate_use": "CONDITIONAL_ONLY_WITH_EXPLICIT_RATE_TAG",
         "JWST_formation_time_support": budget_test["status"],
         "observational_status": "OPEN_BOUNDS_AND_FIT",
+        "observational_conflict_tests": obs_tests["status"],
         "allowed_example": process_time_use_gate("intrinsic_process_time_rate"),
         "blocked_metric_example": process_time_use_gate(
             "metric_FLRW_background",
@@ -962,6 +1095,8 @@ if __name__ == "__main__":
     print("JWST budget test:", jwst_formation_budget_test()["status"])
     print("energy budget:", process_time_energy_budget_guardrail()["status"])
     print("BBN channel gate:", process_time_channel_gate("BBN_nuclear_reaction_clock")["status"])
+    print("observational guardrails:", observational_consistency_guardrails()["status"])
+    print("observational conflict tests:", observational_conflict_test_suite()["status"])
     print("intrinsic rate gate:", process_time_use_gate("intrinsic_process_time_rate")["status"])
     print("metric rate gate:", process_time_use_gate("metric_FLRW_background", enters_metric_branch=True)["status"])
     print("claim gate:", process_time_claim_gate()["observational_status"])
