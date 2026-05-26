@@ -1839,6 +1839,42 @@ def p01_proof_gap_register():
     ]
 
 
+def minimal_action_basis_theorem():
+    """
+    Article-facing algebraic closure of the minimal polynomial basis.
+
+    This is not a microscopic derivation of the coefficients. It proves the
+    narrower statement used in the first article: once the variables are
+    restricted to Y and the three rotational scalar invariants I1,I2,I3, the
+    chosen minimal low-order ansatz is exactly the stated seven-term basis.
+    """
+    Y, I1, I2, I3 = init_variables()
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        "c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1", real=True
+    )
+    L_poly = get_polynomial_lagrangian(Y, I1, I2, I3)
+    reconstructed = (
+        c_Y * Y
+        + c_Y2 * Y**2
+        + c_I1 * I1
+        + c_I1sq * I1**2
+        + c_I2 * I2
+        + c_I3 * I3
+        + c_YI1 * Y * I1
+    )
+    residual = sp.simplify(L_poly - reconstructed)
+
+    return {
+        "status": "PASS" if residual == 0 else "CHECK",
+        "basis": [Y, Y**2, I1, I1**2, I2, I3, Y * I1],
+        "residual": residual,
+        "scope": (
+            "minimal rotational-scalar low-order EFT basis in the chosen "
+            "Y/I_k variables; coefficient naturalness is not proved here"
+        ),
+    }
+
+
 def article_core_theorem():
     """
     Article-facing theorem ledger for the p01 core.
@@ -1849,6 +1885,7 @@ def article_core_theorem():
     """
     Y, I1, I2, I3 = init_variables()
     L_poly = get_polynomial_lagrangian(Y, I1, I2, I3)
+    basis_theorem = minimal_action_basis_theorem()
     K_Phi_c, K_pi_c = analyze_lorentz_constrained_stability()
     horndeski_map = rfg_to_horndeski()
     alphas = bellini_sawicki_alphas()
@@ -1871,6 +1908,7 @@ def article_core_theorem():
             "I3": "det(B)",
         },
         "polynomial_lagrangian": L_poly,
+        "minimal_action_basis": basis_theorem,
         "sign_bridge": {
             "Y_to_X": horndeski_map["Y_to_X"],
             "c_X": "-2*c_Y^(Y)",

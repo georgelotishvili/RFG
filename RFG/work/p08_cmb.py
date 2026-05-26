@@ -801,6 +801,73 @@ def cmb_lensing_isw_null_shift_theorem() -> dict[str, object]:
     }
 
 
+def same_input_cmb_identity_theorem() -> dict[str, object]:
+    """
+    Machine-check the same-input CMB identity used in the article.
+
+    The proof is conditional: Phi_0=0, X_0=0, same H(a), same matter content,
+    same recombination history, and same primordial spectrum. Under exactly
+    those inputs the metric EFT alphas vanish and the linear hierarchy is the
+    LCDM one.
+    """
+    lock = flrw_metric_sector_locking_theorem()
+    zero_alpha = bellini_sawicki_zero_alpha_theorem()
+    linear = linear_metric_decoupling_theorem()
+    acoustic = acoustic_ruler_inheritance()
+    lensing = cmb_lensing_isw_null_shift_theorem()
+
+    alpha_values = [
+        zero_alpha["alpha_K"],
+        zero_alpha["alpha_B"],
+        zero_alpha["alpha_M"],
+        zero_alpha["alpha_T"],
+    ]
+    residuals = [
+        lock["X0"],
+        linear["linear_scalar_stress"],
+        acoustic["delta_sound_horizon_same_matter"],
+        acoustic["delta_theta_star_same_matter"],
+        acoustic["peak_phase_shift_same_matter"],
+        lensing["delta_weyl_same_matter"],
+        lensing["delta_lensing_source"],
+        lensing["delta_ISW_source"],
+    ]
+
+    return {
+        "status": (
+            "PASS"
+            if all(value == 0 for value in alpha_values + residuals)
+            else "CHECK"
+        ),
+        "branch_conditions": {
+            "Phi0": lock["homogeneous_solution"],
+            "X0": lock["X0"],
+            "same_inputs": [
+                "same H(a)",
+                "same matter content",
+                "same recombination history",
+                "same primordial spectrum",
+            ],
+        },
+        "zero_alphas": {
+            "alpha_K": zero_alpha["alpha_K"],
+            "alpha_B": zero_alpha["alpha_B"],
+            "alpha_M": zero_alpha["alpha_M"],
+            "alpha_T": zero_alpha["alpha_T"],
+        },
+        "metric_source_residuals": {
+            "linear_scalar_stress": linear["linear_scalar_stress"],
+            "delta_sound_horizon": acoustic["delta_sound_horizon_same_matter"],
+            "delta_theta_star": acoustic["delta_theta_star_same_matter"],
+            "delta_weyl": lensing["delta_weyl_same_matter"],
+            "delta_lensing_source": lensing["delta_lensing_source"],
+            "delta_ISW_source": lensing["delta_ISW_source"],
+        },
+        "conclusion": "C_ell^RFG = C_ell^LCDM in the locked same-input linear branch",
+        "not_claimed": "no-particle-dark-matter CMB fit or Planck likelihood pass",
+    }
+
+
 def article_cmb_theorem() -> dict[str, object]:
     """
     Article-facing CMB ledger.
@@ -814,6 +881,7 @@ def article_cmb_theorem() -> dict[str, object]:
     same_matter = same_matter_cmb_inheritance_audit()
     hierarchy = einstein_boltzmann_inheritance_theorem()
     lensing = cmb_lensing_isw_null_shift_theorem()
+    same_input_identity = same_input_cmb_identity_theorem()
     calibration = cmb_comoving_time_calibration()
 
     return {
@@ -837,6 +905,7 @@ def article_cmb_theorem() -> dict[str, object]:
         },
         "same_matter_inheritance": {
             "status": same_matter["status"],
+            "machine_check": same_input_identity["status"],
             "background": same_matter["background"],
             "primary_cls": same_matter["primary_cls"],
             "sound_horizon": same_matter["sound_horizon"],

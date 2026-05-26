@@ -187,6 +187,36 @@ def analyze_horndeski_luminal_speed():
     }
 
 
+def tensor_speed_algebra_theorem():
+    """
+    Machine-check the article tensor-speed statement.
+
+    The theorem joins the Horndeski alpha_T calculation with the independent
+    TT solid-sector projection. The closed claim is only the speed/principal
+    kinetic-gradient statement; the h^2 mass term remains a separate gate.
+    """
+    speed = analyze_horndeski_luminal_speed()
+    coeff_h_dot2, coeff_h_z2, mass_term = analyze_gw_full()
+
+    return {
+        "status": (
+            "PASS"
+            if speed["alpha_T"].rhs == 0
+            and speed["c_g"].rhs == sp.Symbol("c", real=True)
+            and coeff_h_dot2 == 0
+            and coeff_h_z2 == 0
+            else "CHECK"
+        ),
+        "alpha_T": speed["alpha_T"],
+        "c_g": speed["c_g"],
+        "solid_TT_h_dot2_correction": coeff_h_dot2,
+        "solid_TT_h_z2_correction": coeff_h_z2,
+        "raw_h2_mass_coefficient": mass_term,
+        "closed_claim": "alpha_T=0 and no solid TT kinetic-gradient speed correction",
+        "not_closed_here": "raw h^2 mass term, polarization amplitudes, source flux and waveform fit",
+    }
+
+
 def analyze_scalar_breathing_estimate():
     """
     Breathing-mode working estimate inherited from the old theory.
@@ -1559,6 +1589,7 @@ def article_gw_theorem():
     article and keeps waveform/polarization/dispersion as separate gates.
     """
     speed = analyze_horndeski_luminal_speed()
+    algebra = tensor_speed_algebra_theorem()
     scope = tensor_speed_scope_gate()
     mass_gate = tensor_mass_term_gate()
     detector = step4c_detector_response_claim_gate()
@@ -1566,13 +1597,15 @@ def article_gw_theorem():
     return {
         "article_use": "tensor-speed sector and detector-response interpretation",
         "tensor_speed_theorem": {
-            "status": "CLOSED_TENSOR_SPEED_SECTOR",
+            "status": "CLOSED_TENSOR_SPEED_SECTOR" if algebra["status"] == "PASS" else "CHECK",
             "conditions": speed["Horndeski_conditions"],
             "definition": speed["alpha_T_definition"],
             "G4_X": speed["G4_X"],
             "G5": speed["G5"],
             "alpha_T": speed["alpha_T"],
             "c_g": speed["c_g"],
+            "solid_TT_h_dot2_correction": algebra["solid_TT_h_dot2_correction"],
+            "solid_TT_h_z2_correction": algebra["solid_TT_h_z2_correction"],
         },
         "solid_TT_scope": scope["closed"],
         "detector_response": {

@@ -232,6 +232,66 @@ def solar_1pn_closure_branch():
         ),
     }
 
+
+def solar_1pn_branch_derivation_theorem():
+    """
+    Machine-check that the printed 1PN branch is derived, not inserted.
+
+    The theorem uses the O(U^0) and O(U^1) stress coefficients on the
+    gamma=beta=1, a2=4 geometry branch. It verifies that the nontrivial branch
+    listed in solar_1pn_closure_branch() makes all leading stress coefficients
+    vanish and that the remaining O(U^2) terms reduce to the stated residuals.
+    """
+    stress_gate = weak_field_stress_constraint_gate()
+    branch_gate = solar_1pn_closure_branch()
+    branch = branch_gate["branch"]
+
+    leading_residuals = []
+    for orders in stress_gate["coefficients_to_vanish"].values():
+        leading_residuals.append(sp.simplify(orders["O(U^0)"].subs(branch)))
+        leading_residuals.append(sp.simplify(orders["O(U^1)"].subs(branch)))
+
+    o2_residuals = {
+        comp: sp.simplify(orders["O(U^2)"].subs(branch))
+        for comp, orders in stress_gate["coefficients_to_vanish"].items()
+    }
+    expected_o2 = branch_gate["O2_residual_on_this_branch"]
+    o2_expected_residuals = [
+        sp.simplify(o2_residuals["T^t_t"] - expected_o2["T^t_t O(U^2)"]),
+        sp.simplify(o2_residuals["T^r_r"] - expected_o2["T^r_r O(U^2)"]),
+        sp.simplify(
+            o2_residuals["T^theta_theta"]
+            - expected_o2["T^theta_theta O(U^2)"]
+        ),
+    ]
+
+    c_Y2, c_YI1 = sp.symbols("c_Y2 c_YI1", real=True)
+    exact_2pn_solution = sp.solve(
+        [
+            sp.Eq(expected_o2["T^t_t O(U^2)"], 0),
+            sp.Eq(expected_o2["T^theta_theta O(U^2)"], 0),
+        ],
+        [c_Y2, c_YI1],
+        dict=True,
+    )
+
+    return {
+        "status": (
+            "PASS"
+            if all(value == 0 for value in leading_residuals + o2_expected_residuals)
+            else "CHECK"
+        ),
+        "branch": branch,
+        "leading_O0_O1_residuals_after_branch": leading_residuals,
+        "O2_residuals_after_branch": o2_residuals,
+        "O2_expected_residual_check": o2_expected_residuals,
+        "exact_2PN_stress_free_solution_on_branch": exact_2pn_solution,
+        "conclusion": (
+            "nontrivial O(U^0)-O(U^1) stress closure exists, while exact "
+            "O(U^2) stress-free closure forces c_Y2=c_YI1=0 on this branch"
+        ),
+    }
+
 if __name__ == "__main__":
     res = analyze_ppn()
     U, gamma, beta, a2, G_tt_s, G_rr_s, G_thth_s, T_tt_s, T_rr_s, T_thth_s = res
@@ -815,6 +875,7 @@ def article_solar_theorem():
     geometry = ppn_geometry_gate()
     stress = weak_field_stress_constraint_gate()
     one_pn = solar_1pn_closure_branch()
+    one_pn_derivation = solar_1pn_branch_derivation_theorem()
     cassini = cassini_gamma_gate()
 
     return {
@@ -826,6 +887,7 @@ def article_solar_theorem():
         },
         "nontrivial_1PN_branch": {
             "status": one_pn["status"],
+            "derivation_status": one_pn_derivation["status"],
             "branch": one_pn["branch"],
             "free_parameters": one_pn["free_parameters"],
             "phase_no_ghost_prefactor": one_pn["phase_no_ghost_prefactor"],
@@ -844,6 +906,10 @@ def article_solar_theorem():
         "two_pn_discriminator": {
             "status": "OPEN_DISCRIMINATOR",
             "O2_residual_on_1PN_branch": one_pn["O2_residual_on_this_branch"],
+            "derived_O2_residual_check": one_pn_derivation["O2_expected_residual_check"],
+            "exact_2PN_stress_free_solution_on_branch": (
+                one_pn_derivation["exact_2PN_stress_free_solution_on_branch"]
+            ),
             "strict_stress_free_solution": stress["strict_O0_O1_O2_solution"],
             "reading": (
                 "Exact GR-like 2PN stress-free closure sends c_Y2=c_YI1=0 "
