@@ -14,6 +14,9 @@ FLRW/CMB metric branch და არ ამტკიცებს დამოუ
 import sympy as sp
 
 
+DEFAULT_PRESENT_AGE_GYR = 13.8
+
+
 def get_process_time_relation():
     """
     ისტორიული process-time ხაზობრივი ესკიზის დაკონსოლიდებული ფორმა.
@@ -54,6 +57,340 @@ def process_time_scaling_ledger():
     }
 
 
+def process_time_source_requirements():
+    """
+    რა უნდა დაიხუროს, სანამ C(z) ფიზიკურ მოდელად ჩაითვლება.
+    """
+    z = sp.Symbol("z", real=True, nonnegative=True)
+    phi_bg = sp.Function("phi_bg")
+
+    return {
+        "C_of_z_source": "POSTULATE_CANDIDATE_NOT_DERIVED",
+        "active_definition": sp.Eq(
+            sp.Function("C")(z),
+            sp.exp((phi_bg(z) - phi_bg(0)) / 2),
+        ),
+        "candidate_closure": (
+            "self-similar process-time postulate: every epoch measures the "
+            "infinite internal past as the same finite age T0 in its own units"
+        ),
+        "required_before_physics_claim": [
+            "derive or fit phi_bg(z)",
+            "state which physical process is parameterized by tau_proc",
+            "show C(0)=1 calibration",
+            "provide BBN/CMB/structure-growth bounds on C(z)",
+            "write an energy/entropy budget if C(z) changes tail power or rates",
+        ],
+        "allowed_interim_status": (
+            "postulate-level diagnostic calculation only; no solved JWST, H0, "
+            "dark-energy, or BBN/CMB compatibility claim"
+        ),
+    }
+
+
+def process_time_self_similar_postulate():
+    """
+    Minimal self-similar process-time postulate.
+
+    This is not derived from p02 FLRW algebra. It is a narrow calculational
+    ansatz: the present calibrated age T0 is finite even if the internal past
+    process coordinate is unbounded.
+    """
+    tau = sp.Symbol("tau", real=True)
+    s = sp.Symbol("s", real=True)
+    T0 = sp.Symbol("T0", positive=True, real=True)
+    Delta_today = sp.Symbol("Delta_today", nonnegative=True, real=True)
+    C = sp.Function("C")
+    t_today = sp.Function("t_today")
+    lambda_future = sp.Symbol("lambda_future", positive=True, real=True)
+
+    C_tau = sp.exp(-tau / T0)
+    today_age_at_tau = T0 * sp.exp(tau / T0)
+    finite_present_age_integral = sp.Integral(sp.exp(s / T0), (s, -sp.oo, 0))
+    finite_present_age_value = sp.integrate(sp.exp(s / T0), (s, -sp.oo, 0))
+    future_elapsed_today_units = T0 * (sp.exp(tau / T0) - 1)
+    future_unit_ratio_from_delta = 1 + Delta_today / T0
+    future_age_in_future_units = (T0 + Delta_today) / future_unit_ratio_from_delta
+
+    return {
+        "status": "POSTULATE_CANDIDATE_NOT_DERIVED",
+        "postulate": (
+            "The internal process past may be infinite, while each epoch's own "
+            "clock unit reads the full past as the same finite age T0."
+        ),
+        "T0_role": (
+            "symbolic present-epoch calibrated age; 13.8 Gyr is only today's "
+            "numerical calibration example, not a new fundamental constant"
+        ),
+        "C_tau": sp.Eq(C(tau), C_tau),
+        "process_clock": "d tau_proc / dt_today = C(tau)",
+        "today_unit_age_at_internal_tau": sp.Eq(t_today(tau), today_age_at_tau),
+        "present_age_from_infinite_internal_past": sp.Eq(
+            finite_present_age_integral,
+            T0,
+            evaluate=False,
+        ),
+        "present_age_integral_value": finite_present_age_value,
+        "future_elapsed_today_units": sp.Eq(
+            Delta_today,
+            future_elapsed_today_units,
+        ),
+        "future_unit_ratio": sp.Eq(lambda_future, future_unit_ratio_from_delta),
+        "future_age_measured_in_future_units": sp.Eq(
+            future_age_in_future_units,
+            T0,
+            evaluate=False,
+        ),
+        "future_age_simplified": sp.simplify(future_age_in_future_units),
+        "age_invariance_status": "DERIVED_WITHIN_THIS_POSTULATE_NOT_SEPARATE_POSTULATE",
+        "equivalent_age_rule": "C(t_age) = T0 / t_age in present-calibrated age units",
+        "JWST_use": (
+            "can enlarge intrinsic formation/process time without replacing "
+            "metric redshift or observed time dilation"
+        ),
+        "non_uniqueness_warning": (
+            "infinite internal past plus present age T0 does not uniquely fix "
+            "this exponential curve; self-similarity is the extra postulate"
+        ),
+        "forbidden_reading": "not tired-light; not an extra redshift law",
+    }
+
+
+def cosmic_age_invariance_result():
+    """
+    The age-invariance result derived from the self-similar postulate.
+    """
+    T0 = sp.Symbol("T0", positive=True, real=True)
+    Delta_today = sp.Symbol("Delta_today", nonnegative=True, real=True)
+    lambda_epoch_symbol = sp.Symbol("lambda_epoch", positive=True, real=True)
+    lambda_epoch_expr = sp.Mul(T0 + Delta_today, 1 / T0, evaluate=False)
+    age_before_substitution = sp.Mul(
+        T0 + Delta_today,
+        sp.Pow(lambda_epoch_symbol, -1, evaluate=False),
+        evaluate=False,
+    )
+    age_after_substitution = sp.Mul(
+        T0 + Delta_today,
+        sp.Pow(lambda_epoch_expr, -1, evaluate=False),
+        evaluate=False,
+    )
+
+    return {
+        "status": "DERIVED_RESULT_NOT_NEW_POSTULATE",
+        "input_postulate": "process_time_self_similar_postulate",
+        "epoch_unit_ratio": sp.Eq(
+            lambda_epoch_symbol,
+            lambda_epoch_expr,
+            evaluate=False,
+        ),
+        "age_in_epoch_units_before_substitution": sp.Eq(
+            sp.Symbol("T_epoch_units", positive=True, real=True),
+            age_before_substitution,
+            evaluate=False,
+        ),
+        "age_in_epoch_units": sp.Eq(
+            age_after_substitution,
+            T0,
+            evaluate=False,
+        ),
+        "age_in_epoch_units_simplified": sp.simplify(age_after_substitution),
+        "meaning": (
+            "future or past epochs read the full cosmological past as T0 in "
+            "their own clock calibration"
+        ),
+        "T0_not_numeric_constant": (
+            "leave T0 symbolic in theory; insert 13.8 Gyr only in examples"
+        ),
+    }
+
+
+def clock_pressure_index_definition():
+    """
+    Operational index built from local cosmic-age reading.
+
+    This is a measurement definition. Identifying it with RFG physical
+    pressure requires a separate bridge to stress/lapse/substrate invariants.
+    """
+    T0 = sp.Symbol("T0", positive=True, real=True)
+    T_local = sp.Symbol("T_local", positive=True, real=True)
+    Pi_clock = sp.Symbol("Pi_clock", positive=True, real=True)
+
+    return {
+        "status": "OPERATIONAL_DEFINITION_NOT_NEW_TIME_POSTULATE",
+        "definition": sp.Eq(Pi_clock, T0 / T_local),
+        "earth_calibration": sp.Eq(
+            sp.Symbol("Pi_clock_earth", positive=True, real=True),
+            1,
+            evaluate=False,
+        ),
+        "earth_calibration_substitution": sp.Eq(
+            T_local,
+            T0,
+            evaluate=False,
+        ),
+        "earth_calibration_result": sp.Eq(
+            Pi_clock,
+            1,
+            evaluate=False,
+        ),
+        "reading": (
+            "smaller local age reading means larger clock-compression index"
+        ),
+        "derived_input": "uses T0 from cosmic_age_invariance_result",
+        "not_yet_claimed": (
+            "Pi_clock equals physical stress pressure only after an explicit "
+            "bridge to RFG stress-energy, lapse, or substrate invariants"
+        ),
+    }
+
+
+def schwarzschild_clock_pressure_reference():
+    """
+    GR reference example for local age compression outside a black hole.
+    """
+    r, r_s, T0 = sp.symbols("r r_s T0", positive=True, real=True)
+    alpha = sp.sqrt(1 - r_s / r)
+    T_local = T0 * alpha
+    pi_clock_expr = sp.Pow(alpha, -1, evaluate=False)
+
+    return {
+        "status": "GR_ANALOGY_STATIC_EXTERIOR_ONLY",
+        "validity": "r > r_s for a static exterior observer; not on the horizon",
+        "lapse": sp.Eq(sp.Symbol("alpha", positive=True, real=True), alpha),
+        "local_age_reading": sp.Eq(
+            sp.Symbol("T_local", positive=True, real=True),
+            T_local,
+        ),
+        "clock_pressure_index": sp.Eq(
+            sp.Symbol("Pi_clock", positive=True, real=True),
+            pi_clock_expr,
+            evaluate=False,
+        ),
+        "interpretation": (
+            "near the horizon alpha -> 0, so the local cosmic-age reading "
+            "shrinks and Pi_clock grows"
+        ),
+        "guardrail": "do not treat this as a new RFG pressure law without the bridge",
+    }
+
+
+def process_time_age_conversion_example(
+    present_age_gyr=DEFAULT_PRESENT_AGE_GYR,
+    future_elapsed_today_gyr=2.0,
+):
+    """
+    Convert a future measurement between present and future clock units.
+    """
+    T0 = sp.Float(present_age_gyr)
+    Delta = sp.Float(future_elapsed_today_gyr)
+    future_unit_ratio = sp.simplify((T0 + Delta) / T0)
+    C_future = sp.simplify(1 / future_unit_ratio)
+    internal_elapsed = sp.simplify(T0 * sp.log(future_unit_ratio))
+    future_age_future_units = sp.simplify((T0 + Delta) / future_unit_ratio)
+
+    return {
+        "status": "NUMERICAL_CALIBRATION_EXAMPLE_ONLY",
+        "present_age_gyr": float(T0),
+        "future_elapsed_in_today_units_gyr": float(Delta),
+        "future_age_in_today_units_gyr": float(T0 + Delta),
+        "future_unit_ratio_to_today": float(future_unit_ratio),
+        "C_future": float(C_future),
+        "internal_process_elapsed_gyr": float(internal_elapsed),
+        "future_age_measured_in_future_units_gyr": float(future_age_future_units),
+        "interpretation": (
+            "with the self-similar postulate, every epoch reads the full past "
+            "as T0 in its own clock units"
+        ),
+    }
+
+
+def _lcdm_high_z_age_approx_gyr(z, H0_km_s_mpc=67.4, omega_m=0.315):
+    """
+    Matter-era LCDM age approximation in Gyr.
+
+    Valid only as a high-z diagnostic. It ignores radiation corrections and
+    late dark-energy corrections, so it must not replace a Boltzmann/CLASS fit.
+    """
+    H0_inverse_gyr = 9.778 / (H0_km_s_mpc / 100.0)
+    prefactor = 2.0 * H0_inverse_gyr / (3.0 * float(sp.sqrt(omega_m)))
+    return prefactor * (1.0 + float(z)) ** (-1.5)
+
+
+def jwst_process_time_diagnostic_table(
+    redshifts=(7.3, 10.0, 12.0, 14.44, 20.0, 30.0),
+    present_age_gyr=DEFAULT_PRESENT_AGE_GYR,
+):
+    """
+    Diagnostic high-z process-time budget for early-galaxy discussions.
+    """
+    T0 = float(present_age_gyr)
+    rows = []
+    for z in redshifts:
+        t_lcdm = _lcdm_high_z_age_approx_gyr(z)
+        tau_internal = T0 * float(sp.log(t_lcdm / T0))
+        local_process_factor = T0 / t_lcdm
+        rows.append(
+            {
+                "z": float(z),
+                "lcdm_age_gyr_approx": round(t_lcdm, 4),
+                "internal_tau_from_present_gyr": round(tau_internal, 3),
+                "local_process_factor_C": round(local_process_factor, 2),
+                "status": "diagnostic_only_not_observational_fit",
+            }
+        )
+
+    return {
+        "postulate_used": "self-similar process-time",
+        "T0_role": "symbolic; numeric value here is present-epoch calibration",
+        "present_age_calibration_gyr": T0,
+        "age_approximation": (
+            "high-z matter-era LCDM approximation with H0=67.4, Omega_m=0.315"
+        ),
+        "rows": rows,
+        "claim_limit": (
+            "supports a possible intrinsic formation-time budget; does not by "
+            "itself solve JWST galaxy abundance, stellar mass, or metallicity"
+        ),
+    }
+
+
+def jwst_process_time_interval_table(
+    intervals=((30.0, 20.0), (20.0, 14.44), (15.0, 10.0), (12.0, 7.3)),
+    present_age_gyr=DEFAULT_PRESENT_AGE_GYR,
+):
+    """
+    Compare standard coordinate-time windows with process-time windows.
+    """
+    T0 = float(present_age_gyr)
+    rows = []
+    for z_start, z_end in intervals:
+        t_start = _lcdm_high_z_age_approx_gyr(z_start)
+        t_end = _lcdm_high_z_age_approx_gyr(z_end)
+        standard_window = t_end - t_start
+        process_window = T0 * float(sp.log(t_end / t_start))
+        average_factor = process_window / standard_window
+        rows.append(
+            {
+                "z_window": f"{z_start:g}->{z_end:g}",
+                "lcdm_coordinate_window_gyr": round(standard_window, 4),
+                "process_window_gyr": round(process_window, 3),
+                "average_process_factor": round(average_factor, 1),
+                "status": "formation_clock_diagnostic_only",
+            }
+        )
+
+    return {
+        "T0_role": "symbolic; numeric value here is present-epoch calibration",
+        "present_age_calibration_gyr": T0,
+        "rows": rows,
+        "interpretation": (
+            "short early LCDM windows can correspond to much larger intrinsic "
+            "process-time budgets under the postulate"
+        ),
+        "guardrail": "do not apply these factors to observed redshift time dilation",
+    }
+
+
 def flrw_vs_process_time_separation():
     """
     წესი, რომელიც process-time ledger-ს primary FLRW/CMB branch-ისგან ყოფს.
@@ -74,6 +411,54 @@ def flrw_vs_process_time_separation():
     }
 
 
+def process_time_allowed_rate_tags():
+    """Allowed/blocked use map for C(z)."""
+    return {
+        "allowed": {
+            "intrinsic_process_time_rate",
+            "formation_history_intrinsic_rate",
+            "resonance_internal_clock_rate",
+            "tail_emission_bookkeeping_rate",
+        },
+        "blocked": {
+            "metric_FLRW_background",
+            "einstein_boltzmann_CMB_background",
+            "coordinate_cosmic_time_rate",
+            "observed_redshift_time_dilation",
+            "cluster_crossing_time",
+            "merger_crossing_time",
+        },
+    }
+
+
+def process_time_use_gate(rate_tag, *, enters_metric_branch=False, adds_extra_redshift=False):
+    """
+    Decide whether a proposed use of C(z) is allowed.
+
+    This is a guardrail against double-counting and against silently turning
+    process time into a second metric mode.
+    """
+    tags = process_time_allowed_rate_tags()
+
+    reasons = []
+    if enters_metric_branch:
+        reasons.append("blocked: would enter the primary FLRW/CMB metric branch")
+    if adds_extra_redshift:
+        reasons.append("blocked: would double-count observed metric redshift/time dilation")
+    if rate_tag in tags["blocked"]:
+        reasons.append(f"blocked: {rate_tag} is not an intrinsic process-time channel")
+    if rate_tag not in tags["allowed"] and rate_tag not in tags["blocked"]:
+        reasons.append(f"blocked: unknown rate tag {rate_tag}; add an explicit ledger entry first")
+
+    allowed = not reasons
+    return {
+        "rate_tag": rate_tag,
+        "allowed": allowed,
+        "status": "PASS" if allowed else "BLOCKED",
+        "reasons": reasons or ["allowed only as a single C(z) factor in the tagged intrinsic channel"],
+    }
+
+
 def process_time_integrals():
     """Coordinate lookback და pressure-weighted process-time ინტეგრალები."""
     z, zp = sp.symbols("z z_prime", real=True, nonnegative=True)
@@ -90,6 +475,39 @@ def process_time_integrals():
         "enhancement_factor": sp.Eq(enhancement, process / lookback),
         "past_reading": "თუ C(z)>1 წარსულში, intrinsic process history იზრდება",
         "future_reading": "თუ C(t)->0 საკმარისად სწრაფად, process-time ბიუჯეტი შეიძლება სასრული გახდეს",
+    }
+
+
+def process_time_observational_anchor_requirements():
+    """
+    Observational anchors needed before C(z) can be treated as a fitted model.
+    """
+    return {
+        "BBN": "OPEN_BOUND: constrain C(z_BBN) and any induced rate/power changes",
+        "CMB": "OPEN_BOUND: C(z) must not enter as metric background mode",
+        "structure_growth": "OPEN_BOUND: formation-rate use needs galaxy/halo benchmark",
+        "local_epoch": "CALIBRATION: C(0)=1 by definition",
+        "JWST_high_z": (
+            "SUPPORT_CALC_ONLY: self-similar curve can enlarge intrinsic "
+            "formation time, but needs galaxy abundance/mass/metallicity fit"
+        ),
+        "H0_tension": "NO_CLAIM: process-time ledger does not alter FLRW distance ladder by itself",
+    }
+
+
+def process_time_energy_budget_guardrail():
+    """
+    Energy/entropy accounting needed for tail-power or formation-rate claims.
+    """
+    return {
+        "tail_power_scaling": "P_tail(z)/P_tail(0)=C(z)^4 is bookkeeping only",
+        "required_budget": [
+            "identify which reservoir supplies/removes changed tail power",
+            "show no conflict with FLRW stress-energy bookkeeping in p02",
+            "separate internal rate acceleration from observed luminosity/redshift effects",
+            "state whether entropy production is changed or only reparameterized",
+        ],
+        "status": "OPEN_ENERGY_BUDGET",
     }
 
 
@@ -131,8 +549,9 @@ def process_time_application_map():
             "მხოლოდ მონიშნულ intrinsic formation-rate კანონებში შედის"
         ),
         "JWST_high_z_galaxies": (
-            "შეიძლება შეამციროს საჭირო intrinsic development time მხოლოდ მაშინ, "
-            "თუ formation rate process-controlled-ად არის მონიშნული"
+            "self-similar postulate-ის ქვეშ მოკლე LCDM ფანჯარა შეიძლება "
+            "გადაითარგმნოს დიდ intrinsic process-time ბიუჯეტად; ეს არის "
+            "formation-clock support calculation, არა solved abundance claim"
         ),
         "resonant_tail_dark_energy": (
             "tail-power C^4 არის bookkeeping input; P_tail-ის დროის ცვლადი "
@@ -153,12 +572,61 @@ def stage_a2_process_time_status():
     """p02b-ში დარჩენილი process-time ledger-ის სრული სტატუსი."""
     return {
         "source_provenance": "OLD/18-derived ledger; not active authority",
+        "source_requirements": process_time_source_requirements(),
+        "self_similar_postulate": process_time_self_similar_postulate(),
+        "cosmic_age_invariance": cosmic_age_invariance_result(),
+        "clock_pressure_index": clock_pressure_index_definition(),
+        "schwarzschild_reference": schwarzschild_clock_pressure_reference(),
+        "age_conversion_example": process_time_age_conversion_example(),
+        "JWST_diagnostic_table": jwst_process_time_diagnostic_table(),
+        "JWST_interval_table": jwst_process_time_interval_table(),
         "scaling": process_time_scaling_ledger(),
         "flrw_separation": flrw_vs_process_time_separation(),
+        "allowed_rate_tags": process_time_allowed_rate_tags(),
+        "observational_anchors": process_time_observational_anchor_requirements(),
+        "energy_budget": process_time_energy_budget_guardrail(),
         "integrals": process_time_integrals(),
         "rate_table": rate_conversion_no_double_counting(),
         "applications": process_time_application_map(),
         "integration_status": "separate ledger in p02b; not part of p02 FLRW proof",
+    }
+
+
+def process_time_claim_gate():
+    """ცხადი claim gate: რას აკეთებს p02b და რას კრძალავს."""
+    separation = flrw_vs_process_time_separation()
+    source = process_time_source_requirements()
+    energy = process_time_energy_budget_guardrail()
+    postulate = process_time_self_similar_postulate()
+    age_result = cosmic_age_invariance_result()
+    pressure_index = clock_pressure_index_definition()
+
+    return {
+        "metric_independence": "PASS" if separation["not_a_second_metric_mode"] else "FAIL",
+        "C_z_source": source["C_of_z_source"],
+        "self_similar_curve": postulate["status"],
+        "age_invariance": age_result["status"],
+        "clock_pressure_index": pressure_index["status"],
+        "energy_budget": energy["status"],
+        "intrinsic_rate_use": "CONDITIONAL_ONLY_WITH_EXPLICIT_RATE_TAG",
+        "JWST_formation_time_support": "DIAGNOSTIC_CALCULATION_AVAILABLE",
+        "observational_status": "OPEN_BOUNDS_AND_FIT",
+        "allowed_example": process_time_use_gate("intrinsic_process_time_rate"),
+        "blocked_metric_example": process_time_use_gate(
+            "metric_FLRW_background",
+            enters_metric_branch=True,
+        ),
+        "do_not_claim": [
+            "do not claim JWST high-z galaxy solution without abundance/mass/metallicity fit",
+            "do not claim H0-tension solution",
+            "do not claim dark-energy mechanism",
+            "do not claim BBN/CMB compatibility",
+            "do not read process time as tired-light or redshift replacement",
+            "do not call Pi_clock physical pressure before the stress/lapse bridge",
+            "do not promote 13.8 Gyr to a new fundamental constant; keep T0 symbolic",
+            "do not insert C(z) into Einstein-Boltzmann background",
+            "do not multiply observed redshift time dilation by C(z)",
+        ],
     }
 
 
@@ -171,4 +639,20 @@ if __name__ == "__main__":
     print("process-time relation:", relation)
     print("weak-field limit:", weak_field)
     print("FLRW/CMB separation:", flrw_vs_process_time_separation()["not_a_second_metric_mode"])
+    print("C(z) source status:", process_time_source_requirements()["C_of_z_source"])
+    print("self-similar status:", process_time_self_similar_postulate()["status"])
+    print("age invariance:", cosmic_age_invariance_result()["status"])
+    print("clock-pressure index:", clock_pressure_index_definition()["status"])
+    print("Schwarzschild reference:", schwarzschild_clock_pressure_reference()["status"])
+    print(
+        "2 Gyr future age in future units:",
+        process_time_age_conversion_example()["future_age_measured_in_future_units_gyr"],
+    )
+    print("JWST interval diagnostics:")
+    for row in jwst_process_time_interval_table()["rows"]:
+        print(" ", row)
+    print("energy budget:", process_time_energy_budget_guardrail()["status"])
+    print("intrinsic rate gate:", process_time_use_gate("intrinsic_process_time_rate")["status"])
+    print("metric rate gate:", process_time_use_gate("metric_FLRW_background", enters_metric_branch=True)["status"])
+    print("claim gate:", process_time_claim_gate()["observational_status"])
     print("integration status:", stage_a2_process_time_status()["integration_status"])
