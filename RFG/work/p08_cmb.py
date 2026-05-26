@@ -2,6 +2,9 @@
 # signature (+---); Y = g^mn d_m Phi d_n Phi; B^AB = -g^mn d_m phi^A d_n phi^B.
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
+# Active coefficient scheme: c_Y and c_Y2 below mean Y-scheme coefficients
+# c_Y^(Y), c_Y2^(Y); X-scheme coefficients are named c_X=-2*c_Y^(Y)
+# and c_X2=4*c_Y2^(Y). Do not export a bare "c_Y<0" sign claim.
 
 """
 ================================================================================
@@ -18,8 +21,9 @@ PHASE 21: CMB — კოსმოლოგიური პერტურბა�
     1. სტანდარტული Horndeski (Bellini-Sawicki) პარამეტრიზაცია არ არის 
        საკმარისი RFG-სთვის, რადგან I_k ელასტიური სექტორი შეიცავს 
        სივრცულ ტრანსვერსულ მოდებს. საჭიროა "EFT of Solid Inflation" (ESS) ჩარჩო.
-    2. c_Y კოეფიციენტი უნდა იყოს უარყოფითი (c_Y < 0), რათა კინეტიკური 
-       წევრი (alpha_K) იყოს დადებითი და ავირიდოთ Ghost არასტაბილურობა.
+    2. Ghost-ის პირობა არის alpha_K_total > 0. X-სქემაში ეს იწერება 
+       c_X=-2*c_Y^(Y) ხიდით; ამიტომ bare "c_Y < 0" claim აკრძალულია
+       scheme-ის მითითების გარეშე.
     3. გრავიტაციული ტალღის სიჩქარე c_T = c, მაგრამ მასიური დისპერსიის 
        ასარიდებლად საჭიროა phase9-ის კონსტრეინტი.
 
@@ -115,6 +119,109 @@ class FitReadiness:
     reason: str
 
 
+@dataclass(frozen=True)
+class ClaimGate:
+    claim: str
+    status: str
+    verified_here: str
+    open_requirement: str
+
+
+def cmb_claim_gate() -> list[ClaimGate]:
+    """Hard boundary between closed CMB inheritance and open CMB replacement."""
+    return [
+        ClaimGate(
+            claim="same-matter locked FLRW CMB",
+            status="ANALYTICALLY_CLOSED_CONDITIONAL_BRANCH",
+            verified_here=(
+                "If Phi_0=X_0=0 and the matter content, recombination history, "
+                "and primordial spectrum are LCDM-identical, the linear "
+                "Einstein-Boltzmann hierarchy is unchanged."
+            ),
+            open_requirement=(
+                "derive or explicitly postulate the locked branch before exporting it "
+                "as dynamics; do not use it to claim dark-matter replacement"
+            ),
+        ),
+        ClaimGate(
+            claim="Phi_0=0 / X_0=0 branch",
+            status="BRANCH_LOCK_NOT_EOM_DERIVED_HERE",
+            verified_here="The consequences of the lock are computed algebraically.",
+            open_requirement="derive the lock from p01/p02 equations or keep it as a named branch assumption",
+        ),
+        ClaimGate(
+            claim="Bellini-Sawicki alpha_i",
+            status="Y_SECTOR_ONLY_PLUS_LOCKED_BRANCH",
+            verified_here="alpha_T=alpha_M=alpha_B=0 in the minimal Y/Horndeski sector; alpha_K=0 on the locked branch.",
+            open_requirement="derive the ESS solid-sector perturbation action and eigenmode stability",
+        ),
+        ClaimGate(
+            claim="coefficient sign",
+            status="SCHEME_GATE_REQUIRED",
+            verified_here="The Y-to-X map is explicit: c_X=-2*c_Y^(Y), c_X2=4*c_Y2^(Y).",
+            open_requirement="never export bare c_Y<0; state whether the coefficient is Y-scheme or X-scheme",
+        ),
+        ClaimGate(
+            claim="I_k early-universe sector",
+            status="FILTERS_ONLY_NOT_NUMERICAL_FIT",
+            verified_here="Delta_Neff, stiff-fluid, and curvature-like symbolic filters are written with p02 sign conventions.",
+            open_requirement="fit c_I1, c_I1sq, c_I2, c_I3, c_YI1 against BBN/CMB/BAO bounds",
+        ),
+        ClaimGate(
+            claim="no-particle-DM CMB",
+            status="OPEN_BOLTZMANN_BRANCH",
+            verified_here="Only an order-of-magnitude frozen-memory estimate is present.",
+            open_requirement="add the memory variable to CLASS/CAMB and run Planck TT/TE/EE+lensing likelihood without CDM",
+        ),
+        ClaimGate(
+            claim="Planck/BAO/LSS empirical pass",
+            status="BLOCKED_NO_LOCAL_LIKELIHOOD_RUN",
+            verified_here="Compressed H0/S8 tensions and a hi_class template are present.",
+            open_requirement="run full Planck, BAO/DESI, matter-power, growth, and weak-lensing likelihoods",
+        ),
+    ]
+
+
+def cmb_do_not_claim() -> list[str]:
+    return [
+        "Do not claim RFG fits Planck TT/TE/EE+lensing before a likelihood run.",
+        "Do not claim RFG replaces particle dark matter in the CMB from same-matter inheritance.",
+        "Do not claim BBN/BAO/LSS compatibility before numerical coefficient bounds are applied.",
+        "Do not claim CMB is the substrate; it is the observed photon bath/calibration frame here.",
+        "Do not import process-time C(z) into H(z) or the primary CMB branch.",
+        "Do not export a bare c_Y<0 condition without Y/X scheme labels.",
+        "Do not claim late ISW/lensing safety after MOND/memory activation without line-of-sight modeling.",
+    ]
+
+
+def coefficient_scheme_gate() -> dict[str, object]:
+    """Expose the Y-scheme to X-scheme map and prevent silent sign flips."""
+    X, H, M_Pl = symbols("X H M_Pl", positive=True)
+    cY_Y, cY2_Y = symbols("c_Y_Y c_Y2_Y", real=True)
+    c_X, c_X2 = symbols("c_X c_X2", real=True)
+
+    g2_y_mapped = -2 * cY_Y * X + 4 * cY2_Y * X**2
+    g2_x = c_X * X + c_X2 * X**2
+    alpha_k_x = sp.simplify(2 * X * (c_X + 6 * c_X2 * X) / (H**2 * M_Pl**2))
+    alpha_k_y = sp.simplify(alpha_k_x.subs({c_X: -2 * cY_Y, c_X2: 4 * cY2_Y}))
+
+    return {
+        "status": "PASS_SCHEME_LABELS_EXPLICIT",
+        "Y_to_X": {
+            "c_X": sp.Eq(c_X, -2 * cY_Y),
+            "c_X2": sp.Eq(c_X2, 4 * cY2_Y),
+        },
+        "G2_from_Y": sp.Eq(sp.Symbol("G2_Y_to_X"), g2_y_mapped),
+        "G2_X_scheme": sp.Eq(sp.Symbol("G2_X"), g2_x),
+        "alpha_K_X_scheme": sp.Eq(sp.Symbol("alpha_K_X"), alpha_k_x),
+        "alpha_K_Y_symbols": sp.Eq(sp.Symbol("alpha_K_Y_symbols"), alpha_k_y),
+        "sign_rule": (
+            "stability requires alpha_K_total>0 in the chosen perturbation branch; "
+            "a bare c_Y<0 statement is not exportable"
+        ),
+    }
+
+
 def cmb_comoving_time_calibration() -> dict[str, object]:
     """
     CMB-comoving calibration of the cosmic age.
@@ -166,17 +273,18 @@ def map_rfg_to_horndeski():
     I_k-სექტორი არ ჯდება სტანდარტულ Horndeski-ში — ის მოითხოვს
     EFT of Solid Inflation (ESS) ჩარჩოს.
 
-    Horndeski (მხოლოდ φ) სექტორში:
-        G_2 = c_Y·Y + c_Y2·Y² = -2c_Y·X + 4·c_Y2·X²
+    Horndeski (მხოლოდ φ) სექტორში, Y-სქემის კოეფიციენტებით:
+        G_2 = c_Y^(Y)·Y + c_Y2^(Y)·Y²
+            = -2c_Y^(Y)·X + 4·c_Y2^(Y)·X²
+        c_X = -2c_Y^(Y), c_X2 = 4c_Y2^(Y)
         G_3 = 0   (no kinetic mixing)
         G_4 = M_Pl²/2
         G_5 = 0
     """
     X = Symbol('X', real=True)
-    # აგენტთა საბჭოს შესწორება: c_Y არ უნდა იყოს positive=True, 
-    # რადგან alpha_K > 0 მოითხოვს c_Y < 0-ს.
-    c_Y = Symbol('c_Y', real=True) 
-    c_Y2, M_Pl = symbols('c_Y2 M_Pl', positive=True)
+    c_Y = Symbol('c_Y_Y', real=True)
+    c_Y2 = Symbol('c_Y2_Y', real=True)
+    M_Pl = Symbol('M_Pl', positive=True)
 
     G_2 = -2 * c_Y * X + 4 * c_Y2 * X**2
     G_3 = sp.Integer(0)
@@ -280,10 +388,12 @@ def compute_alpha_K():
     Bellini-Sawicki:
         α_K = (2X·G_{2,X} + 4X²·G_{2,XX} + ...) / (H²·M_*²)
 
-    G_2 = -2c_Y·X + 4c_Y2·X²
-    α_K = (-4c_Y·X + 48c_Y2·X²) / (H²·M_Pl²)
-    სტაბილურობა (no-ghost) მოითხოვს α_K > 0.
-    ვინაიდან X დადებითია (time-like დერივატივი), c_Y უნდა იყოს უარყოფითი!
+    G_2 = -2c_Y^(Y)·X + 4c_Y2^(Y)·X²
+    α_K = (-4c_Y^(Y)·X + 48c_Y2^(Y)·X²) / (H²·M_Pl²)
+
+    სტაბილურობა მოითხოვს alpha_K_total > 0-ს იმ კონკრეტულ perturbation branch-ში.
+    ეს არ უნდა გადაიწეროს bare "c_Y<0" claim-ად, რადგან p08 Bellini-Sawicki
+    X ხიდს იყენებს, ხოლო p01/p02 აქტიური ფანჯარა Y-სქემაში იწერება.
     """
     G_2, G_3, G_4, G_5, X = map_rfg_to_horndeski()
     H, M_Pl = symbols('H M_Pl', positive=True)
@@ -307,9 +417,11 @@ def flrw_metric_sector_locking_theorem():
 
         exp(Phi_0) = 1  ->  Phi_0 = 0  ->  dot(Phi_0)=0  ->  X_0=0.
 
-    Therefore the scalar carries no homogeneous stress-energy in the metric
-    sector and the background Friedmann equations are inherited from GR for the
-    same matter/radiation content.
+    Therefore, on this named branch, the scalar carries no homogeneous
+    stress-energy in the metric sector and the background Friedmann equations
+    are inherited from GR for the same matter/radiation content. This function
+    proves the consequence of the branch lock; it does not prove that the full
+    p01/p02 dynamics forces the lock.
     """
     Phi0, H, M_Pl, rho, p = symbols("Phi0 H M_Pl rho p", real=True)
 
@@ -321,7 +433,9 @@ def flrw_metric_sector_locking_theorem():
         "tau_phi_background": sp.Integer(0),
         "friedmann_1": sp.Eq(3 * M_Pl**2 * H**2, rho),
         "friedmann_2": sp.Eq(2 * M_Pl**2 * sp.Symbol("Hdot", real=True), -(rho + p)),
-        "status": "GR background inherited in the same-matter metric-sector limit",
+        "status": "CONDITIONAL_BRANCH_LOCK_NOT_EOM_DERIVED_HERE",
+        "consequence": "GR background inherited in the same-matter metric-sector limit",
+        "open_requirement": "derive Phi_0=0 dynamically from p01/p02 or keep it as a branch assumption",
     }
 
 
@@ -449,14 +563,14 @@ def is_memory_freezing_cmb_estimate():
 def cmb_consistency_check():
     return {
         'CMB_comoving_calibration': 'T0 is calibrated in the CMB-comoving cosmic rest frame',
-        'locked_FLRW_branch': 'Phi_0=0, X_0=0 in matter-clock cosmic time',
+        'locked_FLRW_branch': 'Phi_0=0, X_0=0 is a named same-matter branch lock',
         'alpha_T': '0 on the locked branch; full solid-sector tensors still obey phase9 mass/speed filter',
         'alpha_M': '0 because G4=M_Pl^2/2 is constant',
         'alpha_B': '0 because G3=0 and G4 has no Phi-dependence',
         'alpha_K': '0 on the locked branch; no-ghost window applies to off-branch propagating scalar/ESS modes',
         'metric_potentials': 'Poisson and slip equations are GR-identical at linear order',
         'CMB_spectrum': 'C_l inherited from LCDM for same matter content and initial conditions',
-        'BAO_lensing_BBN': 'inherited in the same-matter metric-sector limit',
+        'BAO_lensing_BBN': 'conditional: same matter, locked branch, and I_k early filters passed',
         'open_extension': 'no-particle-DM/IS-memory Boltzmann validation remains the full-code branch of phase21',
     }
 
@@ -473,7 +587,7 @@ def old_to_rfg_cmb_migration_audit():
             "radiation trace-channel filter",
             "CMB-era frozen-memory estimate",
         ],
-        "strong_claim": "RFG does not shift primary CMB peaks in the same-matter metric-sector limit",
+        "conditional_claim": "RFG does not shift primary CMB peaks in the same-matter metric-sector limit",
         "not_yet_claimed": [
             "full Planck TT/TE/EE likelihood",
             "no-particle-DM replacement of all CDM wells",
@@ -488,24 +602,43 @@ def old_to_rfg_cmb_migration_audit():
 
 def i_k_sector_on_flrw():
     """
-    I_k სექტორი FLRW ფონზე:
-        ρ(I_1)    ∝ 1/a²   ← curvature-like
-        ρ(I_1²)   ∝ 1/a⁴   ← radiation-like
-        ρ(I_2)    ∝ 1/a⁴   ← radiation-like
-        ρ(I_3)    ∝ 1/a⁶   ← stiff fluid
+    I_k სექტორი FLRW ფონზე p02_cosmo.py-ის აქტიური T_mn კონვენციით:
+        ρ(I_1)    = -3*c_I1/a²
+        ρ(I_1²)   = -9*c_I1sq/a⁴
+        ρ(I_2)    = -3*c_I2/a⁴
+        ρ(I_3)    = -c_I3/a⁶
 
     BBN (დიდი აფეთქების ნუკლეოსინთეზის) შეზღუდვები:
-    რადიაციის მსგავსი წევრები (c_I1sq, c_I2) არ უნდა აჭარბებდნენ 
+    რადიაციის მსგავსი კომბინაცია -(9*c_I1sq+3*c_I2) არ უნდა აჭარბებდეს
     დასაშვებ ეფექტურ ნეიტრინოთა რაოდენობას (ΔN_eff).
     """
     a = Symbol('a', positive=True)
+    c_I1, c_I1sq, c_I2, c_I3 = symbols("c_I1 c_I1sq c_I2 c_I3", real=True)
 
-    rho_I1 = sp.Symbol('c_I1') * 3 / a**2          # 1/a² (curvature-like)
-    rho_I1sq = sp.Symbol('c_I1sq') * 9 / a**4      # 1/a⁴ (radiation-like)
-    rho_I2 = sp.Symbol('c_I2') * 3 / a**4          # 1/a⁴
-    rho_I3 = sp.Symbol('c_I3') * 1 / a**6          # 1/a⁶ (stiff)
+    rho_I1 = -c_I1 * 3 / a**2          # 1/a² (curvature-like)
+    rho_I1sq = -c_I1sq * 9 / a**4      # 1/a⁴ (radiation-like)
+    rho_I2 = -c_I2 * 3 / a**4          # 1/a⁴
+    rho_I3 = -c_I3 * 1 / a**6          # 1/a⁶ (stiff)
 
     return rho_I1, rho_I1sq, rho_I2, rho_I3
+
+
+def p02_p08_ik_sign_consistency_gate() -> dict[str, object]:
+    """Check that p08's early-density filters use p02's active FLRW signs."""
+    a = Symbol("a", positive=True)
+    c_I1, c_I1sq, c_I2, c_I3 = symbols("c_I1 c_I1sq c_I2 c_I3", real=True)
+
+    p02_rho_ik = -3 * c_I1 / a**2 - 9 * c_I1sq / a**4 - 3 * c_I2 / a**4 - c_I3 / a**6
+    p08_rho_ik = sum(i_k_sector_on_flrw())
+    residual = sp.simplify(p08_rho_ik - p02_rho_ik)
+
+    return {
+        "status": "PASS" if residual == 0 else "CHECK",
+        "p02_active_rho_IK": p02_rho_ik,
+        "p08_filter_rho_IK": p08_rho_ik,
+        "residual": residual,
+        "meaning": "p08 early-universe filters now use the same rho signs as p02_cosmo.py",
+    }
 
 
 def omega_de_fraction(a: float, omega_m0: float = PLANCK_2018["Omega_m"][0]) -> float:
@@ -683,15 +816,15 @@ def ik_sector_delta_neff_and_curvature_filters() -> dict[str, object]:
     epsilon_bbn = Symbol("epsilon_BBN", positive=True)
     epsilon_curv = Symbol("epsilon_curv", positive=True)
 
-    rho_extra_rad = (9 * c_I1sq + 3 * c_I2) / a**4
+    rho_extra_rad = -(9 * c_I1sq + 3 * c_I2) / a**4
     rho_gamma = rho_gamma0 / a**4
     delta_neff = sp.simplify(sp.Rational(8, 7) * (sp.Rational(11, 4)) ** sp.Rational(4, 3) * rho_extra_rad / rho_gamma)
 
-    rho_stiff = c_I3 / a**6
+    rho_stiff = -c_I3 / a**6
     rho_rad = rho_rad0 / a**4
     stiff_ratio_bbn = sp.simplify((rho_stiff / rho_rad).subs(a, a_bbn))
 
-    rho_curvature_like = 3 * c_I1 / a**2
+    rho_curvature_like = -3 * c_I1 / a**2
     curvature_ratio_star = sp.simplify((rho_curvature_like / rho_rad).subs(a, Symbol("a_star", positive=True)))
 
     return {
@@ -702,7 +835,7 @@ def ik_sector_delta_neff_and_curvature_filters() -> dict[str, object]:
         "stiff_BBN_bound": sp.Le(sp.Abs(stiff_ratio_bbn), epsilon_bbn),
         "curvature_like_ratio_at_recombination": curvature_ratio_star,
         "curvature_geometry_bound": sp.Le(sp.Abs(curvature_ratio_star), epsilon_curv),
-        "meaning": "I_k coefficients must be on the locked/suppressed branch or satisfy these early-universe filters",
+        "meaning": "I_k coefficients must be on the locked/suppressed branch or satisfy these early-universe filters with p02 active rho signs",
     }
 
 
@@ -710,22 +843,24 @@ def cmb_closed_conditional_open_scorecard() -> dict[str, list[str]]:
     return {
         "closed": [
             "T0 is a CMB-comoving present-epoch age calibration, not an Earth-gravity constant",
-            "Phi_0=X_0=0 matter-clock FLRW locking",
-            "alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
-            "linear Poisson/slip equations inherited",
-            "primary acoustic ruler inherited for same matter and same primordial spectrum",
+            "if Phi_0=X_0=0 is imposed, alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
+            "linear Poisson/slip equations are inherited in the same-matter locked branch",
+            "primary acoustic ruler is inherited for same matter, same recombination, and same primordial spectrum",
             "radiation trace T_gamma=0, so photon acoustic pressure is not directly driven by the RFG trace channel",
         ],
         "conditional": [
+            "Phi_0=X_0=0 must be derived from EOM or kept as an explicit branch assumption",
             "I_k background terms must pass Delta N_eff, stiff-fluid, and curvature-like filters",
             "late lensing/ISW remains identical only while the nonlinear MOND/memory response is not active in the line-of-sight model",
             "off-branch scalar/ESS perturbations require no-ghost and sound-speed checks",
             "identifying CMB with the deeper RFG substrate requires a separate bridge, not assumed here",
+            "coefficient signs must always state Y-scheme vs X-scheme",
         ],
         "open": [
             "full Planck TT/TE/EE+lensing likelihood",
             "no-particle-DM replacement of the CDM gravitational wells",
             "primordial A_s and n_s from oscillon/tail nucleation dynamics",
+            "ESS solid-sector perturbation action and eigenmode stability",
         ],
     }
 
@@ -902,10 +1037,10 @@ def stage_c3_old_cmb_status() -> dict[str, object]:
         "old_file_drained": "OLD/9. ISPG_CMB.tex",
         "new_file": "p08_cmb.py",
         "migrated": True,
-        "closed_same_matter_branch": [
+        "closed_conditional_same_matter_branch": [
             "CMB-comoving frame calibrates T0; 13.8 Gyr is a fitted present-epoch value",
-            "matter-clock FLRW locking: Phi_0=0 and X_0=0",
-            "Bellini-Sawicki alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
+            "if matter-clock FLRW locking Phi_0=0 and X_0=0 is imposed",
+            "Bellini-Sawicki alpha_K=alpha_B=alpha_M=alpha_T=0 follows on the locked branch",
             "linear scalar stress is quadratic and does not shift metric potentials at first order",
             "Einstein-Boltzmann hierarchy is inherited for same matter and same primordial spectrum",
             "linear CMB lensing/ISW sources are unchanged in the same-matter branch",
@@ -926,9 +1061,9 @@ def stage_c3_old_cmb_status() -> dict[str, object]:
 
 def stage_c3_cmb_deletion_gate_scorecard() -> dict[str, str]:
     return {
-        "OLD_9_status": "safe as migrated for same-matter linear-CMB claims",
+        "OLD_9_status": "safe as migrated for conditional same-matter linear-CMB claims",
         "not_claimed": "no-particle-DM CMB solution is still future work",
-        "article_use": "for the first gravity article, cite only the locked-branch inheritance theorem",
+        "article_use": "for the first gravity article, cite only the conditional locked-branch inheritance result",
         "program_use": "keep no-particle-DM branch as a later CLASS/CAMB paper target",
     }
 
@@ -942,8 +1077,18 @@ if __name__ == "__main__":
     print("PHASE 21: CMB — ეფექტური ველის თეორიის (EFT) კავშირები")
     print("=" * 72)
 
+    print("\n--- ნაბიჯი -1: CMB claim gate ---")
+    for gate in cmb_claim_gate():
+        print(f"  {gate.claim}: {gate.status}")
+        print(f"    verified_here: {gate.verified_here}")
+        print(f"    open_requirement: {gate.open_requirement}")
+
     print("\n--- ნაბიჯი 0: CMB-comoving დროის კალიბრაცია ---")
     for k, v in cmb_comoving_time_calibration().items():
+        print(f"  {k:30s}: {v}")
+
+    print("\n--- ნაბიჯი 0b: Y/X coefficient scheme gate ---")
+    for k, v in coefficient_scheme_gate().items():
         print(f"  {k:30s}: {v}")
 
     print("\n--- Horndeski მაპირება ---")
@@ -976,8 +1121,8 @@ if __name__ == "__main__":
     print(f"  G_{{2,X}}  = {G2X}")
     print(f"  G_{{2,XX}} = {G2XX}")
     print(f"  α_K = {aK}")
-    print(f"  Ghost-ის თავიდან ასაცილებლად საჭიროა α_K > 0.")
-    print(f"  აქედან გამომდინარეობს კრიტიკული პირობა: c_Y < 0.")
+    print("  Ghost-ის თავიდან ასაცილებლად საჭიროა alpha_K_total > 0.")
+    print("  bare c_Y<0 აღარ არის exportable claim; უნდა მიეთითოს Y/X scheme.")
 
     print("\n--- ნაბიჯი 4b: ძველი CMB ბირთვის RFG-ში გადმოტანა ---")
     lock = flrw_metric_sector_locking_theorem()
@@ -1018,7 +1163,11 @@ if __name__ == "__main__":
     print(f"  ρ(I_1²)   = {r1sq}  (∝ 1/a⁴)")
     print(f"  ρ(I_2)    = {r2}    (∝ 1/a⁴)")
     print(f"  ρ(I_3)    = {r3}    (∝ 1/a⁶)")
-    print("  BBN ლიმიტი: c_I1sq და c_I2 ≲ ΔN_eff * ρ_gamma.")
+    print("  BBN ლიმიტი: |-(9*c_I1sq+3*c_I2)| ≲ ΔN_eff * ρ_gamma.")
+
+    print("\n--- ნაბიჯი 6b: p02/p08 I_k sign consistency gate ---")
+    for k, v in p02_p08_ik_sign_consistency_gate().items():
+        print(f"  {k:30s}: {v}")
 
     model = RFGAlphaModel()
 
@@ -1083,16 +1232,20 @@ if __name__ == "__main__":
     for line in hi_class_run_template(model, DEFAULT_ALPHA_TABLE):
         print(f"  {line}")
 
+    print("\n--- ნაბიჯი 18: do-not-claim gate ---")
+    for item in cmb_do_not_claim():
+        print(f"  - {item}")
+
     # შემაჯამებელი
     print("\n" + "=" * 72)
     print("აგენტთა საბჭოს შენიშვნების დადასტურება:")
     print("1. placeholder ტექსტები სრულად გასუფთავდა.")
-    print("2. c_Y-ის positive=True დეკლარაცია მოიხსნა. α_K-ს გაანალიზებამ აჩვენა,")
-    print("   რომ No-Ghost პირობა მოითხოვს c_Y < 0 (აგენტ-მათემატიკოსის სწორი შენიშვნა).")
+    print("2. c_Y-ის bare-sign claim გამკაცრდა: p08 იყენებს Y->X ხიდს,")
+    print("   ამიტომ export პირობა არის scheme-labeled alpha_K_total > 0.")
     print("3. Bellini-Sawicki პარამეტრიზაციის არასრულფასოვნება RFG-სთვის აღიარებულია.")
     print("   ელასტიური სექტორისთვის აუცილებელია 'EFT of Solid Inflation' (ESS) ჩარჩო.")
-    print("4. ძველი CMB ბირთვი გადმოტანილია theorem-ებად: locked FLRW branch -> alpha_i=0")
-    print("   -> GR-identical linear metric equations -> inherited acoustic ruler.")
+    print("4. ძველი CMB ბირთვი გადმოტანილია conditional result-ად: locked FLRW branch")
+    print("   -> alpha_i=0 -> GR-identical linear metric equations -> inherited acoustic ruler.")
     print("5. Einstein-Boltzmann hierarchy, linear lensing და ISW same-matter ლიმიტში უცვლელია.")
     print("6. I_k სექტორის early-universe ფილტრები ცხადად ჩაიწერა: Delta N_eff, stiff, curvature.")
     print("7. C_l-ის same-matter მემკვიდრეობა ანალიტიკურად დახურულია; no-particle-DM/IS-memory")
