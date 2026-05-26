@@ -2,6 +2,8 @@
 # signature (+---); Y = g^mn d_m Phi d_n Phi; B^AB = -g^mn d_m phi^A d_n phi^B.
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
+# Active coefficient scheme: this file uses particle-sector normal forms;
+# no active c_Y sign claim is made here.
 
 """
 PHASE 37: C3 Koide operator for charged-lepton frequencies
@@ -27,11 +29,12 @@ smallest to the electron gives
 and therefore, with m proportional to nu^2, the charged-lepton masses.
 
 Important:
-    p11_particles.py adds a candidate derivation:
-    theta = 2/9 from a Z9 reduced framed-holonomy closure
+    p11_particles.py adds a candidate route:
+    theta = 2/9 from an order-9 reduced framed-holonomy candidate
     (C3 axes x C3 phase/braid sectors, spinorial index h=2).
     p11_particles.py gives action-level support for
-    the C3 x C3 closure lattice.
+    the C3 x C3 closure-slot lattice. It does not yet prove that this
+    direct product is a cyclic Z9 group.
     p11_particles.py gives support for h=2 from the
     difference between projective/nematic and oriented framed closure.
     p11_particles.py shows that the C3 strain lock is
@@ -45,9 +48,22 @@ import math
 
 
 LEPTON_MASSES_MEV = {
-    "electron": 0.51099895000,
+    "electron": 0.51099895069,
     "muon": 105.6583755,
-    "tau": 1776.86,
+    "tau": 1776.93,
+}
+
+LEPTON_MASS_UNCERTAINTY_MEV = {
+    "electron": 0.00000000016,
+    "muon": 0.0000023,
+    "tau": 0.09,
+}
+
+PDG_MASS_SOURCE = {
+    "edition": "PDG 2026 pdgLive",
+    "electron_node": "S003",
+    "muon_node": "S004",
+    "tau_node": "S035",
 }
 
 THETA_TOPOLOGICAL = 2.0 / 9.0
@@ -90,7 +106,7 @@ def c3_frequency_ratios(theta=THETA_TOPOLOGICAL):
 
 
 def c3_mass_predictions(theta=THETA_TOPOLOGICAL):
-    """Masses predicted from m ~ nu^2, anchored to the electron mass."""
+    """Conditional masses from m ~ nu^2, anchored to the electron mass."""
     ratios = c3_frequency_ratios(theta)
     m_e = LEPTON_MASSES_MEV["electron"]
     return {
@@ -141,7 +157,7 @@ def c3_operator_eigenvalues(theta=THETA_TOPOLOGICAL, omega0=1.0):
 
 def axis_ratios_from_c3(theta=THETA_TOPOLOGICAL):
     """
-    If an axis length scales as L ~ 1/nu, return the C3-predicted
+    If an axis length scales as L ~ 1/nu, return the C3-implied
     ellipsoid ratios normalized to the electron axis.
     """
     ratios = c3_frequency_ratios(theta)
@@ -217,7 +233,7 @@ def best_fit_theta(grid_size=20000, refine_steps=80):
 
 
 def prediction_table(theta=THETA_TOPOLOGICAL):
-    """Rows comparing observed and C3-predicted masses/frequencies."""
+    """Rows comparing observed and conditional C3 masses/frequencies."""
     observed_ratios = measured_frequency_ratios()
     predicted_ratios = c3_frequency_ratios(theta)
     predicted_masses = c3_mass_predictions(theta)
@@ -232,12 +248,76 @@ def prediction_table(theta=THETA_TOPOLOGICAL):
                 "predicted_freq_ratio": predicted_ratios[name],
                 "observed_mass_MeV": observed_mass,
                 "predicted_mass_MeV": predicted_mass,
+                "mass_uncertainty_MeV": LEPTON_MASS_UNCERTAINTY_MEV[name],
                 "relative_mass_error": (
                     predicted_mass - observed_mass
                 ) / observed_mass,
+                "sigma_error": (
+                    predicted_mass - observed_mass
+                ) / LEPTON_MASS_UNCERTAINTY_MEV[name],
             }
         )
     return rows
+
+
+def pdg_precision_audit(theta=THETA_TOPOLOGICAL):
+    """
+    Distinguish relative mass-ratio compression from PDG-precision prediction.
+
+    The electron mass is used as the anchor for the absolute scale, so it is
+    not counted as an independent prediction. The muon/tau residuals are then
+    tested against current PDG uncertainties.
+    """
+    rows = []
+    chi2 = 0.0
+    dof = 0
+    for row in prediction_table(theta):
+        name = row["particle"]
+        independent = name != "electron"
+        sigma = row["sigma_error"]
+        if independent:
+            chi2 += sigma * sigma
+            dof += 1
+        rows.append(
+            {
+                **row,
+                "role": "anchor" if name == "electron" else "non_anchor_test",
+                "pdg_1sigma_pass": independent and abs(sigma) <= 1.0,
+            }
+        )
+    return {
+        "source": PDG_MASS_SOURCE,
+        "rows": rows,
+        "chi2_non_anchor": chi2,
+        "dof_non_anchor": dof,
+        "pdg_precision_pass": all(
+            row["pdg_1sigma_pass"]
+            for row in rows
+            if row["role"] == "non_anchor_test"
+        ),
+        "allowed_claim": (
+            "relative charged-lepton mass-ratio compression at roughly "
+            "1e-5 to 1e-4 level; not a PDG-precision prediction"
+        ),
+    }
+
+
+def mass_bridge_gate():
+    """
+    Gate for the central m ~ nu^2 bridge.
+
+    The C3 operator fixes frequency ratios. Turning those into particle masses
+    requires an oscillon energy theorem and an absolute normalization.
+    """
+    return {
+        "frequency_ratio_theorem": "C3 algebra gives ratios once theta is fixed",
+        "mass_map_status": "ASSUMED_BRIDGE: m proportional to nu^2",
+        "absolute_scale_status": "ANCHOR: electron mass is inserted, not derived",
+        "needed_theorem": (
+            "derive the oscillon energy functional and show that its dressed "
+            "pole mass scales as the square of the C3 normal frequency"
+        ),
+    }
 
 
 def normal_form_target():
@@ -245,30 +325,42 @@ def normal_form_target():
     The minimal nonlinear target that could select theta = 2/9.
 
     In singlet-doublet variables, Koide is |A1| = |E|. A C3-equivariant
-    reduced-framing phase lock may then fix theta through
-    cos(pi*(9*theta - 2)). See p11_particles.py.
+    reduced-framing phase lock may then fix theta. The present file still
+    needs a cyclic-lift theorem before it may call the C3 x C3 slot lattice
+    a genuine Z9 closure group.
     """
     return {
         "singlet_doublet_balance": "|A1| = |E|  -> Koide K = 2/3",
-        "z9_closure": "C3 axes x C3 phase/braid sectors -> 9 slots",
-        "spinorial_index": "h = 2 (first non-trivial oriented framed closure)",
+        "order9_slots": "C3 axes x C3 phase/braid sectors -> 9 slots",
+        "not_yet_z9": "C3 x C3 has order 9 but is not cyclic Z9 without an extra lift theorem",
+        "spinorial_index": "h = 2 candidate; charged oriented-frame derivation still open",
         "action_origin": "I3=det(B) contains det(Q)=Re(E^3)/27",
-        "phase_locking_term": "V_phase ~ 1 - cos(pi*(9 theta - 2))",
-        "stationary_condition": "9 theta = 2",
+        "phase_locking_term": "conditional normal form after cyclic lift and h=2 selection",
+        "stationary_condition": "theta = 2/9 only after the missing lift/selection gates pass",
         "theta": THETA_TOPOLOGICAL,
-        "status": "Candidate derivation in phase38; full RFG-action theorem still open.",
+        "status": "Candidate derivation; full RFG-action and cyclic-lift theorem still open.",
     }
 
 
-def status_assessment():
+def phase37_status_assessment():
     return {
         "candidate": "C3 cyclic Koide operator",
-        "closed": "Mass ratios follow from theta = 2/9 and m ~ nu^2.",
-        "theta_candidate": "phase38 Z9 reduced holonomy: theta = 2/9.",
-        "open": "Derive the Z9 framed closure directly from the RFG action.",
+        "closed": "Koide identity follows algebraically from the C3 triplet.",
+        "conditional": "Lepton mass ratios follow only after theta=2/9 and m~nu^2 are accepted.",
+        "theta_candidate": "phase38 order-9 reduced holonomy candidate: theta = 2/9.",
+        "open": "Derive cyclic lift, h=2 selection, m~nu^2, and radiative protection.",
         "replaces_question": "Why N=5,72,295?",
-        "new_question": "Why C3 plus theta=2/9?",
+        "new_question": "Why C3, why cyclic order-9 lift, why h=2, why m~nu^2?",
     }
+
+
+def phase37_do_not_claim():
+    return [
+        "Do not claim PDG-precision charged-lepton mass prediction.",
+        "Do not claim theta=2/9 is derived until the cyclic lift is proven.",
+        "Do not claim electron mass is derived; it is the anchor.",
+        "Do not claim m~nu^2 is derived until the oscillon energy theorem is built.",
+    ]
 
 
 if __name__ == "__main__":
@@ -280,7 +372,7 @@ if __name__ == "__main__":
     for k, value in enumerate(c3_raw_frequencies()):
         print(f"  k={k}: nu_k/A = {value:.12f}")
 
-    print("\n2. Frequency ratios and mass predictions")
+    print("\n2. Frequency ratios and conditional mass table")
     for row in prediction_table():
         print(
             f"  {row['particle']:8s}: "
@@ -290,6 +382,18 @@ if __name__ == "__main__":
             f"m_obs={row['observed_mass_MeV']:.6f} MeV, "
             f"rel_err={row['relative_mass_error']:.3e}"
         )
+
+    print("\n2b. PDG precision audit")
+    precision = pdg_precision_audit()
+    print(f"  source: {precision['source']['edition']}")
+    print(
+        f"  chi2(non-anchor)={precision['chi2_non_anchor']:.3e}, "
+        f"dof={precision['dof_non_anchor']}, "
+        f"PDG precision pass={precision['pdg_precision_pass']}"
+    )
+    for row in precision["rows"]:
+        sigma = "anchor" if row["role"] == "anchor" else f"{row['sigma_error']:.3e} sigma"
+        print(f"  {row['particle']:8s}: role={row['role']}, residual={sigma}")
 
     print("\n3. Koide identity")
     print(f"  K_C3(theta=2/9) = {koide_identity():.12f}")
@@ -316,8 +420,16 @@ if __name__ == "__main__":
         print(f"  {key:24s}: {value}")
 
     print("\n7. Status")
-    for key, value in status_assessment().items():
+    for key, value in phase37_status_assessment().items():
         print(f"  {key:18s}: {value}")
+
+    print("\n8. Mass bridge gate")
+    for key, value in mass_bridge_gate().items():
+        print(f"  {key:24s}: {value}")
+
+    print("\n9. Do-not-claim")
+    for item in phase37_do_not_claim():
+        print(f"  - {item}")
 
 # ===================== CONSOLIDATED PHASE SECTIONS =====================
 
@@ -341,7 +453,7 @@ Mathieu-ს განტოლებაზე. N=5, 72, 295 ინდექს�
 p11_particles.py ამოწმებს ალტერნატიულ structural candidate-ს,
 სადაც charged-lepton sqrt(m) სპექტრი მოდის C3-ციკლური ოპერატორიდან:
 nu_k = A[1 + sqrt(2) cos(2/9 + 2*pi*k/3)].
-p11_particles.py ამატებს theta=2/9-ის candidate derivation-ს.
+p11_particles.py ამატებს theta=2/9-ის candidate route-ს.
 """
 import sympy as sp
 import math
@@ -390,9 +502,9 @@ def analyze_mathieu_resonance():
 
 def calculate_mass_ladder():
     # PDG მასები (MeV)
-    m_e_pdg = 0.51099895
-    m_mu_pdg = 105.658375
-    m_tau_pdg = 1776.86
+    m_e_pdg = LEPTON_MASSES_MEV["electron"]
+    m_mu_pdg = LEPTON_MASSES_MEV["muon"]
+    m_tau_pdg = LEPTON_MASSES_MEV["tau"]
     
     # Mathieu-ს N ინდექსები (3 თაობა) - ემპირიული შერჩევა!
     N_e, N_mu, N_tau = 5, 72, 295
@@ -417,10 +529,29 @@ def calculate_mass_ladder():
     
     return (N_e, b_e, m_e_rfg, m_e_pdg, 0.0), (N_mu, b_mu, m_mu_rfg, m_mu_pdg, err_mu), (N_tau, b_tau, m_tau_rfg, m_tau_pdg, err_tau), q_val
 
+
+def mathieu_sign_stability_gate():
+    """
+    Gate for the legacy Mathieu route.
+
+    In the time-sector toy reduction, positive Mathieu q requires c_Y2 < 0.
+    That sign is not automatically compatible with the stability windows of
+    the full RFG action. This legacy route must not be used as the main mass
+    proof until the p01/p08 sign and gradient gates are checked.
+    """
+    return {
+        "route_status": "legacy/time-sector toy model",
+        "positive_q_requires": "c_Y2 < 0 in this reduced convention",
+        "stability_status": "not checked against full no-ghost/gradient windows",
+        "allowed_use": "phenomenological comparison only",
+        "blocked_claim": "Mathieu ladder derives lepton masses",
+    }
+
+
 def calculate_koide(b_e, b_mu, b_tau):
-    m_e = 0.51099895
-    m_mu = 105.658375
-    m_tau = 1776.86
+    m_e = LEPTON_MASSES_MEV["electron"]
+    m_mu = LEPTON_MASSES_MEV["muon"]
+    m_tau = LEPTON_MASSES_MEV["tau"]
     
     K_exp = (m_e + m_mu + m_tau) / (math.sqrt(m_e) + math.sqrt(m_mu) + math.sqrt(m_tau))**2
     
@@ -465,12 +596,12 @@ if __name__ == "__main__":
     print(f"{res_tau[0]:<5} | Unstable (τ) | {res_tau[1]:<12.4f} | {res_tau[2]:<15.6f} | {res_tau[3]:<15.6f} | {res_tau[4]:<10.4f}")
 
     K_exp, err_exp, K_rfg, err_rfg = calculate_koide(res_e[1], res_mu[1], res_tau[1])
-    print("\n--- Koide-ს 2/3 ფარდობა და ნეიტრინოს პროგნოზი ---")
+    print("\n--- Koide-ს 2/3 ფარდობა და ნეიტრინოს ჰიპოთეზური ტესტი ---")
     print(f"თეორიული სამიზნე (Koide limit): K = 2/3 ≈ 0.666667")
     print(f"PDG ექსპერიმენტული მასებით:   K_exp = {K_exp:.6f} (ცდომილება {err_exp:.4f}%)")
     print(f"RFG სრული Mathieu-თი (q={q_val}):   K_rfg = {K_rfg:.6f} (ცდომილება {err_rfg:.4f}%)")
-    print("\nწინასწარმეტყველება ნეიტრინოებისთვის (3 თაობა):")
-    print("ჰიპოთეზური პროგნოზი: K_nu ≈ 2/3, შესამოწმებელია დამოუკიდებლად.")
+    print("\nნეიტრინოებისთვის ჰიპოთეზური ტესტი (3 თაობა):")
+    print("ჰიპოთეზა: K_nu ≈ 2/3, შესამოწმებელია დამოუკიდებლად.")
 
     print("\n--- C3 Koide operator შედარება (phase37) ---")
     c3 = calculate_c3_comparison()
@@ -488,7 +619,7 @@ if __name__ == "__main__":
                 f"rel_err={row['relative_mass_error']:.3e}"
             )
         print("შენიშვნა: ეს აღარ იყენებს N=5,72,295 ინდექსების ხელით არჩევას.")
-        print("theta=2/9-ის candidate derivation იხ. phase38; ღიაა მისი RFG-action-იდან გამოყვანა.")
+        print("theta=2/9-ის candidate route იხ. phase38; ღიაა მისი RFG-action-იდან გამოყვანა.")
 
     print("\n--- აგენტთა საბჭოს შენიშვნები / შეზღუდვები ---")
     print("1. ფარული fit: N=72 და 295 შერჩეულია √m_i/m_e-ს მიხედვით. 0 DoF = 0 პრედიქცია. (დამოუკიდებელი ტოპოლოგიური წესი ღიაა).")
@@ -516,8 +647,8 @@ p11_particles.py ამატებს ახალ structural candidate-ს:
 ლეპტონების sqrt(m) სპექტრი შეიძლება იყოს C3-ციკლური შიდა ოპერატორის
 სამი eigenfrequency, theta=2/9 ფაზით. ეს ცვლის კითხვას
 "რატომ N=5,72,295?" კითხვით "რატომ C3 და theta=2/9?".
-p11_particles.py ამატებს theta=2/9-ის candidate derivation-ს
-Z9 reduced framed-holonomy closure-იდან.
+    p11_particles.py ამატებს theta=2/9-ის candidate route-ს
+order-9 reduced framed-holonomy slot lattice-იდან.
 """
 import math
 
@@ -546,9 +677,9 @@ def get_empirical_indices():
 
 def calculate_koide_ratio():
     # PDG ექსპერიმენტული მასები (MeV)
-    m_e = 0.51099895
-    m_mu = 105.658375
-    m_tau = 1776.86
+    m_e = LEPTON_MASSES_MEV["electron"]
+    m_mu = LEPTON_MASSES_MEV["muon"]
+    m_tau = LEPTON_MASSES_MEV["tau"]
     
     # Koide-ს ფარდობა ექსპერიმენტული მასებით
     K_exp = (m_e + m_mu + m_tau) / (math.sqrt(m_e) + math.sqrt(m_mu) + math.sqrt(m_tau))**2
@@ -586,9 +717,10 @@ if __name__ == "__main__":
     print("\n--- აგენტთა საბჭოს შენიშვნები / შეზღუდვები ---")
     print("1. Cherry-picking: ინდექსები 5, 72, 295 შერჩეულია ხელით √m-ის პროპორციულად (0 DoF).")
     print("   ეს არ არის პრედიქცია. სრული მტკიცებისთვის ისინი ტოპოლოგიიდან უნდა გამოვიდეს.")
-    print("2. K_RFG ცდომილება (0.024%) ბევრად აღემატება PDG-ის ცდომილებას (0.0009%).")
+    print("2. K_RFG ცდომილება ბევრად აღემატება PDG-precision მოთხოვნას; ეს legacy fit-ია.")
     print("3. მათემატიკოსის შენიშვნა: m ∝ N^2 მიახლოება (q=0) არ ითვალისწინებს form-factor")
     print("   კორექციებს და რეალურ b_N eigenvalue-ებს (რაც phase15-ში ნაწილობრივ გასწორდა).")
+    print("4. Mathieu q>0 ითხოვს c_Y2<0-ს toy-sector-ში; full stability gate ჯერ ღიაა.")
 
     print("\n--- ახალი მიმართულება: C3 Koide operator (phase37) ---")
     c3 = calculate_c3_operator_candidate()
@@ -605,8 +737,12 @@ if __name__ == "__main__":
                 f"m_obs={row['observed_mass_MeV']:.6f} MeV, "
                 f"rel_err={row['relative_mass_error']:.3e}"
             )
-        print("theta=2/9-ის candidate derivation იხ. p11_particles.py.")
-        print("ღია ამოცანა: Z9 framed closure უნდა გამოვიდეს უშუალოდ RFG action-იდან.")
+        print("theta=2/9-ის candidate route იხ. p11_particles.py.")
+        print("ღია ამოცანა: order-9 cyclic lift უნდა გამოვიდეს უშუალოდ RFG action-იდან.")
+
+    print("\n--- Mathieu sign/stability gate ---")
+    for key, value in mathieu_sign_stability_gate().items():
+        print(f"{key}: {value}")
 
 
 # ===================== merged from p11_particles.py =====================
@@ -848,8 +984,8 @@ Strategy 3 / X2 ითხოვს, რომ N=5,72,295 აღარ იყო�
     p11_particles.py ამატებს უფრო მკვეთრ ალტერნატივას:
     e, mu, tau შეიძლება არ იყვნენ რადიალური n=1,14,59 ოვერტონები, არამედ
     ერთი C3-ციკლური შიდა ოპერატორის სამი eigenfrequency theta=2/9 ფაზით.
-    p11_particles.py ამატებს theta=2/9-ის Z9 reduced-holonomy
-    candidate derivation-ს.
+    p11_particles.py ამატებს theta=2/9-ის order-9 reduced-holonomy
+    candidate route-ს.
 """
 
 import math
@@ -871,9 +1007,9 @@ except ImportError:
 
 
 LEPTON_MASSES_MEV = {
-    "electron": 0.51099895000,
+    "electron": 0.51099895069,
     "muon": 105.6583755,
-    "tau": 1776.86,
+    "tau": 1776.93,
 }
 
 TARGET_N = {
@@ -1031,15 +1167,17 @@ def find_vacuum_elasticity_from_muon():
 
 def lagrangian_moduli_prediction(beta_val):
     """
-    აკავშირებს ნაპოვნ beta-ს ლაგრანჟიანის მოდულუსებთან.
-    beta წარმოადგენს მექანიკური იმპედანსების ფარდობას საზღვარზე.
+    Legacy inverse map from a fitted beta to Lagrangian moduli.
+
+    This is not a prediction: beta is back-solved from the muon input in the
+    old radial-ladder route.
     """
     return {
         "beta_measured": beta_val,
         "physical_meaning": "ვაკუუმის ელასტიური სიხისტის ფარდობა ფაზურ სიხისტესთან",
         "lagrangian_constraint": f"Z_elastic / (Z_phase + Z_elastic) = {beta_val:.4f}",
         "moduli_relation": f"sqrt(c_I1sq) / (sqrt(c_Y2) + sqrt(c_I1sq)) ≈ {beta_val:.4f}",
-        "conclusion": "მიუონის მასა მკაცრად წინასწარმეტყველებს ვაკუუმის ელასტიურ პარამეტრებს."
+        "conclusion": "legacy inverse constraint only; beta is fitted from the muon, not predicted."
     }
 
 
@@ -1053,7 +1191,7 @@ def qft_parity_selection_rule():
         "wigner_parity_condition": "l_i + l_j + l_k უნდა იყოს ლუწი (EVEN) სკალარული გადაფარვისას",
         "muon_parity_sum": "1 + 0 + 0 = 1 (ODD)",
         "transition_amplitude": 0.0,
-        "verdict": "PASS. ლოგიკური წინააღმდეგობა აღმოიფხვრა. მიუონი დაცულია სტაბილურობით."
+        "verdict": "PASS for this toy scalar overlap only; not a full muon lifetime/stability theorem."
     }
 
 
@@ -1203,7 +1341,7 @@ def c3_operator_replacement_candidate():
 
 
 def n4_prediction():
-    """N=4 companion prediction used by phase36."""
+    """Legacy N=4 companion estimate used only if the old N-ladder is revived."""
     m_e = LEPTON_MASSES_MEV["electron"]
     mass_mev = m_e * (4 / 5) ** 2
     return {
@@ -1213,13 +1351,13 @@ def n4_prediction():
     }
 
 
-def status_assessment():
+def phase35_status_assessment():
     return {
         "ladder_fit_status": "რადიალური n=14 გზა რჩება audit/phenomenological candidate-ად.",
         "cavity_derivation_status": "OPEN. n=14-ის უნიკალურობა არ არის გამოყვანილი.",
         "new_candidate": "phase37 C3 Koide operator: e, mu, tau = ერთი C3 triplet.",
-        "theta_candidate": "phase38 Z9 reduced holonomy: theta=2/9.",
-        "next_requirement": "გამოვიყვანოთ Z9 framed closure უშუალოდ RFG action-იდან.",
+        "theta_candidate": "phase38 order-9 reduced holonomy candidate: theta=2/9.",
+        "next_requirement": "გამოვიყვანოთ cyclic lift და h=2 coupling უშუალოდ RFG action-იდან.",
     }
 
 
@@ -1252,7 +1390,7 @@ if __name__ == "__main__":
             f"close_modes={len(data['close_modes'])}"
         )
 
-    print("\n4. Robin საზღვარი და ვაკუუმის ელასტიურობის პროგნოზი")
+    print("\n4. Robin საზღვარი და ვაკუუმის ელასტიურობის inverse constraint")
     beta_exact = find_vacuum_elasticity_from_muon()
     print(f"  მიუონის (N=71.89) მასა მოითხოვს საზღვრის ელასტიურობას: beta = {beta_exact:.5f}")
     
@@ -1269,7 +1407,7 @@ if __name__ == "__main__":
     suppressions = qft_overlap_suppression_rule(beta_exact)
     for row in suppressions:
         print(f"  n={row['n']:<2} დაშლის ამპლიტუდა: {row['amplitude']:.4e}")
-    print("  დასკვნა: n=59 (ტაუ) ამპლიტუდა უმცირესია, რაც განაპირობებს მის სტაბილურობას.")
+    print("  დასკვნა: ეს toy overlap audit-ია; ტაუს რეალური lifetime/stability აქ არ გამოდის.")
     
     print("\n7. n=14 ოვერტონის ემპირიული შერჩევის აუდიტი")
     audit = audit_n14_empirical_selection(beta_exact)
@@ -1302,7 +1440,7 @@ if __name__ == "__main__":
         print(f"  old question: {c3['old_question']}")
         print(f"  new question: {c3['new_question']}")
         print(f"  status      : {c3['status']}")
-        print("  theta note  : phase38 gives a Z9 reduced-holonomy candidate derivation.")
+        print("  theta note  : phase38 gives an order-9 reduced-holonomy candidate route.")
 
     print("\n8. ახალი იდეა: რადიაციული დაშლის (μ -> e + γ) ნულის ძიება")
     rad_audit = audit_radiative_decay_null(beta_exact)
@@ -1326,12 +1464,12 @@ if __name__ == "__main__":
     for k, v in dance.items():
         print(f"  {k:15s}: {v}")
 
-    print("\n11. N=4 companion prediction")
+    print("\n11. Legacy N=4 companion estimate")
     for key, value in n4_prediction().items():
         print(f"  {key:18s}: {value}")
 
     print("\n12. Status")
-    for key, value in status_assessment().items():
+    for key, value in phase35_status_assessment().items():
         print(f"  {key:24s}: {value}")
 
 
@@ -1343,10 +1481,13 @@ if __name__ == "__main__":
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
 
 """
-PHASE 38: Z9 reduced-holonomy candidate for theta = 2/9
+PHASE 38: Order-9 reduced-holonomy candidate for theta = 2/9
 
 Status:
     Candidate derivation, not yet a theorem from the full RFG action.
+    Important: C3 x C3 has nine elements but is not automatically the
+    cyclic group Z9. A separate return-map/lift theorem is required before
+    this may be called a true Z9 holonomy.
 
 Goal:
     Explain why the C3 Koide operator of phase37 should use
@@ -1379,6 +1520,10 @@ Core idea:
 
         theta = h_framed / N_closure = 2 / 9.
 
+    This is currently a slot-counting rule. The missing theorem is the
+    cyclic lift that turns the slot lattice into the actual reduced return
+    coordinate used by the C3 stiffness operator.
+
 Action-level support:
     p11_particles.py derives the two C3 factors from
     the oriented elastic triad and the triaxial strain doublet:
@@ -1403,12 +1548,14 @@ Interpretation:
 
         V_lock(theta) = kappa * [1 - cos(pi * (9 theta - 2))]
 
-    whose first oriented framed minimum is theta = 2/9.
+    whose first oriented framed minimum is theta = 2/9. This potential is
+    a diagnostic normal form unless the offset h=2 is derived from the
+    charged RFG coupling.
 
 Why this matters:
     phase37 showed that theta = 2/9 gives the charged-lepton frequency
     ratios 1 : 14.37951 : 58.97010 and exact Koide structure. This file
-    gives a discrete, no-continuous-parameter route to that theta.
+    gives a discrete, no-continuous-parameter candidate route to that theta.
 """
 
 import math
@@ -1437,7 +1584,7 @@ def theta_from_z9_holonomy(
     axis_order=AXIS_CYCLE_ORDER,
     phase_order=PHASE_BRAID_ORDER,
 ):
-    """Reduced holonomy angle theta = h / (axis_order * phase_order)."""
+    """Candidate reduced holonomy angle theta = h / (axis_order * phase_order)."""
     return spinor_index / (axis_order * phase_order)
 
 
@@ -1449,7 +1596,9 @@ def locking_potential(theta, kappa=1.0):
 
     The pi appears because the reduced director/framing coordinate is
     measured in half-turn units. Minima occur at 9 theta - 2 = 2 n.
-    The first oriented framed branch is theta = 2/9.
+    The first oriented framed branch is theta = 2/9. Since the integer
+    offset is inserted here, this is a consistency normal form, not yet an
+    independent derivation of h=2.
     """
     return kappa * (1.0 - math.cos(math.pi * (closure_lattice_order() * theta - SPINOR_CLOSURE_INDEX)))
 
@@ -1464,6 +1613,35 @@ def locking_curvature(theta, kappa=1.0):
     """Second derivative of locking_potential with respect to theta."""
     n = closure_lattice_order()
     return kappa * (math.pi * n) ** 2 * math.cos(math.pi * (n * theta - SPINOR_CLOSURE_INDEX))
+
+
+def cyclic_lift_gate():
+    """
+    Mathematical gate for the C3 x C3 -> theta=h/9 step.
+
+    C3 x C3 is not isomorphic to Z9. It only supplies nine slots unless the
+    defect return map is shown to visit those slots as one cyclic orbit.
+    """
+    return {
+        "slot_lattice": "C3 x C3",
+        "slot_count": closure_lattice_order(),
+        "is_cyclic_Z9_without_extra_theorem": False,
+        "allowed_language": "order-9 reduced closure-slot lattice",
+        "forbidden_language": "derived Z9 holonomy",
+        "needed_theorem": "construct the charged defect return map and prove it has one order-9 orbit",
+    }
+
+
+def h2_offset_gate():
+    """
+    Gate for the integer offset in V_lock ~ cos(pi*(9 theta - 2)).
+    """
+    return {
+        "offset_inserted": SPINOR_CLOSURE_INDEX,
+        "derived_from_full_action": False,
+        "current_status": "selection rule / normal-form consistency condition",
+        "needed_theorem": "derive h=2 from the charged oriented-frame coupling, not by choosing the first useful branch",
+    }
 
 
 def positivity_edge_for_c3_operator():
@@ -1515,7 +1693,7 @@ def branch_audit(max_index=5):
 
 
 def derivation_summary():
-    """Compact statement of the candidate derivation."""
+    """Compact statement of the candidate route."""
     n = closure_lattice_order()
     theta = theta_from_z9_holonomy()
     edge = positivity_edge_for_c3_operator()
@@ -1523,7 +1701,9 @@ def derivation_summary():
         "axis_cycle_order": AXIS_CYCLE_ORDER,
         "phase_braid_order": PHASE_BRAID_ORDER,
         "closure_lattice": f"{AXIS_CYCLE_ORDER} x {PHASE_BRAID_ORDER} = {n}",
+        "cyclic_lift_proven": cyclic_lift_gate()["is_cyclic_Z9_without_extra_theorem"],
         "oriented_framed_index": SPINOR_CLOSURE_INDEX,
+        "h2_derived_from_action": h2_offset_gate()["derived_from_full_action"],
         "theta": theta,
         "theta_particle_constant": THETA_TOPOLOGICAL,
         "matches_particle_constant": abs(theta - THETA_TOPOLOGICAL) < 1.0e-15,
@@ -1531,7 +1711,7 @@ def derivation_summary():
         "below_edge": theta < edge,
         "locking_gradient": locking_gradient(theta),
         "locking_curvature": locking_curvature(theta),
-        "status": "Candidate derivation; phase39 gives C3xC3, phase40 gives h=2, phase41 gives action C3 lock.",
+        "status": "Candidate route; cyclic lift and h=2 action derivation remain open.",
     }
 
 
@@ -1540,6 +1720,7 @@ def falsification_targets():
     What would make this candidate fail.
     """
     return [
+        "If C3 x C3 cannot be lifted to one order-9 return coordinate, theta=h/9 is not derived.",
         "If the lepton oscillon is not C3-cyclic, N_closure=9 collapses.",
         "If the charged sector does not require oriented framed closure, h=2 is not selected.",
         "If the elastic operator uses the full U(1) phase directly, theta should be 2*pi/9, which fails the masses.",
@@ -1550,7 +1731,7 @@ def falsification_targets():
 
 if __name__ == "__main__":
     print("=" * 72)
-    print("PHASE 38: Z9 reduced-holonomy candidate for theta = 2/9")
+    print("PHASE 38: order-9 reduced-holonomy candidate for theta = 2/9")
     print("=" * 72)
 
     print("\n1. Discrete closure derivation")
@@ -1576,7 +1757,13 @@ if __name__ == "__main__":
             f"ratios={ratio_text}{marker}"
         )
 
-    print("\n3. Charged-lepton prediction inherited from phase37")
+    print("\n3. Cyclic lift / h=2 gates")
+    for key, value in cyclic_lift_gate().items():
+        print(f"  {key:36s}: {value}")
+    for key, value in h2_offset_gate().items():
+        print(f"  {key:36s}: {value}")
+
+    print("\n4. Charged-lepton prediction inherited from phase37")
     print(f"  K_C3 = {koide_identity():.12f}")
     for row in prediction_table():
         print(
@@ -1587,7 +1774,7 @@ if __name__ == "__main__":
             f"rel_err={row['relative_mass_error']:.3e}"
         )
 
-    print("\n4. Falsification targets")
+    print("\n5. Falsification targets")
     for item in falsification_targets():
         print(f"  - {item}")
 
@@ -1600,14 +1787,14 @@ if __name__ == "__main__":
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
 
 """
-PHASE 39: Action-level route to the Z9 closure lattice
+PHASE 39: Action-level route to the order-9 closure-slot lattice
 
 Status:
     Candidate derivation layer. This file does not yet prove the full
     charged-lepton theorem from the RFG action, but it removes one
     arbitrary-looking assumption from phase38:
 
-        why C3 x C3?
+        why two C3 factors?
 
 Result:
     The two C3 factors can be traced to standard structures already present
@@ -1632,9 +1819,13 @@ Result:
        the first phase-sensitive invariant. This creates three discrete
        strain/braid phase sectors.
 
-    Together:
+    Together they provide nine closure slots:
 
-        C3(axis orientation) x C3(strain phase) -> Z9 reduced closure slots.
+        C3(axis orientation) x C3(strain phase) -> 9 reduced closure slots.
+
+    This is not by itself a Z9 theorem: C3 x C3 is a direct product whose
+    non-identity elements have order 3. The missing step is a charged-defect
+    return map that cycles through all nine slots as one orbit.
 
     phase41 shows that the strain-phase C3 lock is not an external
     addition: it is the cubic invariant already contained in I3=det(B).
@@ -1734,7 +1925,7 @@ def strain_doublet_transform():
 
 
 def z9_closure_from_action_symmetry():
-    """Combine the two C3 factors into the Z9 closure lattice."""
+    """Combine the two C3 factors into an order-9 closure-slot lattice."""
     axis_order = axis_c3_order()
     phase_order = strain_doublet_transform()["phase_sector_order"]
     return {
@@ -1743,6 +1934,9 @@ def z9_closure_from_action_symmetry():
         "phase_c3_origin": "triaxial strain doublet: E -> omega^2 E, E^3 invariant",
         "phase_order": phase_order,
         "closure_slots": axis_order * phase_order,
+        "direct_product_group": "C3 x C3",
+        "cyclic_z9_proven": False,
+        "missing_lift": "prove one charged-defect return map with order 9",
         "theta_if_h2": 2 / (axis_order * phase_order),
     }
 
@@ -1781,7 +1975,7 @@ def spinorial_selection_statement():
 
 if __name__ == "__main__":
     print("=" * 72)
-    print("PHASE 39: Action-level route to C3 x C3 -> Z9")
+    print("PHASE 39: Action-level route to C3 x C3 -> 9 slots")
     print("=" * 72)
 
     print("\n1. Axis permutations of the oriented elastic triad")
@@ -1804,7 +1998,7 @@ if __name__ == "__main__":
             f"{row['meaning']}"
         )
 
-    print("\n4. Z9 closure")
+    print("\n4. Order-9 closure-slot gate")
     closure = z9_closure_from_action_symmetry()
     for key, value in closure.items():
         if isinstance(value, float):
@@ -1828,7 +2022,9 @@ if __name__ == "__main__":
 PHASE 40: Why the first charged framed branch is h = 2
 
 Status:
-    Candidate selection theorem for the h index used in phase38.
+    Candidate selection rule for the h index used in phase38. It becomes a
+    theorem only after the charged oriented-frame coupling is derived from
+    the full RFG action.
 
 Problem:
     phase38 uses h=2 in
@@ -1943,6 +2139,8 @@ def h2_selection_summary():
         "reason_h0_rejected": "trivial branch, not a generation-splitting defect",
         "reason_h1_rejected": "projective/nematic closure only: n -> -n",
         "reason_h2_selected": "first non-trivial oriented framed closure: n -> n",
+        "derived_from_action": False,
+        "selection_status": "candidate selection; not yet an RFG coupling theorem",
         "theta": theta,
         "theta_formula": "theta = h / 9 = 2 / 9",
         "remaining_open_point": "derive the oriented-frame requirement from the charged RFG coupling, not as a selection rule.",
@@ -2138,9 +2336,9 @@ def theta_chain_summary():
         "action_invariant": "I3 = det(B)",
         "triaxial_cubic": "det(Q) = Re(E^3)/27 = tr(Q^3)/3",
         "strain_lock": "V_C3 ~ -lambda3 rho^3 cos(3 beta)/4",
-        "phase39": "oriented triad C3 x strain-sector C3 -> 9 closure slots",
-        "phase40": "first non-trivial oriented framed branch h=2",
-        "phase38": "theta = h/9 = 2/9",
+        "phase39": "oriented triad C3 x strain-sector C3 -> 9 slots; cyclic lift open",
+        "phase40": "h=2 is first non-trivial oriented framed candidate; action derivation open",
+        "phase38": "theta = h/9 = 2/9 only after the lift/selection gates pass",
         "phase37": "C3 Koide operator gives charged-lepton mass ratios",
     }
 
@@ -2427,7 +2625,7 @@ def falsification_protocol():
     ]
 
 
-def status_assessment():
+def phase46_status_assessment():
     return {
         "strength": "extends RFG particle sector beyond charged leptons without new continuous angles",
         "warning": "quark masses are scheme/scale dependent, so no pole-mass claim is made here",
@@ -2457,7 +2655,7 @@ if __name__ == "__main__":
         print(f"  - {item}")
 
     print("\n3. Status")
-    for key, value in status_assessment().items():
+    for key, value in phase46_status_assessment().items():
         print(f"  {key:16s}: {value}")
 
 
@@ -2651,15 +2849,17 @@ Purpose:
 The chain:
     phase41: I3=det(B) contains the C3 strain lock E^3.
     phase39: oriented elastic triad gives C3, strain phase gives C3 -> 9 slots.
-    phase40: oriented framed closure selects h=2.
+    phase39 still does not prove a cyclic Z9 group.
+    phase40: oriented framed closure makes h=2 the candidate branch, not yet
+    a result derived from the charged RFG coupling.
     phase43: local normal-form Hessian gives h=2 stability conditions.
-    phase38: theta = h/9 = 2/9.
+    phase38: theta = h/9 = 2/9 only conditionally.
     phase37: C3 Koide operator with theta=2/9 gives charged-lepton ratios.
 
 Status:
-    Strong candidate derivation. The remaining open theorem is to derive the
-    charged oriented-framed defect sector and its reduced holonomy directly
-    as a stationary sector of the full RFG action.
+    Strong candidate chain. The remaining open theorem is to derive the
+    cyclic return map, charged oriented-framed defect sector, and reduced
+    holonomy directly as a stationary sector of the full RFG action.
 """
 
 # merged import removed: from p11_particles import (
@@ -2704,30 +2904,40 @@ def audit_z9_and_h2():
         "axis_order_is_3": closure["axis_order"] == 3,
         "phase_order_is_3": closure["phase_order"] == 3,
         "closure_slots_is_9": closure["closure_slots"] == 9,
+        "cyclic_z9_proven": closure["cyclic_z9_proven"],
         "h_selected_is_2": h2["h_selected"] == 2,
+        "h2_derived_from_action": h2["derived_from_action"],
         "theta_is_2_over_9": abs(theta - THETA_TOPOLOGICAL) < 1.0e-15,
     }
     return checks
 
 
 def audit_mass_predictions():
-    rows = prediction_table()
-    checks = {}
-    for row in rows:
-        name = row["particle"]
-        tolerance = 1.0e-4 if name != "electron" else 1.0e-15
-        checks[f"{name}_mass_error_ok"] = abs(row["relative_mass_error"]) <= tolerance
-    checks["koide_exact"] = abs(koide_identity() - 2.0 / 3.0) < 1.0e-15
+    precision = pdg_precision_audit()
+    checks = {
+        "electron_is_anchor_not_prediction": True,
+        "relative_compression_ok": all(
+            abs(row["relative_mass_error"]) <= 1.0e-4
+            for row in precision["rows"]
+        ),
+        "pdg_precision_pass": precision["pdg_precision_pass"],
+        "koide_exact": abs(koide_identity() - 2.0 / 3.0) < 1.0e-15,
+        "mass_bridge_derived": False,
+    }
     return checks
 
 
 def open_theorem_items():
     return [
+        "Prove a cyclic order-9 lift from the C3 x C3 slot lattice, or stop using Z9 language.",
         "Derive the charged oriented-frame requirement from the RFG coupling, not as a postulate.",
         "Derive the reduced holonomy coordinate theta used by the C3 stiffness operator from the defect moduli space.",
+        "Derive m proportional to nu^2 and the absolute electron scale from the oscillon energy functional.",
+        "Replace the relative-error mass gate with PDG-uncertainty residuals and explain the muon residual.",
         "Upgrade phase43 local normal-form stability to a full 3D fluctuation-operator/PDE stability proof.",
         "Show no lower-energy non-leptonic defect branch has the same charge and lower action.",
         "Extend the proof beyond principal-axis/algebraic normal form to full 3D localized oscillon fields.",
+        "Derive radiative protection of the Koide/C3 pole-frequency relation.",
     ]
 
 
@@ -2740,7 +2950,9 @@ def theorem_chain_summary():
         "axis_c3": closure["axis_c3_origin"],
         "phase_c3": closure["phase_c3_origin"],
         "closure_slots": closure["closure_slots"],
+        "cyclic_z9_proven": closure["cyclic_z9_proven"],
         "h_selected": h2["h_selected"],
+        "h2_derived_from_action": h2["derived_from_action"],
         "local_stability": "phase43 Hessian conditions",
         "theta": summary["theta"],
         "koide": koide_identity(),
@@ -2764,7 +2976,7 @@ if __name__ == "__main__":
     for key, value in audit_action_c3_lock().items():
         print(f"  {key:28s}: {pass_fail(value)}")
 
-    print("\n3. Z9 and h=2 checks")
+    print("\n3. Order-9 / h=2 checks")
     for key, value in audit_z9_and_h2().items():
         print(f"  {key:28s}: {pass_fail(value)}")
 
@@ -2772,13 +2984,14 @@ if __name__ == "__main__":
     for key, value in audit_mass_predictions().items():
         print(f"  {key:28s}: {pass_fail(value)}")
 
-    print("\n5. Predicted charged-lepton masses")
+    print("\n5. Conditional charged-lepton mass table")
     for row in prediction_table():
         print(
             f"  {row['particle']:8s}: "
             f"m_C3={row['predicted_mass_MeV']:.6f} MeV, "
             f"m_obs={row['observed_mass_MeV']:.6f} MeV, "
-            f"rel_err={row['relative_mass_error']:.3e}"
+            f"rel_err={row['relative_mass_error']:.3e}, "
+            f"sigma={row['sigma_error']:.3e}"
         )
 
     print("\n6. Still open theorem items")
@@ -2811,8 +3024,9 @@ RFG's stronger claim is the specific action/topology chain:
       -> C3 strain lock from the supersolid action
       -> oriented elastic triad gives another C3
       -> C3 x C3 = 9 reduced closure slots
-      -> oriented framed branch h=2
-      -> theta = 2/9
+      -> missing cyclic lift gate
+      -> oriented framed branch h=2 candidate
+      -> theta = 2/9 conditionally
       -> C3 Koide operator gives charged-lepton mass ratios.
 
 This file also cleans up an internal tension:
@@ -2874,7 +3088,7 @@ def comparison_with_existing_approaches():
             "has_delta_2_over_9": True,
             "action_origin_c3": "I3=det(B) -> Re(E^3) C3 lock",
             "topological_h2": True,
-            "main_gap": "full 3D oscillon/PDE proof and radiative protection still open",
+            "main_gap": "cyclic lift, h=2 action derivation, full PDE proof, and radiative protection still open",
         },
     ]
 
@@ -2913,8 +3127,8 @@ def internal_consistency_cleanup():
 
 def rfg_strength_scorecard():
     action_checks = audit_action_c3_lock()
-    z9_checks = audit_z9_and_h2()
     mass_checks = audit_mass_predictions()
+    precision = pdg_precision_audit()
 
     return [
         {
@@ -2924,8 +3138,12 @@ def rfg_strength_scorecard():
         },
         {
             "criterion": "charged-lepton ratios",
-            "status": "closed as pole-mass-level postdiction",
-            "evidence": all(mass_checks.values()),
+            "status": "relative postdiction only",
+            "evidence": (
+                f"relative gate={mass_checks['relative_compression_ok']}; "
+                f"PDG precision={precision['pdg_precision_pass']}; "
+                f"chi2={precision['chi2_non_anchor']:.3e}"
+            ),
         },
         {
             "criterion": "C3 action origin",
@@ -2934,8 +3152,8 @@ def rfg_strength_scorecard():
         },
         {
             "criterion": "theta=2/9 route",
-            "status": "candidate derivation",
-            "evidence": all(z9_checks.values()),
+            "status": "blocked at cyclic-lift and h=2-action gates",
+            "evidence": audit_z9_and_h2(),
         },
         {
             "criterion": "local h=2 stability",
@@ -2957,6 +3175,11 @@ def rfg_strength_scorecard():
             "status": "open",
             "evidence": "current chain predicts ratios anchored to m_e",
         },
+        {
+            "criterion": "m~nu^2 bridge",
+            "status": "open",
+            "evidence": mass_bridge_gate()["needed_theorem"],
+        },
     ]
 
 
@@ -2964,9 +3187,10 @@ def strongest_defensible_claim():
     return (
         "RFG has a stronger-than-phenomenological charged-lepton candidate "
         "because its C3 structure is traced to the supersolid invariant "
-        "I3=det(B) and to framed topological closure. It is not yet a final "
-        "particle theory until full PDE stability, radiative protection, and "
-        "absolute scale are derived."
+        "I3=det(B) and to an order-9 framed slot lattice. It is not yet a "
+        "final particle theory until the cyclic lift, h=2 action derivation, "
+        "full PDE stability, radiative protection, m~nu^2 bridge, and absolute "
+        "scale are derived."
     )
 
 
@@ -3003,7 +3227,8 @@ if __name__ == "__main__":
             f"  {row['particle']:8s}: "
             f"m_C3={row['predicted_mass_MeV']:.6f} MeV, "
             f"m_obs={row['observed_mass_MeV']:.6f} MeV, "
-            f"rel_err={row['relative_mass_error']:.3e}"
+            f"rel_err={row['relative_mass_error']:.3e}, "
+            f"sigma={row['sigma_error']:.3e}"
         )
 
     print("\n5. Open theorem items")
@@ -3022,13 +3247,13 @@ if __name__ == "__main__":
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
 
 """
-PHASE 47: Particle-sector falsifiability map after the C3/Z9 upgrade
+PHASE 47: Particle-sector falsifiability map after the C3/order-9 upgrade
 
 Purpose:
     Convert the strengthened particle sector into concrete pass/fail claims.
 
 Important cleanup:
-    The main charged-lepton route is now phase37-43 C3/Z9, not the older
+    The main charged-lepton route is now phase37-43 C3/order-9, not the older
     radial N-ladder. Therefore:
 
         - e, mu, tau are one C3 triplet.
@@ -3045,19 +3270,24 @@ This makes the particle sector cleaner and easier to falsify.
 
 
 def charged_lepton_pass_fail():
+    precision = pdg_precision_audit()
     return {
-        "claim": "e, mu, tau are one C3/Z9 triplet with theta=2/9",
-        "status": "postdiction unless derived before using the masses",
-        "pass_condition": "phase37 mass ratios remain within pole-mass uncertainties after radiative protection is derived",
-        "fail_condition": "full RFG action cannot support a stable h=2 C3 triplet or radiative corrections destroy the pole relation",
+        "claim": "e, mu, tau are one C3/order-9 candidate triplet with theta=2/9",
+        "status": "relative postdiction unless cyclic lift, h=2, and radiative protection are derived before using masses",
+        "pass_condition": "derive the chain first, then pass PDG residuals or explain the residual as a calculable radiative/dressing shift",
+        "fail_condition": "no cyclic lift, no stable h=2 branch, unprotected radiative drift, or unresolved PDG residual",
+        "pdg_precision_pass": precision["pdg_precision_pass"],
+        "chi2_non_anchor": precision["chi2_non_anchor"],
         "numbers": [
             {
                 "particle": row["particle"],
                 "predicted_MeV": row["predicted_mass_MeV"],
                 "observed_MeV": row["observed_mass_MeV"],
                 "relative_error": row["relative_mass_error"],
+                "sigma_error": row["sigma_error"],
+                "role": row["role"],
             }
-            for row in prediction_table()
+            for row in precision["rows"]
         ],
     }
 
@@ -3092,6 +3322,18 @@ def new_falsifiable_targets():
             "file": "p11_particles.py",
         },
         {
+            "target": "cyclic order-9 lift",
+            "test": "construct a charged-defect return map whose orbit has order 9",
+            "fail": "C3 x C3 remains only a slot lattice, so theta=h/9 is not derived",
+            "file": "p11_particles.py",
+        },
+        {
+            "target": "PDG residual gate",
+            "test": "explain or predict the muon/tau residuals with the same dressing/radiative mechanism",
+            "fail": "theta=2/9 remains only a relative compression and misses PDG precision",
+            "file": "p11_particles.py",
+        },
+        {
             "target": "h=2 local stability",
             "test": "satisfy phase43 Hessian inequalities and then full fluctuation spectrum",
             "fail": "h=2 branch is a saddle or has negative fluctuation mode",
@@ -3115,6 +3357,9 @@ def new_falsifiable_targets():
 
 def next_calculation_queue():
     return [
+        "Prove or reject the cyclic order-9 lift from the C3 x C3 slot lattice.",
+        "Derive the h=2 oriented-frame coupling from the RFG action.",
+        "Derive m proportional to nu^2 from the dressed oscillon energy functional.",
         "Build the full localized h=2 oscillon ansatz: Phi(t,r), Q(r,beta), framed triad U(x).",
         "Linearize the RFG action around that ansatz and compute the fluctuation operator.",
         "Check whether all non-gauge eigenvalues are non-negative.",
@@ -3134,12 +3379,16 @@ if __name__ == "__main__":
     print(f"  status: {cl['status']}")
     print(f"  pass: {cl['pass_condition']}")
     print(f"  fail: {cl['fail_condition']}")
+    print(f"  PDG precision pass: {cl['pdg_precision_pass']}")
+    print(f"  chi2 non-anchor   : {cl['chi2_non_anchor']:.3e}")
     for row in cl["numbers"]:
         print(
             f"    {row['particle']:8s}: "
             f"pred={row['predicted_MeV']:.6f} MeV, "
             f"obs={row['observed_MeV']:.6f} MeV, "
-            f"rel_err={row['relative_error']:.3e}"
+            f"rel_err={row['relative_error']:.3e}, "
+            f"sigma={row['sigma_error']:.3e}, "
+            f"role={row['role']}"
         )
 
     print("\n2. Legacy predictions demoted")
@@ -3175,7 +3424,7 @@ def stage_d2_frequency_to_mass_old_status():
     Deletion-gate marker for OLD/ISPG_FrequencyToMass.tex.
 
     The old file's valuable content is preserved, but the main charged-lepton
-    route is now the C3/Z9 chain rather than the legacy radial N ladder.
+    route is now the C3/order-9 chain rather than the legacy radial N ladder.
     """
     return {
         "old_file_drained": "OLD/ISPG_FrequencyToMass.tex",
@@ -3189,7 +3438,7 @@ def stage_d2_frequency_to_mass_old_status():
             "neutrinos are outside the charged massive oscillon ladder",
         ],
         "promoted_new_route": (
-            "charged leptons are treated as one C3/Z9 triplet with theta=2/9; "
+            "charged leptons are treated as one C3/order-9 candidate triplet with theta=2/9; "
             "the old N=5,72,295 / n=14 ladder is retained as legacy audit only"
         ),
         "still_useful_legacy": [
@@ -3227,7 +3476,7 @@ def stage_d3_em_charge_spin_program_status():
         },
         "spin": {
             "old_idea": "spin-1/2 from Mobius/framed 720-degree closure",
-            "RFG_status": "partly absorbed into h=2 oriented-framed C3/Z9 lepton branch",
+            "RFG_status": "partly absorbed into h=2 oriented-framed C3/order-9 lepton branch",
             "open": "derive full Dirac spinor dynamics, Pauli exclusion, and spin-statistics from the defect moduli space",
         },
         "g_factor": {
@@ -3299,4 +3548,74 @@ def stage_d4_particle_old_file_status():
             "no finished theorem is left only in OLD, but several future-programme items remain open"
         ),
     }
+
+
+# =============================================================================
+# FINAL P11 CLAIM GATE
+# =============================================================================
+
+def p11_do_not_claim():
+    """Particle-sector overclaim blacklist."""
+    return [
+        "RFG has derived the full Standard Model.",
+        "C3 x C3 is already a proven Z9 holonomy.",
+        "theta=2/9 is derived from the full RFG action.",
+        "h=2 is derived rather than selected by a candidate normal-form rule.",
+        "charged-lepton pole masses are predicted within PDG uncertainty.",
+        "the absolute electron mass is derived.",
+        "m proportional to nu^2 is derived from the oscillon energy functional.",
+        "radiative corrections are solved.",
+        "U(1), SU(2), SU(3), fractional charge, alpha_EM, g=2, CKM, or PMNS are derived.",
+        "the legacy Mathieu/N ladder is the main lepton-generation proof.",
+    ]
+
+
+def p11_particle_sector_claim_gate():
+    """Single importable gate for the whole p11 file."""
+    precision = pdg_precision_audit()
+    z9_gate = cyclic_lift_gate()
+    h2_gate = h2_offset_gate()
+    mass_bridge = mass_bridge_gate()
+    mathieu_gate = mathieu_sign_stability_gate()
+    return {
+        "overall_status": "STRONG_CANDIDATE_NOT_FINAL_PARTICLE_THEORY",
+        "closed_algebra": [
+            "C3 triplet gives Koide K=2/3.",
+            "I3=det(B) contains the C3 triaxial strain lock in principal-axis normal form.",
+            "theta=2/9 gives a strong charged-lepton relative mass-ratio compression.",
+        ],
+        "hard_blockers": [
+            z9_gate["needed_theorem"],
+            h2_gate["needed_theorem"],
+            mass_bridge["needed_theorem"],
+            "derive radiative protection or a dressed pole-frequency theorem",
+            "build the full localized h=2 oscillon and fluctuation spectrum",
+            "derive EM/gauge sectors rather than importing SM quantum numbers",
+            "resolve the muon PDG-precision residual or demote the claim permanently",
+        ],
+        "pdg_precision_pass": precision["pdg_precision_pass"],
+        "pdg_chi2_non_anchor": precision["chi2_non_anchor"],
+        "mathieu_gate": mathieu_gate,
+        "do_not_claim": p11_do_not_claim(),
+        "strongest_allowed_claim": strongest_defensible_claim(),
+    }
+
+
+if __name__ == "__main__":
+    print("=" * 72)
+    print("P11 FINAL CLAIM GATE")
+    print("=" * 72)
+    gate = p11_particle_sector_claim_gate()
+    print(f"overall_status: {gate['overall_status']}")
+    print(f"PDG precision pass: {gate['pdg_precision_pass']}")
+    print(f"PDG chi2 non-anchor: {gate['pdg_chi2_non_anchor']:.3e}")
+    print("\nClosed algebra:")
+    for item in gate["closed_algebra"]:
+        print(f"  - {item}")
+    print("\nHard blockers:")
+    for item in gate["hard_blockers"]:
+        print(f"  - {item}")
+    print("\nDo-not-claim:")
+    for item in gate["do_not_claim"]:
+        print(f"  - {item}")
 
