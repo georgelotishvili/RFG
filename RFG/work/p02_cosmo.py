@@ -18,6 +18,8 @@ p02: FLRW კოსმოლოგიური ფონი.
 სრული გრავიტაციული სექტორით და დაკვირვებითი ფიტით.
 
 Process-time ledger გატანილია p02b_process_time_ledger.py-ში.
+Dynamic phase-clock ledger გატანილია p02c_dynamic_phase_clock.py-ში.
+ფაილი არის სამუშაო ledger და არა RFG_Theory.md-ში პირდაპირ გადასატანი claim.
 """
 
 import sympy as sp
@@ -387,155 +389,35 @@ def strict_clock_lambda_like_branch_theorem():
     }
 
 
-def dynamic_phase_clock_branch_theorem():
+def dynamic_phase_clock_external_status():
     """
-    Dynamic alternative to the locked strict Phi=t diagnostic.
+    Dynamic Phi_dot(a) is separated from the primary FLRW/CMB metric branch.
 
-    The phase EOM has a conserved-current form. Therefore the natural branch is
-    Phi_dot(a), not necessarily Phi_dot=1. This does not prove process-time, but
-    it shows how the strict-clock tuning can be replaced by a dynamical clock.
+    See p02c_dynamic_phase_clock.py. p02 keeps only the warning so process-time
+    cannot silently enter H(z), CMB, BBN, or BAO claims through Phi_dot(t).
     """
-    a = sp.Symbol("a", positive=True)
-    u = sp.Symbol("u", real=True)  # u = Phi_dot
-    Q = sp.Symbol("Q_Phi", real=True)
-    c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
-
-    current_density = sp.simplify(u * (c_Y + 2 * c_Y2 * u**2 + 3 * c_YI1 / a**2))
-    conserved_charge = sp.simplify(a**3 * current_density)
-    cubic_condition = sp.Eq(
-        sp.simplify(2 * c_Y2 * u**3 + (c_Y + 3 * c_YI1 / a**2) * u),
-        Q / a**3,
-    )
-
-    zero_current_u2 = sp.simplify(-(c_Y + 3 * c_YI1 / a**2) / (2 * c_Y2))
-    zero_current_late_u2 = sp.simplify(sp.limit(zero_current_u2, a, sp.oo))
-
-    rho_late_zero_current = sp.simplify(c_Y**2 / (4 * c_Y2))
-    p_late_zero_current = sp.simplify(-c_Y**2 / (4 * c_Y2))
-    w_late_zero_current = sp.simplify(p_late_zero_current / rho_late_zero_current)
-    kinetic_prefactor_zero_current = sp.simplify(4 * c_Y2 * zero_current_u2)
-
     return {
-        "status": "CONDITIONAL_DYNAMIC_BRANCH_CANDIDATE",
-        "phase_current_density": current_density,
-        "conserved_current": sp.Eq(conserved_charge, Q),
-        "dynamic_clock_equation": cubic_condition,
-        "zero_current_branch_u2": sp.Eq(u**2, zero_current_u2),
-        "zero_current_late_u2": sp.Eq(sp.Symbol("u_late", real=True) ** 2, zero_current_late_u2),
-        "late_rho_zero_current": rho_late_zero_current,
-        "late_p_zero_current": p_late_zero_current,
-        "late_w_zero_current": w_late_zero_current,
-        "kinetic_prefactor_zero_current": kinetic_prefactor_zero_current,
-        "late_viable_sign_window_hint": [
-            sp.Gt(c_Y2, 0),
-            sp.Lt(c_Y, 0),
+        "status": "MOVED_TO_p02c_DYNAMIC_PHASE_CLOCK_LEDGER",
+        "export_gate": "BLOCKED_UNTIL_CHANNEL_SEPARATION_PERTURBATIONS_AND_FIT",
+        "reason": (
+            "Phi_dot(t) contributes to the FLRW stress tensor, so any match to "
+            "process-time C_proc(a) must be treated outside the primary metric "
+            "branch until perturbations and numerical bounds are checked."
+        ),
+        "do_not_claim_here": [
+            "do not identify Phi_dot(a) with p02b C_proc(a) in p02",
+            "do not import process-time into H(z), CMB, BBN, BAO, or SN fits",
+            "do not claim the dynamic branch solves dark energy from this file",
         ],
-        "what_it_changes": (
-            "strict Phi_dot=1 needs c_YI1=0 and c_Y=-2*c_Y2 for all a; "
-            "dynamic Phi_dot(a) can close the phase current without forcing c_YI1=0"
-        ),
-        "required_checks": [
-            "u^2 must be positive on the intended epoch range",
-            "kinetic/no-ghost and gradient stability must be checked",
-            "Friedmann closure and BBN/CMB/Planck coefficient bounds remain open",
-        ],
-        "not_claimed": (
-            "this does not derive the p02b self-similar C(z); it only provides "
-            "a p02 phase-current branch to compare with process-time"
-        ),
-    }
-
-
-def dynamic_zero_current_lambda_like_branch_theorem():
-    """
-    Conditional dynamic theorem: the nonzero zero-current phase branch is w=-1 late.
-
-    This is stronger than the locked strict Phi=t diagnostic because Phi_dot is
-    allowed to vary with a. It still needs positivity, stability, gravity closure,
-    and observational fitting.
-    """
-    branch = dynamic_phase_clock_branch_theorem()
-    c_Y, c_Y2 = sp.symbols("c_Y c_Y2", real=True)
-    u_late = sp.Symbol("u_late", real=True)
-
-    late_u2 = sp.simplify(-c_Y / (2 * c_Y2))
-    rho = branch["late_rho_zero_current"]
-    p = branch["late_p_zero_current"]
-    w = sp.simplify(p / rho)
-    kinetic_prefactor_late = sp.simplify(4 * c_Y2 * late_u2)
-
-    return {
-        "status": "CONDITIONAL_DYNAMIC_THEOREM",
-        "branch": "Q_Phi=0, Phi_dot != 0, a -> infinity",
-        "late_clock_condition": sp.Eq(u_late**2, late_u2),
-        "late_rho": rho,
-        "late_p": p,
-        "late_w": w,
-        "theorem_pass": sp.simplify(w + 1) == 0,
-        "late_kinetic_prefactor": kinetic_prefactor_late,
-        "conditions": [
-            sp.Ne(c_Y2, 0),
-            "u_late^2 > 0",
-            "late_kinetic_prefactor > 0",
-            "for positive late rho with this branch: c_Y2 > 0 and c_Y < 0",
-            "full perturbation stability and observational fit remain open",
-        ],
-        "what_is_strengthened": (
-            "Lambda-like late pressure can arise on a dynamic phase-current "
-            "branch without requiring Phi_dot=1 for every epoch"
-        ),
-        "not_claimed": (
-            "this is not yet an observed dark-energy solution and it does not "
-            "derive the p02b self-similar process-time law"
-        ),
-    }
-
-
-def process_time_dynamic_clock_comparison():
-    """
-    Compare p02's dynamic Phi_dot(a) branch with p02b's process-time target.
-    """
-    a = sp.Symbol("a", positive=True)
-    T0 = sp.Symbol("T0", positive=True)
-    t_age = sp.Function("t_age")
-    C_proc = sp.Function("C_proc")
-    Q = sp.Symbol("Q_Phi", real=True)
-    c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
-
-    C_target = T0 / t_age(a)
-    cubic_match = sp.Eq(
-        2 * c_Y2 * C_proc(a) ** 3 + (c_Y + 3 * c_YI1 / a**2) * C_proc(a),
-        Q / a**3,
-    )
-    zero_current_match = sp.Eq(
-        C_proc(a) ** 2,
-        -(c_Y + 3 * c_YI1 / a**2) / (2 * c_Y2),
-    )
-
-    return {
-        "status": "COMPARISON_LEDGER_NOT_DERIVED_MATCH",
-        "p02_dynamic_clock_variable": "u(a)=Phi_dot(a)",
-        "p02b_self_similar_target": sp.Eq(C_proc(a), C_target),
-        "general_match_condition": cubic_match,
-        "zero_current_match_condition": zero_current_match,
-        "interpretation": (
-            "process-time suggests replacing locked Phi_dot=1 by a dynamic "
-            "clock. p02 supplies a conserved-current equation for that clock."
-        ),
-        "main_gap": (
-            "constant p02 coefficients have not been shown to reproduce "
-            "C_proc(a)=T0/t_age(a) over the observational range"
-        ),
-        "safe_next_step": (
-            "fit or derive c_Y, c_Y2, c_YI1 and Q_Phi so that u(a) is compared "
-            "against the p02b process-time channel without entering the CMB metric branch"
-        ),
     }
 
 
 def early_scaling_theorem():
     """
-    Algebraic theorem: FLRW solid components scale as a^-2, a^-4, and a^-6.
+    Algebraic ledger: unsubstituted FLRW components show a^-2, a^-4, and a^-6 pieces.
+
+    If a dynamic Phi_dot(a) branch is imposed, the c_YI1*Phi_dot^2/a^2 term must
+    be recomputed in that branch. That check is moved to p02c_dynamic_phase_clock.py.
     """
     a = sp.Symbol("a", positive=True)
     Phi_dot = sp.Symbol("Phi_dot", real=True)
@@ -549,14 +431,22 @@ def early_scaling_theorem():
     stiff_like = sp.simplify(-c_I3 / a**6)
 
     return {
-        "status": "PASS",
+        "status": "PASS_UNSUBSTITUTED_ONLY",
         "curvature_like_a_minus_2": curvature_like,
         "radiation_like_a_minus_4": radiation_like,
         "stiff_like_a_minus_6": stiff_like,
-        "claim": "the FLRW background algebra separates the early components by scaling",
+        "claim": (
+            "the unsubstituted FLRW background algebra separates explicit "
+            "components by scaling"
+        ),
+        "dynamic_branch_warning": (
+            "after substituting Phi_dot(a), especially the zero-current branch, "
+            "the c_YI1 contribution can reshuffle into additional a^-2/a^-4 "
+            "effective terms"
+        ),
         "observational_warning": (
-            "PASS is algebraic only; BBN/CMB/Planck compatibility requires "
-            "numerical coefficient bounds"
+            "BBN/CMB/Planck/BAO compatibility is blocked until numerical "
+            "coefficient bounds are fitted"
         ),
     }
 
@@ -583,8 +473,8 @@ def late_time_density_status(rho_solid):
         "rho_late_strict_clock": rho_strict,
         "Lambda_eff_strict_clock": sp.simplify(kappa * rho_strict),
         "naturalness_status": (
-            "OPEN_NUMERICAL_FIT: Lambda_eff strict-clock diagnostic is not a "
-            "derived dark-energy solution; requires coefficient fit and dynamic Phi(t)."
+            "BLOCKED_UNTIL_FULL_GRAVITY_AND_FIT: Lambda_eff strict-clock "
+            "diagnostic is not a derived dark-energy solution."
         ),
     }
 
@@ -601,8 +491,9 @@ def early_component_status():
             "as curvature-like, radiation-like, and stiff FLRW terms"
         ),
         "status": (
-            "OPEN_NUMERICAL_FIT: no BBN/CMB/Planck compatibility claim before "
-            "fitting c_I1, c_I1sq, c_I2, c_I3, c_YI1 and Phi(t)."
+            "BLOCKED_UNTIL_NUMERICAL_BBN_CMB_PLANCK_BAO_BOUNDS: no early-universe "
+            "compatibility claim before fitting c_I1, c_I1sq, c_I2, c_I3, "
+            "c_YI1 and Phi(t)."
         ),
     }
 
@@ -621,12 +512,11 @@ def cosmology_claim_gate():
     noether_theorem = flrw_noether_theorem()
     obstruction_theorem = strict_clock_obstruction_theorem()
     lambda_theorem = strict_clock_lambda_like_branch_theorem()
-    dynamic_branch = dynamic_phase_clock_branch_theorem()
-    dynamic_lambda_theorem = dynamic_zero_current_lambda_like_branch_theorem()
-    process_time_comparison = process_time_dynamic_clock_comparison()
+    dynamic_external = dynamic_phase_clock_external_status()
     scaling_theorem = early_scaling_theorem()
 
     return {
+        "file_export_status": "LEDGER_ONLY_NOT_READY_FOR_RFG_THEORY_EXPORT",
         "stress_theorem": stress_theorem["status"],
         "stress_algebra": "PASS" if (
             stress_check["rho_full_match"] and stress_check["p_iso_full_match"]
@@ -641,16 +531,18 @@ def cosmology_claim_gate():
         ),
         "strict_Phi_t_conditions": clock_closure["generic_expanding_FLRW_closure"],
         "lambda_like_branch_theorem": lambda_theorem["status"],
-        "dynamic_phase_clock": dynamic_branch["status"],
-        "dynamic_lambda_like_branch": dynamic_lambda_theorem["status"],
-        "process_time_dynamic_clock_comparison": process_time_comparison["status"],
+        "dynamic_phase_clock": dynamic_external["status"],
+        "dynamic_lambda_like_branch": "MOVED_TO_p02c_NOT_A_p02_CLAIM",
+        "process_time_dynamic_clock_comparison": dynamic_external["export_gate"],
         "late_time_Lambda_eff": (
             "CONDITIONAL_DIAGNOSTIC_ONLY: w=-1 on strict-clock closure, "
-            "and w=-1 on the dynamic zero-current late branch, but observed "
-            "dark-energy claim needs coefficient fit and full gravity closure"
+            "but observed dark-energy claim needs coefficient fit, perturbations, "
+            "and full gravity closure"
         ),
         "early_scaling_theorem": scaling_theorem["status"],
-        "early_universe_BBN_CMB_Planck": "OPEN_FIT",
+        "early_universe_BBN_CMB_Planck": (
+            "BLOCKED_UNTIL_NUMERICAL_BBN_CMB_PLANCK_BAO_BOUNDS"
+        ),
         "pressure_relaxation_interpretation": relaxation["status"],
         "process_time": "MOVED_TO_p02b_NOT_PRIMARY_FLRW_BRANCH",
         "do_not_claim": [
@@ -658,7 +550,7 @@ def cosmology_claim_gate():
             "do not claim dark-energy solution",
             "do not claim BBN/CMB/Planck compatibility",
             "do not use process-time as second metric mode",
-            "do not identify Phi_dot(a) with p02b C(z) without a match condition and bounds",
+            "do not identify Phi_dot(a) with p02b C(z) in the p02 metric branch",
             "do not claim expansion is replaced by shrinking rods without observational bridge",
             "do not treat pressure-relaxation interpretation as a new H(z) fit",
         ],
@@ -676,6 +568,7 @@ def module_status():
 
     return {
         "scope": "FLRW stress/Friedmann-bookkeeping/conservation ledger only",
+        "export_status": "LEDGER_ONLY_NOT_READY_FOR_RFG_THEORY_EXPORT",
         "stress_check": stress_check,
         "stress_theorem": flrw_stress_theorem(),
         "bianchi_ok": bianchi_ok,
@@ -686,11 +579,7 @@ def module_status():
         "strict_Phi_t_EOM_residual": EOM_strict,
         "strict_clock_obstruction_theorem": strict_clock_obstruction_theorem(),
         "strict_clock_lambda_like_branch_theorem": strict_clock_lambda_like_branch_theorem(),
-        "dynamic_phase_clock_branch_theorem": dynamic_phase_clock_branch_theorem(),
-        "dynamic_zero_current_lambda_like_branch_theorem": (
-            dynamic_zero_current_lambda_like_branch_theorem()
-        ),
-        "process_time_dynamic_clock_comparison": process_time_dynamic_clock_comparison(),
+        "dynamic_phase_clock_external_status": dynamic_phase_clock_external_status(),
         "early_scaling_theorem": early_scaling_theorem(),
         "pressure_relaxation_interpretation": flrw_pressure_relaxation_interpretation(),
         "late_time_density": late_time_density_status(rho),
@@ -706,6 +595,7 @@ if __name__ == "__main__":
     print("=" * 72)
     print("p02: FLRW კოსმოლოგიური ფონი")
     print("=" * 72)
+    print("ფაილის სტატუსი: LEDGER_ONLY_NOT_READY_FOR_RFG_THEORY_EXPORT")
 
     f1, f2, a, t, rho_solid, p_iso_solid = get_friedmann_equations()
     rho, p_iso, _, result = get_flrw_pressures()
@@ -732,11 +622,7 @@ if __name__ == "__main__":
         "Noether theorem": flrw_noether_theorem()["status"],
         "strict-clock obstruction": strict_clock_obstruction_theorem()["status"],
         "Lambda-like branch": strict_clock_lambda_like_branch_theorem()["status"],
-        "dynamic phase-clock": dynamic_phase_clock_branch_theorem()["status"],
-        "dynamic Lambda-like branch": (
-            dynamic_zero_current_lambda_like_branch_theorem()["status"]
-        ),
-        "process-time comparison": process_time_dynamic_clock_comparison()["status"],
+        "dynamic phase-clock": dynamic_phase_clock_external_status()["status"],
         "early scaling theorem": early_scaling_theorem()["status"],
     }
     for label, status in theorem_rows.items():
@@ -773,17 +659,11 @@ if __name__ == "__main__":
     print("სტატუსი:", clock_gate["remaining_status"])
 
     print("\n7. დინამიკური Phi_dot(a) შტო")
-    dynamic_branch = dynamic_phase_clock_branch_theorem()
-    dynamic_lambda = dynamic_zero_current_lambda_like_branch_theorem()
-    process_match = process_time_dynamic_clock_comparison()
-    print("სტატუსი:", dynamic_branch["status"])
-    print("conserved current:", dynamic_branch["conserved_current"])
-    print("dynamic clock equation:", dynamic_branch["dynamic_clock_equation"])
-    print("zero-current branch:", dynamic_branch["zero_current_branch_u2"])
-    print("late w zero-current:", dynamic_lambda["late_w"])
-    print("დინამიკური theorem:", dynamic_lambda["status"])
-    print("process-time comparison:", process_match["status"])
-    print("მთავარი ღიობი:", process_match["main_gap"])
+    dynamic_external = dynamic_phase_clock_external_status()
+    print("სტატუსი:", dynamic_external["status"])
+    print("export gate:", dynamic_external["export_gate"])
+    print("reason:", dynamic_external["reason"])
+    print("ცალკე ფაილი: p02c_dynamic_phase_clock.py")
 
     print("\n8. გვიანი და ადრეული წევრები")
     late = late_time_density_status(rho_solid)
@@ -796,6 +676,7 @@ if __name__ == "__main__":
     print("\n9. Claim gate")
     gate = cosmology_claim_gate()
     for key in [
+        "file_export_status",
         "stress_theorem",
         "stress_algebra",
         "noether_theorem",
