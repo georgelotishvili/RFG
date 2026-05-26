@@ -735,6 +735,117 @@ def isotropic_optical_index_2pn_bridge():
     }
 
 
+def isotropic_2pn_stress_closure_theorem():
+    """
+    Direct isotropic-gauge RFG stress closure through 2PN.
+
+    This is stronger than the old optical ansatz.  In isotropic coordinates with
+    gamma=beta=1, write
+
+        A = 1 - 2u + 2u^2,
+        B = 1 + 2u + b2*u^2,
+        Y=1/A, I1=3/B, I2=3/B^2, I3=1/B^3.
+
+    Requiring the RFG background stress T^t_t and T^i_i to vanish through
+    O(u^2) yields either the trivial sector or a nontrivial branch with b2=18.
+    That b2 is not GR-like and not the old exponential optical candidate, so
+    this is an obstruction for the minimal static isotropic closure.
+    """
+    u, b2 = sp.symbols("u b2", real=True)
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        "c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1",
+        real=True,
+    )
+    Y_s, I1_s, I2_s, I3_s = sp.symbols("Y I1 I2 I3", real=True)
+
+    A = 1 - 2 * u + 2 * u**2
+    B = 1 + 2 * u + b2 * u**2
+    Y = 1 / A
+    I1 = 3 / B
+    I2 = 3 / B**2
+    I3 = 1 / B**3
+    L_poly = get_polynomial_lagrangian(Y_s, I1_s, I2_s, I3_s)
+    subs = {Y_s: Y, I1_s: I1, I2_s: I2, I3_s: I3}
+    L = L_poly.subs(subs)
+    L_Y = sp.diff(L_poly, Y_s).subs(subs)
+    L_I1 = sp.diff(L_poly, I1_s).subs(subs)
+    L_I2 = sp.diff(L_poly, I2_s).subs(subs)
+    L_I3 = sp.diff(L_poly, I3_s).subs(subs)
+
+    T_t = sp.simplify(2 * L_Y / A - L)
+    T_i = sp.simplify(2 * (L_I1 / B + 2 * L_I2 / B**2 + L_I3 / B**3) - L)
+    T_t_series = sp.series(T_t, u, 0, 3).removeO()
+    T_i_series = sp.series(T_i, u, 0, 3).removeO()
+    t_coeffs = [
+        sp.expand(T_t_series).coeff(u, n)
+        for n in range(3)
+    ]
+    i_coeffs = [
+        sp.expand(T_i_series).coeff(u, n)
+        for n in range(3)
+    ]
+    equations = t_coeffs + i_coeffs
+    leading_equations = t_coeffs[:2] + i_coeffs[:2]
+
+    leading_solutions = sp.solve(
+        leading_equations,
+        [c_Y, c_I1, c_I1sq, c_I3],
+        dict=True,
+    )
+
+    full_solutions = sp.solve(
+        equations,
+        [c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1, b2],
+        dict=True,
+    )
+    nontrivial = [
+        sol for sol in full_solutions
+        if sol.get(b2) == 18
+    ]
+    trivial = [
+        sol for sol in full_solutions
+        if sol.get(c_Y, None) == 0
+        and sol.get(c_Y2, None) == 0
+        and sol.get(c_YI1, None) == 0
+    ]
+    solution_residuals = [
+        [sp.simplify(eq.subs(sol)) for eq in equations]
+        for sol in full_solutions
+    ]
+
+    q_gamma_beta_1 = b2 / 2 + 1
+    q_b2_18 = sp.Rational(18, 2) + 1
+    q_gr = sp.Rational(7, 4)
+    q_exp = sp.Integer(2)
+
+    return {
+        "status": "ISOTROPIC_2PN_STRESS_CLOSURE_OBSTRUCTION",
+        "T_t_series": sp.factor(T_t_series),
+        "T_i_series": sp.factor(T_i_series),
+        "leading_O0O1_solutions": leading_solutions,
+        "solutions": full_solutions,
+        "solution_residuals": solution_residuals,
+        "nontrivial_branch": nontrivial,
+        "trivial_branch": trivial,
+        "nontrivial_branch_b2": sp.Eq(b2, 18),
+        "q_2PN_when_gamma_beta_1": sp.Eq(sp.Symbol("q_2PN"), q_gamma_beta_1),
+        "optical_q_on_nontrivial_branch": sp.Eq(sp.Symbol("q_2PN"), q_b2_18),
+        "GR_q_2PN": q_gr,
+        "exponential_candidate_q_2PN": q_exp,
+        "verdict": (
+            "in the minimal isotropic unitary-gauge stress closure, the exact "
+            "nontrivial 2PN stress-free branch has b2=18, giving q_2PN=10; "
+            "the only alternative is the trivial coefficient sector.  Thus the "
+            "old b2=2 optical candidate is not derived by this closure."
+        ),
+        "article_reading": (
+            "the Solar 2PN sector is a hard gate: RFG must either derive a "
+            "different exterior map/screening mechanism, accept the large "
+            "b2=18 deviation, or collapse to the trivial sector in this ansatz"
+        ),
+    }
+
+
 if __name__ == "__main__":
     print("--- Shapiro Time Delay (2PN): RFG-GR candidate discriminator ---")
     shapiro = calculate_shapiro_2pn_discriminator()
@@ -967,6 +1078,7 @@ def article_solar_theorem():
     shapiro_2pn = calculate_shapiro_2pn_discriminator()
     bending_2pn = calculate_light_deflection_2pn_discriminator()
     optical_bridge = isotropic_optical_index_2pn_bridge()
+    isotropic_closure = isotropic_2pn_stress_closure_theorem()
 
     return {
         "article_use": "1PN Solar-System compatibility branch and 2PN discriminator",
@@ -1002,6 +1114,25 @@ def article_solar_theorem():
                 one_pn_derivation["exact_2PN_stress_free_solution_on_branch"]
             ),
             "strict_stress_free_solution": stress["strict_O0_O1_O2_solution"],
+            "isotropic_2pn_stress_closure": {
+                "status": isotropic_closure["status"],
+                "leading_O0O1_solutions": isotropic_closure[
+                    "leading_O0O1_solutions"
+                ],
+                "solutions": isotropic_closure["solutions"],
+                "solution_residuals": isotropic_closure["solution_residuals"],
+                "nontrivial_branch_b2": isotropic_closure[
+                    "nontrivial_branch_b2"
+                ],
+                "optical_q_on_nontrivial_branch": isotropic_closure[
+                    "optical_q_on_nontrivial_branch"
+                ],
+                "GR_q_2PN": isotropic_closure["GR_q_2PN"],
+                "exponential_candidate_q_2PN": isotropic_closure[
+                    "exponential_candidate_q_2PN"
+                ],
+                "article_reading": isotropic_closure["article_reading"],
+            },
             "reading": (
                 "Exact GR-like 2PN stress-free closure sends c_Y2=c_YI1=0 "
                 "on the nontrivial 1PN branch; the nonzero O(U^2) residual is "
@@ -1046,6 +1177,7 @@ def article_solar_theorem():
             "full_ppn": ppn_scope["status"],
             "cassini_if_gamma_derived": cassini["status"],
             "two_pn": "OPEN_DISCRIMINATOR",
+            "isotropic_2pn_closure": isotropic_closure["status"],
             "two_pn_observable_candidates": (
                 "CONDITIONAL_CANDIDATES_NOT_FINAL_PREDICTIONS"
             ),
