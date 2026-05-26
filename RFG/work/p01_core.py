@@ -18,6 +18,7 @@ P01_MAIN_SECTIONS = {
     "eft",
     "lorentz",
     "old",
+    "audit",
 }
 
 
@@ -131,6 +132,52 @@ def analyze_lorentz_constrained_stability():
     
     return K_Phi_constr, K_pi_constr
 
+
+def vacuum_background_ansatz_audit():
+    """
+    Make the Y=1, B=delta background status explicit.
+
+    This does not derive the vacuum dynamically.  It computes the algebraic
+    zero-stress constraints that must hold if this background is chosen.
+    """
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        'c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1', real=True
+    )
+
+    rho0 = sp.simplify(
+        c_Y + 3 * c_Y2 + 3 * c_YI1
+        - 3 * c_I1 - 9 * c_I1sq - 3 * c_I2 - c_I3
+    )
+    p0 = sp.simplify(
+        c_Y + c_Y2 + c_YI1
+        + c_I1 - 3 * c_I1sq - c_I2 - c_I3
+    )
+    solutions = sp.solve([rho0, p0], [c_Y, c_I1], dict=True)
+    solution = solutions[0] if solutions else {}
+
+    K_phi = sp.simplify(c_Y + 6 * c_Y2 + 3 * c_YI1)
+    K_pi = sp.simplify(-c_I1 - 6 * c_I1sq - 2 * c_I2 - c_I3 - c_YI1)
+    K_phi_on_vacuum = sp.simplify(K_phi.subs(solution)) if solution else None
+    K_pi_on_vacuum = sp.simplify(K_pi.subs(solution)) if solution else None
+
+    return {
+        "background": "Y=1, B^{AB}=delta^{AB}",
+        "status": "ANSATZ_NOT_DERIVED",
+        "weakness": (
+            "The chosen homogeneous vacuum is algebraically consistent only "
+            "after zero-stress constraints; a dynamical selection theorem is still open."
+        ),
+        "rho0": rho0,
+        "p0": p0,
+        "zero_stress_solution_for_cY_cI1": solution,
+        "K_phi_on_zero_stress_branch": K_phi_on_vacuum,
+        "K_pi_on_zero_stress_branch": K_pi_on_vacuum,
+        "next_proof_target": (
+            "derive this branch as an extremum/minimum of the full action, "
+            "not as an inserted background"
+        ),
+    }
+
 def analyze_sound_speeds(solve_roots=False):
     """
     Minkowski ფონზე ვითვლით ტრანსვერსულ და შერეულ (ფაზა+გრძივი) ხმის სიჩქარეებს.
@@ -228,6 +275,17 @@ if __name__ == "__main__" and _should_run_main_section("base"):
     print("\nFLRW ფონი:")
     print("K_PhiPhi > 0 =>", K_PhiPhi, "> 0")
     print("K_pipi > 0 =>", K_pipi, "> 0")
+
+    print("\n--- Vacuum background ansatz audit ---")
+    vacuum_audit = vacuum_background_ansatz_audit()
+    print("ფონი:", vacuum_audit["background"])
+    print("სტატუსი:", vacuum_audit["status"])
+    print("rho0 =", vacuum_audit["rho0"])
+    print("p0   =", vacuum_audit["p0"])
+    print("zero-stress solution:", vacuum_audit["zero_stress_solution_for_cY_cI1"])
+    print("K_Phi zero-stress branch:", vacuum_audit["K_phi_on_zero_stress_branch"])
+    print("K_pi zero-stress branch:", vacuum_audit["K_pi_on_zero_stress_branch"])
+    print("ღია სამიზნე:", vacuum_audit["next_proof_target"])
 
     cs2_T, eq_cs2, coeffs, cs2_roots = analyze_sound_speeds(solve_roots=False)
     print("\n--- Sound Speeds (c_s^2) ---")
@@ -1280,6 +1338,101 @@ def characteristic_polynomial(coeffs, solve_symbolic=False):
     return s, det, roots
 
 
+def mixed_mode_stability_conditions(coeffs):
+    """
+    Necessary and sufficient algebraic conditions for the 2x2 principal
+    mixed phase-longitudinal sector on the chosen homogeneous background.
+
+    For
+        det M(s) = p2*s^2 + p1*s + p0,
+    with s=omega^2/k^2, the two mixed speeds are real and positive iff:
+        p2 > 0, p1 < 0, p0 > 0, discriminant >= 0.
+
+    This closes the local 2x2 principal-symbol test.  It does not close the
+    full curved-background/global hyperbolicity problem.
+    """
+    A = coeffs["A"]
+    B = coeffs["B_long"]
+    C = coeffs["C"]
+    D = coeffs["D"]
+    M = coeffs["M_mix"]
+    K_T = coeffs["K_T"]
+    C_T = coeffs["C_T"]
+
+    p2 = sp.factor(sp.simplify(A * B))
+    p1 = sp.factor(sp.simplify(A * D + B * C - M**2))
+    p0 = sp.factor(sp.simplify(C * D))
+    discriminant = sp.factor(sp.simplify(p1**2 - 4 * p2 * p0))
+
+    return {
+        "mixed_polynomial_coefficients": {
+            "p2": p2,
+            "p1": p1,
+            "p0": p0,
+            "discriminant": discriminant,
+        },
+        "no_ghost_required": {
+            "A": A,
+            "B_long": B,
+            "K_T": K_T,
+            "conditions": "A>0, B_long>0, K_T>0",
+        },
+        "mixed_speed_required": {
+            "conditions": "p2>0, p1<0, p0>0, discriminant>=0",
+            "meaning": "two real positive mixed eigen-speeds s=omega^2/k^2",
+        },
+        "transverse_required": {
+            "C_T": C_T,
+            "condition": "with K_T>0 require C_T<0 so c_T^2=-C_T/K_T>0",
+        },
+        "scope": "local homogeneous principal-symbol closure; not a full curved/global proof",
+    }
+
+
+def mixed_mode_numeric_condition_check():
+    """Compare the algebraic mixed-mode criteria against the existing numeric cases."""
+    c_Y, c_Y2, c_I1, c_I1sq, c_I2, c_I3, c_YI1 = sp.symbols(
+        "c_Y c_Y2 c_I1 c_I1sq c_I2 c_I3 c_YI1", real=True
+    )
+    coeffs, _s, _det, _roots = minkowski_principal_symbol()
+    conditions = mixed_mode_stability_conditions(coeffs)
+    poly = conditions["mixed_polynomial_coefficients"]
+
+    rows = []
+    for row in numeric_hyperbolicity_cases():
+        name = row["name"]
+        if name == "stable_decoupled":
+            subs = {c_Y: 1.0, c_Y2: 0.10, c_I1: -2.0, c_I1sq: 0.10, c_I2: -0.10, c_I3: 0.0, c_YI1: 0.0}
+        elif name == "stable_mixed_small":
+            subs = {c_Y: 1.0, c_Y2: 0.10, c_I1: -2.0, c_I1sq: 0.10, c_I2: -0.10, c_I3: 0.0, c_YI1: 0.05}
+        elif name == "ghost_fail_phase":
+            subs = {c_Y: -1.0, c_Y2: 0.05, c_I1: -2.0, c_I1sq: 0.10, c_I2: -0.10, c_I3: 0.0, c_YI1: 0.0}
+        elif name == "gradient_fail_solid":
+            subs = {c_Y: 1.0, c_Y2: 0.10, c_I1: -0.20, c_I1sq: 0.00, c_I2: 0.50, c_I3: 0.0, c_YI1: 0.0}
+        else:
+            continue
+
+        values = {
+            "p2": float(sp.N(poly["p2"].subs(subs))),
+            "p1": float(sp.N(poly["p1"].subs(subs))),
+            "p0": float(sp.N(poly["p0"].subs(subs))),
+            "discriminant": float(sp.N(poly["discriminant"].subs(subs))),
+        }
+        algebraic_pass = (
+            values["p2"] > 0
+            and values["p1"] < 0
+            and values["p0"] > 0
+            and values["discriminant"] >= 0
+        )
+        rows.append({
+            "name": name,
+            **values,
+            "mixed_algebraic_status": "PASS" if algebraic_pass else "FAIL",
+            "root_status": row["mixed_roots_status"],
+        })
+    return rows
+
+
 def minkowski_principal_symbol():
     coeffs = quadratic_principal_coefficients(scale_factor=1)
     s, det, roots = characteristic_polynomial(coeffs)
@@ -1432,11 +1585,47 @@ def numeric_hyperbolicity_cases():
 
 def status_assessment():
     return {
-        "minkowski": "det M(s)=0 computed from L2 principal coefficients",
-        "flrw": "comoving det M(s)=0 computed; physical speed is a^2*s",
+        "minkowski": "det M(s)=0 computed; mixed-mode algebraic positivity criteria are explicit",
+        "flrw": "comoving det M(s)=0 computed; physical speed is a^2*s; same algebraic criteria apply after scaling",
         "schwarzschild": "local orthonormal determinant equals Minkowski; coordinate radial redshift added",
-        "remaining": "global hyperbolicity and full curved-background perturbation system remain beyond smoke-test",
+        "remaining": "global hyperbolicity and full curved-background perturbation system remain open",
     }
+
+
+def p01_proof_gap_register():
+    """Direct list of p01 weaknesses that must not be hidden."""
+    return [
+        {
+            "gap": "vacuum_background_selection",
+            "current_status": "Y=1, B=delta is an ansatz with zero-stress algebraic constraints",
+            "risk": "without a dynamical minimum theorem this is a tuned branch, not a derived vacuum",
+            "next_step": "derive the homogeneous vacuum as a stable extremum of the full action",
+        },
+        {
+            "gap": "mixed_mode_stability",
+            "current_status": "local 2x2 principal-symbol algebraic criteria are now explicit",
+            "risk": "this closes the local homogeneous symbol, not the full curved/global Cauchy problem",
+            "next_step": "extend to curved background perturbations and prove global hyperbolicity conditions",
+        },
+        {
+            "gap": "lorentz_invariance",
+            "current_status": "one x-boost background-stress condition plus PPN comparison",
+            "risk": "all boost directions and perturbation sector are not audited",
+            "next_step": "derive the full boost-direction tensor condition and perturbation-sector Lorentz audit",
+        },
+        {
+            "gap": "generic_noether_identity",
+            "current_status": "diagonal backgrounds plus off-diagonal coefficient sanity-check",
+            "risk": "generic non-diagonal metric proof is not written",
+            "next_step": "prove the Noether identity for generic symmetric metric variables",
+        },
+        {
+            "gap": "dirac_bergmann_closure",
+            "current_status": "candidate DOF count only",
+            "risk": "second-class bracket non-degeneracy/anomaly closure is open",
+            "next_step": "construct the constraint matrix and check non-degeneracy/anomaly closure",
+        },
+    ]
 
 
 def compact_det_label():
@@ -1456,6 +1645,14 @@ if __name__ == "__main__" and _should_run_main_section("hyperbolicity"):
     print(f"  expanded degree in s: {sp.degree(det_m, s)}")
     print(f"  decoupled roots (c_YI1=0): {decoupled_mixed_roots(coeffs_m)}")
     print(f"  transverse c_s^2: {coeffs_m['cs2_T_comoving']}")
+    mixed_conditions = mixed_mode_stability_conditions(coeffs_m)
+    print("\n1b. Mixed-mode algebraic stability criterion")
+    for key, value in mixed_conditions["mixed_polynomial_coefficients"].items():
+        print(f"  {key:12s}: {value}")
+    print("  mixed condition:", mixed_conditions["mixed_speed_required"]["conditions"])
+    print("  no-ghost condition:", mixed_conditions["no_ghost_required"]["conditions"])
+    print("  transverse condition:", mixed_conditions["transverse_required"]["condition"])
+    print("  scope:", mixed_conditions["scope"])
 
     print("\n2. FLRW principal symbol")
     coeffs_f, s_f, det_f, roots_f, det_phys = flrw_principal_symbol()
@@ -1486,6 +1683,14 @@ if __name__ == "__main__" and _should_run_main_section("hyperbolicity"):
         print(f"    K values: {kinetic_text} -> {row['kinetic']}")
         print(f"    mixed roots: {roots_text} -> {row['mixed_roots_status']}")
         print(f"    transverse c_s^2: {row['transverse_cs2']:.4g} -> {row['transverse_status']}")
+
+    print("\n5b. Numeric check against algebraic mixed-mode criterion")
+    for row in mixed_mode_numeric_condition_check():
+        print(
+            f"  {row['name']:22s}: p2={row['p2']:.4g}, p1={row['p1']:.4g}, "
+            f"p0={row['p0']:.4g}, disc={row['discriminant']:.4g} -> "
+            f"{row['mixed_algebraic_status']} (roots: {row['root_status']})"
+        )
 
     print("\n6. Status")
     for key, value in status_assessment().items():
@@ -2120,7 +2325,33 @@ if __name__ == "__main__" and _should_run_main_section("old"):
     print("    and matter-channel EFT stability.")
 
 
+if __name__ == "__main__" and _should_run_main_section("audit"):
+    print("=" * 72)
+    print("P01 direct weakness / proof-gap register")
+    print("=" * 72)
+
+    print("\n1. Vacuum ansatz")
+    vacuum_audit = vacuum_background_ansatz_audit()
+    for key, value in vacuum_audit.items():
+        print(f"  {key:34s}: {value}")
+
+    print("\n2. Local mixed-mode stability gate")
+    coeffs_m, _s, _det, _roots = minkowski_principal_symbol()
+    mixed_conditions = mixed_mode_stability_conditions(coeffs_m)
+    for key, value in mixed_conditions["mixed_polynomial_coefficients"].items():
+        print(f"  {key:34s}: {value}")
+    print(f"  conditions                        : {mixed_conditions['mixed_speed_required']['conditions']}")
+    print(f"  scope                             : {mixed_conditions['scope']}")
+
+    print("\n3. Remaining proof gaps")
+    for item in p01_proof_gap_register():
+        print(f"\n  - {item['gap']}")
+        print(f"    current_status: {item['current_status']}")
+        print(f"    risk          : {item['risk']}")
+        print(f"    next_step     : {item['next_step']}")
+
+
 if __name__ == "__main__" and not _requested_main_sections():
     print("p01_core.py loaded. Run a section explicitly:")
-    print("  python RFG\\work\\p01_core.py base|spherical|moduli|stress|horndeski|hyperbolicity|eft|lorentz|old")
+    print("  python RFG\\work\\p01_core.py base|spherical|moduli|stress|horndeski|hyperbolicity|eft|lorentz|old|audit")
 
