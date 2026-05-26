@@ -2,6 +2,7 @@
 # signature (+---); Y = g^mn d_m Phi d_n Phi; B^AB = -g^mn d_m phi^A d_n phi^B.
 # T_mn = 2*dL/dg^mn - g_mn*L; off-diagonal symmetric variables use factor 1.
 # Horndeski/EFT bridge only: X = -1/2 g^mn d_m Phi d_n Phi, so Y = -2X.
+# Active coefficient scheme: Y-scheme; c_Y means c_Y^(Y), not X-scheme c_X.
 
 """
 p02: FLRW კოსმოლოგიური ფონი.
@@ -11,14 +12,12 @@ p02: FLRW კოსმოლოგიური ფონი.
 - rho და p_iso-ის სიმბოლური შემოწმება;
 - GR-ფორმის Friedmann bookkeeping იგივე-მატერიის ფონზე;
 - Phi(t)-ის Noether/conservation იდენტობა.
-- process-time ledger კოსმოლოგიურ გამოყენებებთან ერთად.
 
 ეს ფაილი არ ამტკიცებს სრულ RFG გრავიტაციულ ფონის დინამიკას. Friedmann-ის
 განტოლებები აქ არის სამუშაო bookkeeping branch, რომელიც შემდეგ უნდა შეიკრას
 სრული გრავიტაციული სექტორით და დაკვირვებითი ფიტით.
 
-შერეული თემები ამ ფაილში შეგნებულად რჩება: p02 არის კოსმოლოგიის სამუშაო
-საბჭო/ledger, არა მხოლოდ ერთი იზოლირებული ფორმულის ფაილი.
+Process-time ledger გატანილია p02b_process_time_ledger.py-ში.
 """
 
 import sympy as sp
@@ -164,8 +163,10 @@ def check_conservation():
     FLRW-ზე ამოწმებს:
         drho/dt + 3H(rho+p) = EOM_Phi * Phi_dot
 
-    strict Phi=t ზოგადად ნარჩენს ტოვებს; ამიტომ იგი background-ის დახურვად
-    არ უნდა ჩაითვალოს დამატებითი პირობის გარეშე.
+    strict Phi=t ნარჩენი მოდის დაუხურავი phase-current EOM-იდან; c_YI1
+    ამ ნარჩენში solid-coupled ნაწილს აჩენს, ხოლო c_Y/c_Y2 pure-phase ნაწილს.
+    ამიტომ strict Phi=t არ უნდა ჩაითვალოს background-ის დახურვად დამატებითი
+    პირობის გარეშე.
     """
     t = sp.Symbol("t", real=True)
     a = sp.Function("a")(t)
@@ -202,6 +203,49 @@ def check_conservation():
     return difference, expected_lhs, conservation_strict, EOM_strict
 
 
+def phi_clock_closure_conditions():
+    """
+    strict Phi=t branch-ის ალგებრული დახურვის პირობები.
+
+    ეს არ ხდის strict-clock branch-ს დაკვირვებით დამტკიცებულად; ის მხოლოდ
+    აჩვენებს, რა coefficient tuning არის საჭირო, რომ phase-current residual
+    generic expanding FLRW-ზე გაქრეს.
+    """
+    _, _, conservation_strict, EOM_strict = check_conservation()
+
+    c_Y, c_Y2, c_YI1 = sp.symbols("c_Y c_Y2 c_YI1", real=True)
+    closure_subs = {
+        c_Y: -2 * c_Y2,
+        c_YI1: 0,
+    }
+
+    K_phi_today = sp.simplify(c_Y + 6 * c_Y2 + 3 * c_YI1)
+    rho_late_strict = sp.simplify(c_Y + 3 * c_Y2)
+    p_late_strict = sp.simplify(c_Y + c_Y2)
+
+    rho_closed = sp.simplify(rho_late_strict.subs(closure_subs))
+    p_closed = sp.simplify(p_late_strict.subs(closure_subs))
+
+    return {
+        "strict_clock_residual": sp.factor(conservation_strict),
+        "strict_clock_EOM_residual": sp.factor(EOM_strict),
+        "generic_expanding_FLRW_closure": [
+            sp.Eq(c_YI1, 0),
+            sp.Eq(c_Y + 2 * c_Y2, 0),
+        ],
+        "residual_after_closure": sp.simplify(conservation_strict.subs(closure_subs)),
+        "phase_no_ghost_after_closure": sp.simplify(K_phi_today.subs(closure_subs)),
+        "late_rho_after_closure": rho_closed,
+        "late_p_after_closure": p_closed,
+        "late_w_after_closure": sp.simplify(p_closed / rho_closed),
+        "remaining_status": (
+            "STRICT_CLOCK_BRANCH_CONDITIONAL: closes algebraically only with "
+            "c_YI1=0 and c_Y=-2*c_Y2 for generic expansion; still requires "
+            "solid-sector stability and observational coefficient fit."
+        ),
+    }
+
+
 def late_time_density_status(rho_solid):
     """
     a -> infinity ლიმიტი.
@@ -223,7 +267,10 @@ def late_time_density_status(rho_solid):
         "rho_late_dynamic": rho_late,
         "rho_late_strict_clock": rho_strict,
         "Lambda_eff_strict_clock": sp.simplify(kappa * rho_strict),
-        "naturalness_status": "არ არის გამოყვანილი",
+        "naturalness_status": (
+            "OPEN_NUMERICAL_FIT: Lambda_eff strict-clock diagnostic is not a "
+            "derived dark-energy solution; requires coefficient fit and dynamic Phi(t)."
+        ),
     }
 
 
@@ -233,155 +280,48 @@ def early_component_status():
         "stiff_like": "-c_I3/a^6",
         "radiation_like_extra": "-(9*c_I1sq + 3*c_I2)/a^4",
         "curvature_like_extra": "(-3*c_I1 + 3*c_YI1*Phi_dot^2)/a^2",
-        "status": "საჭიროა დაკვირვებითი ფიტი",
-    }
-
-
-def get_process_time_relation():
-    """
-    ისტორიული process-time ხაზობრივი ესკიზის დაკონსოლიდებული ფორმა.
-
-    აქტიური normalization ემთხვევა p10-ის ბი-კონფორმულ სკალირებას:
-    d tau / dt = exp(phi/2). ეს ბლოკი p02-ში რჩება კოსმოლოგიური ledger-ისთვის,
-    მაგრამ არ შედის primary FLRW/CMB metric branch-ში.
-    """
-    t = sp.Symbol("t", real=True)
-    tau = sp.Function("tau")(t)
-    phi = sp.Symbol("phi", real=True)
-
-    relation = sp.Eq(sp.diff(tau, t), sp.exp(phi / 2))
-    weak_field = sp.series(sp.exp(phi / 2), phi, 0, 2).removeO()
-
-    return relation, weak_field, tau, t, phi
-
-
-def process_time_scaling_ledger():
-    """
-    წნევის-ისტორიის process-time სკალირება.
-
-    C(z) ნორმირებულია C(0)=1-ით და გამოიყენება მხოლოდ წინასწარ მონიშნულ
-    intrinsic process-rate სიდიდეებზე.
-    """
-    z = sp.Symbol("z", real=True, nonnegative=True)
-    phi_bg = sp.Function("phi_bg")
-    C = sp.exp((phi_bg(z) - phi_bg(0)) / 2)
-
-    return {
-        "C_of_z": sp.Eq(sp.Function("C")(z), C),
-        "process_clock": "d tau_proc / dt = C(z)",
-        "rod_scale": "d ell(z) / d ell(0) = C(z)^(-1)",
-        "mass_scale": "m_eff(z) / m_eff(0) = C(z)",
-        "tail_power_perturbative": "P_tail(z) / P_tail(0) = C(z)^4",
-        "normalization": "C(0)=1 by present-epoch calibration",
-        "status": "bookkeeping; დამოუკიდებელი metric mode არ არის",
-    }
-
-
-def flrw_vs_process_time_separation():
-    """
-    წესი, რომელიც process-time ledger-ს primary FLRW/CMB branch-ისგან ყოფს.
-    """
-    return {
-        "metric_FLRW_branch": "phi_0(t)=0 matter-clock cosmic-time gauge-ში",
-        "process_diagnostic": "phi_bg(z)=coarse-grained pressure-history diagnostic",
-        "not_a_second_metric_mode": True,
-        "CMB_rule": (
-            "phi_bg(z) არ შეიტანო Einstein-Boltzmann/CMB სექტორში, როგორც "
-            "დამატებითი ჰომოგენური metric perturbation."
-        ),
-        "where_it_acts": (
-            "C(z) გამოიყენე მხოლოდ მონიშნულ intrinsic matter/resonance "
-            "process-rate კანონებში, formation-history ledger-ში და tail-emission "
-            "bookkeeping-ში."
+        "status": (
+            "OPEN_NUMERICAL_FIT: no BBN/CMB/Planck compatibility claim before "
+            "fitting c_I1, c_I1sq, c_I2, c_I3, c_YI1 and Phi(t)."
         ),
     }
 
 
-def process_time_integrals():
-    """Coordinate lookback და pressure-weighted process-time ინტეგრალები."""
-    z, zp = sp.symbols("z z_prime", real=True, nonnegative=True)
-    H = sp.Function("H")
-    C = sp.Function("C")
+def cosmology_claim_gate():
+    """ცხადი claim ledger: რა იხურება p02-ში და რა არა."""
+    rho, p_iso, _, result = get_flrw_pressures()
+    stress_check = compare_stress_with_expected(rho, p_iso)
+    bianchi_ok, residual = check_bianchi_residual(result)
+    conservation_diff, _, conservation_strict, _ = check_conservation()
+    clock_closure = phi_clock_closure_conditions()
 
-    lookback = sp.Integral(1 / ((1 + zp) * H(zp)), (zp, 0, z))
-    process = sp.Integral(C(zp) / ((1 + zp) * H(zp)), (zp, 0, z))
-    enhancement = sp.Symbol("A_proc")
+    strict_clock_closed = sp.simplify(clock_closure["residual_after_closure"]) == 0
 
     return {
-        "coordinate_lookback_time": sp.Eq(sp.Function("t_lb")(z), lookback),
-        "cumulative_process_time": sp.Eq(sp.Function("tau_proc")(z), process),
-        "enhancement_factor": sp.Eq(enhancement, process / lookback),
-        "past_reading": "თუ C(z)>1 წარსულში, intrinsic process history იზრდება",
-        "future_reading": "თუ C(t)->0 საკმარისად სწრაფად, process-time ბიუჯეტი შეიძლება სასრული გახდეს",
-    }
-
-
-def rate_conversion_no_double_counting():
-    """რომელ სიჩქარეში შედის C(z) და სად არ უნდა შევიდეს."""
-    return [
-        {
-            "rate_tag": "intrinsic_process_time_rate",
-            "symbolic_rule": "dX/dt = C(z) * dX/dtau_proc",
-            "use_for": "კანონები, რომლებიც პირდაპირ tau_proc-ზეა განსაზღვრული",
-            "double_counting_check": "გამოიყენე ზუსტად ერთი C(z) ფაქტორი",
-        },
-        {
-            "rate_tag": "local_proper_time_rate",
-            "symbolic_rule": "გადაყვანა მხოლოდ local clock calibration-ის მითითების შემდეგ",
-            "use_for": "ადგილობრივი decay/oscillon/tail emission ერთ ეპოქაში",
-            "double_counting_check": "არ დაუმატო process-time ფაქტორი, თუ კანონი tau_proc-ზე არ გადაიწერა",
-        },
-        {
-            "rate_tag": "coordinate_cosmic_time_rate",
-            "symbolic_rule": "დამატებითი C(z) არ შედის",
-            "use_for": "FLRW background, Boltzmann evolution, merger crossing times",
-            "double_counting_check": "dot უკვე დროის ცვლადს აფიქსირებს",
-        },
-        {
-            "rate_tag": "observed_time_rate",
-            "symbolic_rule": "რჩება სტანდარტული metric redshift/time dilation",
-            "use_for": "დაკვირვებული სპექტრები, light curves, inferred rates",
-            "double_counting_check": "observed redshift stretch არ გადაითარგმნოს process-time-ად",
-        },
-    ]
-
-
-def process_time_application_map():
-    """process-time ledger-ის გამოყენების რუკა სხვა კოსმოლოგიურ ბლოკებთან."""
-    return {
-        "MOND_vortex_maturation": (
-            "coordinate-time H_eff რჩება ძირითად კალიბრაციად; process weighting "
-            "მხოლოდ მონიშნულ intrinsic formation-rate კანონებში შედის"
+        "stress_algebra": "PASS" if (
+            stress_check["rho_full_match"] and stress_check["p_iso_full_match"]
+        ) else "CHECK",
+        "bianchi_noether": "PASS" if bianchi_ok else "CHECK",
+        "noether_difference": "PASS" if sp.simplify(conservation_diff) == 0 else "CHECK",
+        "friedmann_GR_form": "BOOKKEEPING_ONLY",
+        "strict_Phi_t": (
+            "CONDITIONAL_CLOSED" if strict_clock_closed else "NOT_CLOSED"
         ),
-        "JWST_high_z_galaxies": (
-            "შეიძლება შეამციროს საჭირო intrinsic development time მხოლოდ მაშინ, "
-            "თუ formation rate process-controlled-ად არის მონიშნული"
+        "strict_Phi_t_conditions": clock_closure["generic_expanding_FLRW_closure"],
+        "late_time_Lambda_eff": (
+            "CONDITIONAL_DIAGNOSTIC_ONLY: w=-1 on strict-clock closure, "
+            "but observed dark-energy claim needs coefficient fit and full gravity closure"
         ),
-        "resonant_tail_dark_energy": (
-            "tail-power C^4 არის bookkeeping input; P_tail-ის დროის ცვლადი "
-            "ინტეგრაციამდე უნდა გამოცხადდეს"
-        ),
-        "cluster_mergers": (
-            "merger crossing და redistribution times ადგილობრივი ეპოქის სიდიდეებია; "
-            "არ გაამრავლო Bullet/cluster crossing times C(z)-ზე"
-        ),
-        "CMB": (
-            "primary CMB იყენებს locked FLRW branch-ს; C(z) არ არის დამატებითი "
-            "background metric mode"
-        ),
-    }
-
-
-def stage_a2_process_time_status():
-    """p02-ში დარჩენილი process-time ledger-ის სრული სტატუსი."""
-    return {
-        "source_provenance": "OLD/18-დან გადმოტანილი provenance; აქტიური ავტორიტეტი არ არის",
-        "scaling": process_time_scaling_ledger(),
-        "flrw_separation": flrw_vs_process_time_separation(),
-        "integrals": process_time_integrals(),
-        "rate_table": rate_conversion_no_double_counting(),
-        "applications": process_time_application_map(),
-        "integration_status": "დიზაინით რჩება p02-ში",
+        "early_universe_BBN_CMB_Planck": "OPEN_FIT",
+        "process_time": "MOVED_TO_p02b_NOT_PRIMARY_FLRW_BRANCH",
+        "do_not_claim": [
+            "do not claim H0-tension solution",
+            "do not claim dark-energy solution",
+            "do not claim BBN/CMB/Planck compatibility",
+            "do not use process-time as second metric mode",
+        ],
+        "raw_bianchi_residual": residual,
+        "raw_strict_clock_residual": sp.factor(conservation_strict),
     }
 
 
@@ -393,7 +333,7 @@ def module_status():
     conservation_diff, _, conservation_strict, EOM_strict = check_conservation()
 
     return {
-        "scope": "FLRW კოსმოლოგია და process-time ledger",
+        "scope": "FLRW stress/Friedmann-bookkeeping/conservation ledger only",
         "stress_check": stress_check,
         "bianchi_ok": bianchi_ok,
         "bianchi_residual": residual,
@@ -402,7 +342,9 @@ def module_status():
         "strict_Phi_t_EOM_residual": EOM_strict,
         "late_time_density": late_time_density_status(rho),
         "early_components": early_component_status(),
-        "process_time": stage_a2_process_time_status(),
+        "phi_clock_closure": phi_clock_closure_conditions(),
+        "claim_gate": cosmology_claim_gate(),
+        "process_time_ledger": "moved to p02b_process_time_ledger.py",
         "friedmann_status": "GR-ფორმის bookkeeping; სრული RFG გრავიტაციული გამოყვანა ღიაა",
     }
 
@@ -446,7 +388,15 @@ if __name__ == "__main__":
     print("strict Phi=t EOM residual:", eom_strict)
     print("დასკვნა: strict Phi=t ფონად არ იკეტება დამატებითი პირობის გარეშე.")
 
-    print("\n6. გვიანი და ადრეული წევრები")
+    print("\n6. strict Phi=t closure პირობები")
+    clock_gate = phi_clock_closure_conditions()
+    print("generic expanding closure:", clock_gate["generic_expanding_FLRW_closure"])
+    print("residual after closure:", clock_gate["residual_after_closure"])
+    print("phase no-ghost after closure:", clock_gate["phase_no_ghost_after_closure"])
+    print("late w after closure:", clock_gate["late_w_after_closure"])
+    print("სტატუსი:", clock_gate["remaining_status"])
+
+    print("\n7. გვიანი და ადრეული წევრები")
     late = late_time_density_status(rho_solid)
     print("rho_late dynamic:", late["rho_late_dynamic"])
     print("rho_late strict Phi=t:", late["rho_late_strict_clock"])
@@ -454,9 +404,20 @@ if __name__ == "__main__":
     print("ნატურალურობა:", late["naturalness_status"])
     print("ადრეული წევრების სტატუსი:", early_component_status())
 
-    print("\n7. Process-time ledger")
-    relation, weak_field, *_ = get_process_time_relation()
-    print("process-time relation:", relation)
-    print("weak-field limit:", weak_field)
-    print("FLRW/CMB separation:", flrw_vs_process_time_separation()["not_a_second_metric_mode"])
-    print("integration status:", stage_a2_process_time_status()["integration_status"])
+    print("\n8. Claim gate")
+    gate = cosmology_claim_gate()
+    for key in [
+        "stress_algebra",
+        "bianchi_noether",
+        "noether_difference",
+        "friedmann_GR_form",
+        "strict_Phi_t",
+        "late_time_Lambda_eff",
+        "early_universe_BBN_CMB_Planck",
+        "process_time",
+    ]:
+        print(f"{key}: {gate[key]}")
+    print("do_not_claim:", gate["do_not_claim"])
+
+    print("\n9. Process-time ledger")
+    print("გატანილია: p02b_process_time_ledger.py")
