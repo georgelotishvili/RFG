@@ -115,6 +115,47 @@ class FitReadiness:
     reason: str
 
 
+def cmb_comoving_time_calibration() -> dict[str, object]:
+    """
+    CMB-comoving calibration of the cosmic age.
+
+    The measured age is not an Earth-gravity clock reading. Operationally, it is
+    the FLRW age inferred in the CMB-comoving cosmic rest frame. This gives the
+    process-time ledger its present-epoch normalization T0 without promoting
+    13.8 Gyr to a new fundamental constant.
+    """
+    a = Symbol("a", positive=True)
+    H = sp.Function("H")
+    T0 = Symbol("T0", positive=True)
+
+    age_integral = sp.Integral(1 / (a * H(a)), (a, 0, 1))
+
+    return {
+        "status": "CMB_COMOVING_CALIBRATION_NOT_NEW_CMB_DYNAMICS",
+        "operational_frame": (
+            "CMB photon bath defines the observed cosmological rest frame via "
+            "its dipole; FLRW cosmic time is calibrated in that comoving frame"
+        ),
+        "age_definition": sp.Eq(T0, age_integral),
+        "T0_role": (
+            "symbolic present-epoch cosmic-age calibration used by p02b "
+            "process-time; numerical 13.8 Gyr is an observational fit value"
+        ),
+        "not_earth_gravity": (
+            "local Earth gravity is not the source of the 13.8 Gyr age; it is "
+            "only our laboratory clock environment"
+        ),
+        "not_substrate_identity": (
+            "CMB is the observable thermal photon field/trace of the early "
+            "universe, not automatically the unobserved RFG substrate itself"
+        ),
+        "process_time_bridge": (
+            "p02b may use this T0 as normalization, while C(z) remains outside "
+            "the primary Einstein-Boltzmann metric branch"
+        ),
+    }
+
+
 def map_rfg_to_horndeski():
     """
     RFG-ის L_solid → Horndeski G_2, G_3, G_4, G_5 (მხოლოდ Y-სექტორით)
@@ -407,6 +448,7 @@ def is_memory_freezing_cmb_estimate():
 
 def cmb_consistency_check():
     return {
+        'CMB_comoving_calibration': 'T0 is calibrated in the CMB-comoving cosmic rest frame',
         'locked_FLRW_branch': 'Phi_0=0, X_0=0 in matter-clock cosmic time',
         'alpha_T': '0 on the locked branch; full solid-sector tensors still obey phase9 mass/speed filter',
         'alpha_M': '0 because G4=M_Pl^2/2 is constant',
@@ -423,6 +465,7 @@ def old_to_rfg_cmb_migration_audit():
     return {
         "old_core": "alpha_K=alpha_B=alpha_M=alpha_T=0 on Phi_0=0 FLRW branch",
         "migrated_here": [
+            "CMB-comoving T0 calibration",
             "matter-clock FLRW locking theorem",
             "zero-alpha Bellini-Sawicki theorem",
             "linear scalar stress decoupling",
@@ -569,6 +612,7 @@ def same_matter_cmb_inheritance_audit() -> dict[str, object]:
     """
     return {
         "status": "ANALYTICALLY_CLOSED_SAME_MATTER_LIMIT",
+        "CMB_comoving_calibration": cmb_comoving_time_calibration(),
         "background": "Phi_0=0 -> rho_RFG_scalar=0 -> H(z) inherited",
         "EFT_alphas": {"alpha_K": 0.0, "alpha_B": 0.0, "alpha_M": 0.0, "alpha_T": 0.0},
         "metric_equations": "Poisson and slip are GR-identical at linear order",
@@ -665,6 +709,7 @@ def ik_sector_delta_neff_and_curvature_filters() -> dict[str, object]:
 def cmb_closed_conditional_open_scorecard() -> dict[str, list[str]]:
     return {
         "closed": [
+            "T0 is a CMB-comoving present-epoch age calibration, not an Earth-gravity constant",
             "Phi_0=X_0=0 matter-clock FLRW locking",
             "alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
             "linear Poisson/slip equations inherited",
@@ -675,6 +720,7 @@ def cmb_closed_conditional_open_scorecard() -> dict[str, list[str]]:
             "I_k background terms must pass Delta N_eff, stiff-fluid, and curvature-like filters",
             "late lensing/ISW remains identical only while the nonlinear MOND/memory response is not active in the line-of-sight model",
             "off-branch scalar/ESS perturbations require no-ghost and sound-speed checks",
+            "identifying CMB with the deeper RFG substrate requires a separate bridge, not assumed here",
         ],
         "open": [
             "full Planck TT/TE/EE+lensing likelihood",
@@ -857,6 +903,7 @@ def stage_c3_old_cmb_status() -> dict[str, object]:
         "new_file": "p08_cmb.py",
         "migrated": True,
         "closed_same_matter_branch": [
+            "CMB-comoving frame calibrates T0; 13.8 Gyr is a fitted present-epoch value",
             "matter-clock FLRW locking: Phi_0=0 and X_0=0",
             "Bellini-Sawicki alpha_K=alpha_B=alpha_M=alpha_T=0 on the locked branch",
             "linear scalar stress is quadratic and does not shift metric potentials at first order",
@@ -867,6 +914,7 @@ def stage_c3_old_cmb_status() -> dict[str, object]:
             "I_k radiation-like terms must satisfy Delta N_eff bounds",
             "I_k stiff a^-6 branch must be suppressed before BBN",
             "late nonlinear MOND/memory activation needs line-of-sight lensing/ISW modeling",
+            "CMB-as-substrate interpretation must be bridged separately from the photon-bath calibration",
         ],
         "open_no_particle_dm_branch": [
             "memory/frozen-well Boltzmann equation",
@@ -893,6 +941,10 @@ if __name__ == "__main__":
     print("=" * 72)
     print("PHASE 21: CMB — ეფექტური ველის თეორიის (EFT) კავშირები")
     print("=" * 72)
+
+    print("\n--- ნაბიჯი 0: CMB-comoving დროის კალიბრაცია ---")
+    for k, v in cmb_comoving_time_calibration().items():
+        print(f"  {k:30s}: {v}")
 
     print("\n--- Horndeski მაპირება ---")
     G_2, G_3, G_4, G_5, X = map_rfg_to_horndeski()
@@ -1047,4 +1099,6 @@ if __name__ == "__main__":
     print("   სცენარი phase21-ის Boltzmann/CLASS/CAMB ბლოკშია რეგისტრირებული.")
     print("8. computational audit ერთიანად აქაა: alpha table, readiness, H0/S8 checks.")
     print("9. GW მასის კონსტრეინტი phase9-დან პირდაპირ იქნა ციტირებული α_T ბლოკში.")
+    print("10. T0 ჩაიწერა როგორც CMB-comoving present-epoch calibration; 13.8 Gyr")
+    print("   არის fit-რიცხვი და არა ახალი ფუნდამენტური მუდმივა.")
     print("=" * 72)

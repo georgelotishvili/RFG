@@ -93,8 +93,8 @@ def process_time_self_similar_postulate():
     Minimal self-similar process-time postulate.
 
     This is not derived from p02 FLRW algebra. It is a narrow calculational
-    ansatz: the present calibrated age T0 is finite even if the internal past
-    process coordinate is unbounded.
+    ansatz: the CMB-comoving present calibration T0 is finite even if the
+    internal past process coordinate is unbounded.
     """
     tau = sp.Symbol("tau", real=True)
     s = sp.Symbol("s", real=True)
@@ -119,8 +119,8 @@ def process_time_self_similar_postulate():
             "clock unit reads the full past as the same finite age T0."
         ),
         "T0_role": (
-            "symbolic present-epoch calibrated age; 13.8 Gyr is only today's "
-            "numerical calibration example, not a new fundamental constant"
+            "symbolic CMB-comoving present-epoch calibrated age; 13.8 Gyr is "
+            "only today's numerical fit example, not a new fundamental constant"
         ),
         "C_tau": sp.Eq(C(tau), C_tau),
         "process_clock": "d tau_proc / dt_today = C(tau)",
@@ -199,7 +199,8 @@ def cosmic_age_invariance_result():
             "their own clock calibration"
         ),
         "T0_not_numeric_constant": (
-            "leave T0 symbolic in theory; insert 13.8 Gyr only in examples"
+            "leave T0 symbolic in theory; insert 13.8 Gyr only as the current "
+            "CMB-comoving observational calibration example"
         ),
     }
 
@@ -341,7 +342,7 @@ def jwst_process_time_diagnostic_table(
 
     return {
         "postulate_used": "self-similar process-time",
-        "T0_role": "symbolic; numeric value here is present-epoch calibration",
+        "T0_role": "symbolic; numeric value here is CMB-comoving present calibration",
         "present_age_calibration_gyr": T0,
         "age_approximation": (
             "high-z matter-era LCDM approximation with H0=67.4, Omega_m=0.315"
@@ -380,7 +381,7 @@ def jwst_process_time_interval_table(
         )
 
     return {
-        "T0_role": "symbolic; numeric value here is present-epoch calibration",
+        "T0_role": "symbolic; numeric value here is CMB-comoving present calibration",
         "present_age_calibration_gyr": T0,
         "rows": rows,
         "interpretation": (
