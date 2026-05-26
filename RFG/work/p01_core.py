@@ -253,8 +253,9 @@ if __name__ == "__main__" and _should_run_main_section("base"):
     print("კონსტრეინტების (c_Y2 = c_I1sq და PPN) ჩასმის შემდეგ No-Ghost პირობები:")
     print(f"K_PhiPhi > 0 => {K_Phi_c} > 0")
     print(f"K_pipi > 0   => {K_pi_c} > 0")
-    print("დასკვნა: ეს ორი დიაგონალური no-ghost პირობა ერთდროულად სრულდება, თუ c_Y2 > 0 და")
-    print("-6*c_Y2 < (c_Y + 3*c_YI1) < -2*c_Y2. სრული სტაბილურობა დამატებით gradient/eigenmode ტესტს მოითხოვს.")
+    print("დასკვნა: შერჩეულ ფონზე ორი დიაგონალური no-ghost პირობა ერთდროულად სრულდება, თუ c_Y2 > 0 და")
+    print("-6*c_Y2 < (c_Y + 3*c_YI1) < -2*c_Y2.")
+    print("ეს არის აუცილებელი ფანჯარა; gradient/cross-mode/eigenmode სტაბილურობა ცალკე ღიაა.")
 
     print("\n--- აგენტთა საბჭოს შენიშვნები ---")
     print("- ფონის შერჩევა (Y=1, B=δ) ჩასმული ansatz-ია, ფარული fine-tuning-ის სტატუსით.")
@@ -287,7 +288,7 @@ PHASE 1 (tensor): სუპერსოლიდის სტრესი სფ
 - off-diagonal: ფაქტორი 1 (არა 2), რადგან g^{mn}=g^{nm}
 
 phase22 ფარდდება Bianchi/Noether იდენტობას სამ ფონზე (Minkowski, FLRW,
-Schwarzschild) falsification-ით. ეს ფაილი იყენებს იმავე კონვენციებს
+Schwarzschild) stress-tensor coefficient sanity-check-ით. ეს ფაილი იყენებს იმავე კონვენციებს
 სფერული ანზაცის Δp გენერაციისთვის (MOND-ის ფორმულა §4-ში).
 
 სფერული სტატიკური ანზაცი:
@@ -520,14 +521,16 @@ PHASE 22 (v3.1): სრული ენერგია-იმპულსის 
   diagonal Minkowski/FLRW/Bianchi I ფონებზე სრული L-ით
 - Schwarzschild diagonal ფონზე იგივე იდენტობის reduced Y+I1 smoke-test
 - off-diagonal ვარიაციის ფაქტორის ცალკე smoke-test
-- falsification ცდა, რომ Noether იდენტობა მცდარი T-ის ფორმულას
-  არანულოვანი residual-ით იჭერს
+- stress-tensor coefficient sanity check, რომ Noether იდენტობა მცდარი
+  T-კოეფიციენტის შემთხვევაში არანულოვან residual-ს იძლევა
 
 შენიშვნა მკითხველისთვის:
 matter stress tensor-ის off-shell კოვარიანტული დივერგენცია generic-ად
 ნული არ არის — ის ფიზიკურ ველთა Euler-Lagrange წყაროებს უდრის. ეს ფაილი
-ამოწმებს ამ იდენტობას, არა "off-shell zero"-ს. falsification_test()
-აჩვენებს, რომ T-ის არასწორი ნორმალიზაცია არანულოვან residual-ს ტოვებს.
+ამოწმებს ამ იდენტობას, არა "off-shell zero"-ს.
+stress_tensor_coefficient_sanity_check() აჩვენებს, რომ T-ის არასწორი
+ნორმალიზაცია ამ ფონზე არანულოვან residual-ს ტოვებს; ეს არის
+კონვენციის sanity-check, არა მთელი თეორიის ფალსიფიკაცია.
 """
 
 import sympy as sp
@@ -735,8 +738,8 @@ def evaluate_on_background(name, lagrangian_mode="full", t_factor=1):
     """
     ფონური Bianchi/Noether იდენტობის ცდა.
 
-    t_factor: T-ის ცდის გადანამრავლება. სწორი მნიშვნელობა 1; falsification
-    ცდისთვის t_factor != 1 — residual მაშინ ცხადად არანულოვანი.
+    t_factor: T-ის ცდის გადანამრავლება. სწორი მნიშვნელობა 1; sanity
+    check-ისთვის t_factor != 1 — residual მაშინ ცხადად არანულოვანი.
 
     ცდა:
     1. T_cov[μ,μ] = 2 * dL/dq_μ - L/q_μ  (q_μ = g^{μμ}, q-ის ფუნქცია)
@@ -849,15 +852,16 @@ def evaluate_on_background(name, lagrangian_mode="full", t_factor=1):
 
 
 # ============================================================================
-# Falsification ცდა — ვაჩვენებთ რომ Noether იდენტობა მცდარ T-ს იჭერს
+# Stress-tensor coefficient sanity check — Noether identity catches a wrong T coefficient
 # ============================================================================
 
 
-def falsification_test():
+def stress_tensor_coefficient_sanity_check():
     """
     სცადე T-ის ცდა გადანამრავლებული t_factor = 3 ფაქტორით.
-    residual მაშინ უნდა იყოს არანულოვანი — ცდა მართლა ფარდდება T-ის
-    ფორმულის სისწორეს.
+    residual მაშინ უნდა იყოს არანულოვანი. ეს ამოწმებს სტრეს-ტენზორის
+    კოეფიციენტის კონვენციას კონკრეტულ ფონზე; ეს არ არის მთელი თეორიის
+    ფალსიფიკაციის ტესტი.
     """
     correct = evaluate_on_background("flrw", lagrangian_mode="reduced_y_i1", t_factor=1)
     wrong = evaluate_on_background("flrw", lagrangian_mode="reduced_y_i1", t_factor=3)
@@ -877,10 +881,14 @@ def convention_summary():
         "B_AB": "B^{AB} = -g^{mu nu} d_mu phi^A d_nu phi^B",
         "stress_tensor": "T_{mu nu} = 2*dL/dg^{mu nu} - g_{mu nu}*L",
         "phase_relation": (
-            "p02_cosmo.py ემთხვევა; p01_core.py-ის mixed "
-            "ფორმა ამ კონვენციით უნდა გადაიწეროს"
+            "p02_cosmo.py და p01_core.py stress sections იყენებენ ამავე "
+            "კონვენციას; mixed convention ცვლილება უნდა დაიბლოკოს NOTATION header-ით"
         ),
-        "no_ghost": "იხ. NOTATION.md Full No-Ghost Window; X-scheme pure branch-ში c_Y < 0.",
+        "no_ghost": (
+            "იხ. NOTATION.md Full No-Ghost Window. Y-სქემაში K_Y>0 იწერება "
+            "Y-ის კოეფიციენტებით; X-სქემაში Y=-2X, ამიტომ იგივე ფიზიკური "
+            "კინეტიკური ნიშანი X-ის კოეფიციენტში საპირისპიროდ ჩანს."
+        ),
     }
 
 
@@ -911,7 +919,7 @@ if __name__ == "__main__" and _should_run_main_section("stress"):
     offdiag_ok, offdiag_wrong = offdiag_variation_smoke_test()
     print(f"  symmetric ვარიაცია residual: {reduce_zero(offdiag_ok)}")
     print(f"  ფაქტორ-2 ცდომილების residual ნულია? {reduce_zero(offdiag_wrong) == 0}")
-    print(f"  ცდის სტატუსი: {'OK' if reduce_zero(offdiag_ok) == 0 else 'CHECK'}")
+    print(f"  ცდის სტატუსი: {'PASS' if reduce_zero(offdiag_ok) == 0 else 'CHECK'}")
 
     print("\n3. Bianchi/Noether იდენტობა ფონებზე")
     backgrounds = [
@@ -927,14 +935,14 @@ if __name__ == "__main__" and _should_run_main_section("stress"):
         print(f"\n--- {name} ({mode}) ---")
         print(f"  invariants (Y, I1, I2, I3): {result['invariants']}")
         print(f"  residual vector: {residual}")
-        print(f"  status: {'OK' if residual_ok else 'CHECK'}")
+        print(f"  status: {'PASS' if residual_ok else 'CHECK'}")
 
-    print("\n4. Falsification ცდა — Noether იდენტობა ფარდდება T-ის ფორმულას?")
-    correct_ok, wrong_fails, correct_res, wrong_res = falsification_test()
+    print("\n4. Stress-tensor coefficient sanity check — Noether იდენტობა ფარდდება T-ის კოეფიციენტს?")
+    correct_ok, wrong_fails, correct_res, wrong_res = stress_tensor_coefficient_sanity_check()
     print(f"  სწორი T (t_factor=1): residual ნული? {correct_ok}")
     print(f"  მცდარი T (t_factor=3): residual არანული? {wrong_fails}")
     if correct_ok and wrong_fails:
-        print("  ცდის სტატუსი: OK — იდენტობა ფაქტობრივად ფარდდება")
+        print("  ცდის სტატუსი: PASS — იდენტობა კონკრეტულ ფონზე კოეფიციენტის შეცდომას იჭერს")
     else:
         print("  ცდის სტატუსი: CHECK — ცდა არ ფარდდება სწორ/მცდარ T-ს")
 
@@ -948,9 +956,9 @@ if __name__ == "__main__" and _should_run_main_section("stress"):
     print("  - Minkowski/FLRW/Bianchi I diagonal ფონებზე იდენტობა შემოწმდა სრული L-ით")
     print("  - Schwarzschild diagonal ფონზე — reduced Y+I1 smoke-test")
     print("  - off-diagonal ვარიაცია smoke-test-ით შემოწმდა")
-    print("  - falsification ცდამ აჩვენა რომ იდენტობა მცდარი T-ის ფორმულას იჭერს")
+    print("  - sanity check-მა აჩვენა, რომ იდენტობა ამ ფონზე მცდარ T-კოეფიციენტს იჭერს")
     print("  - generic non-diagonal ფონებზე სრული proof ჯერ ღია")
-    print("  - შემდეგი ნაბიჯი: NOTATION.md + p01_core/phase6 გადაწერა")
+    print("  - შემდეგი ნაბიჯი: generic non-diagonal ფონების proof და სრული perturbation audit")
 
 
 # ===================== merged from p01_core.py =====================
@@ -1534,7 +1542,12 @@ def horndeski_y_sector_alphas():
         alpha_K = (2X*G2_X + 4X^2*G2_XX)/(H^2*M_Pl^2)
                 = (-4*c_Y*X + 48*c_Y2*X^2)/(H^2*M_Pl^2)
 
-    If I1 is treated as a fixed background spurion, c_YI1*Y*I1 contributes
+    This block does not impose a new sign convention.  It translates the
+    Y-scheme coefficient into the standard X variable.  Since Y=-2X, the
+    coefficient multiplying X carries the opposite sign from the coefficient
+    multiplying Y.
+
+    If I1 is treated as a fixed background value, c_YI1*Y*I1 contributes
     by c_Y -> c_Y + c_YI1*I1_bg in G2.
     """
     X, I1_bg = sp.symbols("X I1_bg", real=True)
@@ -1556,8 +1569,16 @@ def horndeski_y_sector_alphas():
         "alpha_M_Y_sector": sp.Integer(0),
         "alpha_B_Y_sector": sp.Integer(0),
         "alpha_K_pure": alpha_k(G2_pure),
-        "alpha_K_with_I1_spurion": alpha_k(G2_with_i1),
-        "ghost_rule_X_scheme": "require alpha_K_total > 0; for pure low-X branch this pushes c_Y < 0 in X convention",
+        "alpha_K_with_I1_background": alpha_k(G2_with_i1),
+        "Y_to_X_sign_bridge": (
+            "Y=-2X. A positive Y-scheme phase coefficient appears with the "
+            "opposite sign in the X-scheme G2_X coefficient; compare kinetic "
+            "positivity only after choosing one scheme."
+        ),
+        "ghost_rule_X_scheme": (
+            "require alpha_K_total > 0 in the X scheme; this is the translated "
+            "form of the Y-scheme no-ghost window, not an independent c_Y sign rule."
+        ),
     }
 
 
@@ -1761,7 +1782,7 @@ if __name__ == "__main__" and _should_run_main_section("eft"):
 
     print("\n7. Status")
     print("  - Strategy 3 X4: background-dependent phase no-ghost window is now explicit.")
-    print("  - Strategy 3 M3: alpha_K formula is corrected and solid-sector deltas are visible.")
+    print("  - Strategy 3 M3: alpha_K formula is written explicitly and solid-sector deltas are visible.")
     print("  - Full ESS perturbation derivation and Planck chi^2 fit remain phase21/hi_class work.")
 
 
@@ -1909,25 +1930,25 @@ if __name__ == "__main__" and _should_run_main_section("lorentz"):
 # ===================== OLD BACKBONE INTEGRATION =====================
 
 """
-STAGE A1: OLD backbone -> RFG core integration ledger
+STAGE A1: OLD backbone -> RFG core candidate ledger
 
 Purpose:
-    This block drains the valuable mathematical backbone of the old files
+    This block records the valuable mathematical backbone of the old files
 
         OLD/1. ISPG_FieldEquations.tex
         OLD/2. ISPG_EnergyMomentum.tex
         OLD/3. ISPG_EmergentGeometry.tex
         OLD/11. ISPG_Stability.tex
 
-    into the new working core.  It is intentionally a ledger/theorem layer:
+    inside the new working core.  It is intentionally a candidate ledger:
     the detailed stress, Bianchi, Horndeski/EFT, principal-symbol and Lorentz
     calculations already live above in this same p01_core.py file.
 
 Status:
-    Integrated as RFG-core logic.  The only remaining non-closed item is the
-    full Dirac-Bergmann second-class bracket closure proof; the DOF count and
-    stability scope are made explicit here so the old files no longer carry
-    unique conceptual content.
+    Represented as working RFG-core bookkeeping, not closed theory text.
+    The Dirac-Bergmann second-class bracket closure, anomaly audit, and
+    matter-channel EFT stability remain open.  The DOF count below is a
+    candidate target until that proof is written.
 """
 
 
@@ -1944,7 +1965,7 @@ def old_variational_backbone_ledger():
     """
     G, c = sp.symbols("G c", positive=True)
     kappa = sp.Symbol("kappa_core", real=True)
-    box_phi, T_matter = sp.symbols("Box_phi T_matter", real=True)
+    box_phi_el, box_phi_trace, T_matter = sp.symbols("Box_phi_EL Box_phi_trace T_matter", real=True)
     dphi_sq = sp.Symbol("(d_phi)^2", real=True)
 
     return {
@@ -1955,12 +1976,15 @@ def old_variational_backbone_ledger():
         "metric_equation": "G_mn = 8*pi*G*T_mn^(m) + kappa*T_mn^(phi)",
         "kappa": kappa,
         "legacy_negative_kappa": "rejected; RFG core does not use a wrong-sign scalar sector",
-        "direct_scalar_EL": sp.Eq(box_phi, 0),
-        "reduced_trace_relation": sp.Eq(box_phi, -8 * sp.pi * G * T_matter / c**4),
+        "direct_scalar_EL_unsourced": sp.Eq(box_phi_el, 0),
+        "reduced_trace_relation_not_independent_EL": sp.Eq(
+            box_phi_trace, -8 * sp.pi * G * T_matter / c**4
+        ),
         "divergence_identity": "nabla^m T_mn^(phi) = Box(phi) * d_n phi",
         "conservation_loop": (
             "Bianchi + minimal matter coupling close the system on-shell; "
-            "the sourced scalar relation is reduced-sector consistency."
+            "the sourced scalar relation is a reduced-sector consistency relation, "
+            "not a simultaneous second Euler-Lagrange equation for the same scalar."
         ),
     }
 
@@ -2028,10 +2052,10 @@ def old_constraint_dof_count():
 
 def old_stability_gate():
     """
-    Consolidated stability claims and limits.
+    Consolidated stability bookkeeping and limits.
 
-    This is the logical gate for claiming the old stability material has been
-    transferred into the new RFG core.
+    This is the logical gate for keeping old stability material in the new
+    RFG work file without promoting it to final theory.
     """
     return {
         "hyperbolicity": "covered above by phase24 principal-symbol and well-posedness checks",
@@ -2046,7 +2070,7 @@ def old_stability_gate():
             "wrong-sign energy channels are not claimed closed until the "
             "Dirac-bracket closure and EFT matter-channel audit are complete"
         ),
-        "old_files_drained": [
+        "old_files_represented_as_candidate_ledgers": [
             "OLD/1. ISPG_FieldEquations.tex",
             "OLD/2. ISPG_EnergyMomentum.tex",
             "OLD/3. ISPG_EmergentGeometry.tex",
@@ -2061,13 +2085,13 @@ def stage_a1_old_backbone_status():
         "operational_geometry": old_operational_geometry_ledger(),
         "constraint_dof": old_constraint_dof_count(),
         "stability_gate": old_stability_gate(),
-        "integration_status": "Stage A.1 integrated into p01_core.py",
+        "integration_status": "Stage A.1 represented in p01_core.py as candidate/open-proof bookkeeping",
     }
 
 
 if __name__ == "__main__" and _should_run_main_section("old"):
     print("=" * 72)
-    print("STAGE A1: OLD backbone -> RFG core integration ledger")
+    print("STAGE A1: OLD backbone -> RFG core candidate ledger")
     print("=" * 72)
 
     status = stage_a1_old_backbone_status()
@@ -2089,10 +2113,11 @@ if __name__ == "__main__" and _should_run_main_section("old"):
     for key, value in gate.items():
         print(f"  {key:26s}: {value}")
 
-    print("\n5. Integration verdict")
-    print("  - OLD field-equation, stress, emergent-geometry and stability ledgers")
-    print("    are now represented inside p01_core.py.")
-    print("  - Remaining proof target: full second-class bracket closure/anomaly audit.")
+    print("\n5. Candidate ledger verdict")
+    print("  - OLD field-equation, stress, emergent-geometry and stability material")
+    print("    is represented inside p01_core.py as working bookkeeping, not final theory.")
+    print("  - Remaining proof targets: full second-class bracket closure/anomaly audit")
+    print("    and matter-channel EFT stability.")
 
 
 if __name__ == "__main__" and not _requested_main_sections():
